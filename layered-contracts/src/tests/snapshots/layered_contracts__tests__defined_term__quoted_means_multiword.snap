@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"\"Effective Date\" means the date of this Agreement\"#)"
+---
+"  Effective     Date  "     means     the     date     of     this     Agreement
+                             ╰───╯Means
+╰────────────────────────────────╯Scored(DefinedTerm { term_name: "Effective Date", definition_type: QuotedMeans }, conf: 0.95)

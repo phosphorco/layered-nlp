@@ -1,0 +1,6 @@
+---
+source: layered-contracts/src/tests/obligation.rs
+expression: "test_obligations(\"shall deliver goods.\")"
+---
+shall     deliver     goods  .
+╰───╯Shall

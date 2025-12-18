@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/obligation.rs
+expression: "test_obligations(r#\"ABC Corp (the \"Company\") shall not disclose confidential information.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )     shall     not     disclose     confidential     information  .
+                                                 ╰───╯Shall
+                                                 ╰───────────╯ShallNot
+                 ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
+                                                 ╰───────────╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Prohibition, action: "disclose confidential information", conditions: [] }, conf: 0.75)

@@ -1,0 +1,6 @@
+---
+source: layered-contracts/src/tests/pronoun_chain.rs
+expression: "test_chains(r#\"The vendor exists. It shall deliver.\"#)"
+---
+The     vendor     exists  .     It     shall     deliver  .
+                                 ╰╯Scored(PronounReference { pronoun: "It", pronoun_type: ThirdSingularNeuter, candidates: [AntecedentCandidate { text: "vendor", is_defined_term: false, token_distance: 10, confidence: 0.44999999999999996 }] }, conf: 0.45)

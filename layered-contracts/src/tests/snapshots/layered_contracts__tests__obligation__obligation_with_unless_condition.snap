@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/obligation.rs
+expression: "test_obligations(r#\"ABC Corp (the \"Company\") shall deliver goods unless otherwise agreed.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )     shall     deliver     goods     unless     otherwise     agreed  .
+                                                 ╰───╯Shall
+                                                                                 ╰────╯Unless
+                 ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
+                                                 ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "deliver goods", conditions: [ConditionRef { condition_type: Unless, text_preview: "otherwise agreed" }] }, conf: 0.75)

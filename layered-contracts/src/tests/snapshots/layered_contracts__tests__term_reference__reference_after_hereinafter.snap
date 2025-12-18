@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/term_reference.rs
+expression: "test_term_references(r#\"ABC Corp, hereinafter \"Company\". The Company shall comply.\"#)"
+---
+ABC     Corp  ,     hereinafter     "  Company  "  .     The     Company     shall     comply  .
+                    ╰─────────╯Hereinafter
+                                                                             ╰───╯Shall
+                    ╰───────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Hereinafter }, conf: 0.90)
+                                                                 ╰─────╯Scored(TermReference { term_name: "Company", definition_type: Hereinafter }, conf: 0.95)

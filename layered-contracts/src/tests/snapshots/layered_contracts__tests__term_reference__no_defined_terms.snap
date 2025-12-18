@@ -1,0 +1,6 @@
+---
+source: layered-contracts/src/tests/term_reference.rs
+expression: "test_term_references(\"The Company shall deliver goods to the Contractor.\")"
+---
+The     Company     shall     deliver     goods     to     the     Contractor  .
+                    ╰───╯Shall

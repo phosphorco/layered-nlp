@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/pronoun.rs
+expression: "test_pronouns(r#\"\"Company\" means ABC Corp. The Company shall deliver.\"#)"
+---
+"  Company  "     means     ABC     Corp  .     The     Company     shall     deliver  .
+                  ╰───╯Means
+                                                                    ╰───╯Shall
+╰─────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: QuotedMeans }, conf: 0.95)
+                                                        ╰─────╯Scored(TermReference { term_name: "Company", definition_type: QuotedMeans }, conf: 0.95)

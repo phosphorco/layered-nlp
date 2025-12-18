@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/obligation.rs
+expression: "test_obligations(r#\"ABC Corp (the \"Company\") shall pay the fee subject to Section 5.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )     shall     pay     the     fee     subject     to     Section     5  .
+                                                 ╰───╯Shall
+                                                                                   ╰────────────╯SubjectTo
+                 ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
+                                                 ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "pay the fee", conditions: [ConditionRef { condition_type: SubjectTo, text_preview: "Section 5" }] }, conf: 0.75)

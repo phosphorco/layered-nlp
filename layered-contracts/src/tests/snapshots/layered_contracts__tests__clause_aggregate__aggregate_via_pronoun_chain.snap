@@ -1,0 +1,8 @@
+---
+source: layered-contracts/src/tests/clause_aggregate.rs
+expression: "test_clause_aggregates(r#\"ABC Corp (the \"Company\") exists. It shall deliver goods. It shall pay fees.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )     exists  .     It     shall     deliver     goods  .     It     shall     pay     fees  .
+                                                                      ╰───╯Scored(ContractClause { clause_id: 17, source_offset: 17, obligor: ClauseParty { display_text: "Company", chain_id: Some(1), has_verified_chain: false }, duty: ClauseDuty { obligation_type: Duty, action: "deliver goods" }, conditions: [] }, conf: 0.90)
+                                                                                                                ╰───╯Scored(ContractClause { clause_id: 26, source_offset: 26, obligor: ClauseParty { display_text: "Company", chain_id: Some(1), has_verified_chain: false }, duty: ClauseDuty { obligation_type: Duty, action: "pay fees" }, conditions: [] }, conf: 0.75)
+                                                                      ╰───╯Scored(ClauseAggregate { aggregate_id: 1, obligor: ClauseParty { display_text: "Company", chain_id: Some(1), has_verified_chain: false }, clause_ids: [17, 26], clauses: [ClauseAggregateEntry { clause_id: 17, duty: ClauseDuty { obligation_type: Duty, action: "deliver goods" }, conditions: [], clause_confidence: 0.9 }, ClauseAggregateEntry { clause_id: 26, duty: ClauseDuty { obligation_type: Duty, action: "pay fees" }, conditions: [], clause_confidence: 0.75 }], source_start: 17, source_end: 26 }, conf: 0.75)

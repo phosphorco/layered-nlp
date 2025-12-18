@@ -1,0 +1,8 @@
+---
+source: layered-contracts/src/tests/pronoun_chain.rs
+expression: "test_chains(r#\"ABC Corp (the \"Company\") exists. It shall deliver.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )     exists  .     It     shall     deliver  .
+                 ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
+                                                               ╰╯Scored(PronounReference { pronoun: "It", pronoun_type: ThirdSingularNeuter, candidates: [AntecedentCandidate { text: "Company", is_defined_term: true, token_distance: 10, confidence: 0.85 }, AntecedentCandidate { text: "ABC", is_defined_term: false, token_distance: 20, confidence: 0.45000000000000007 }, AntecedentCandidate { text: "Corp", is_defined_term: false, token_distance: 18, confidence: 0.45000000000000007 }] }, conf: 0.65)
+                 ╰─────────────────────────╯Scored(PronounChain { chain_id: 1, canonical_name: "Company", is_defined_term: true, mentions: [ChainMention { text: "Company", mention_type: Definition, confidence: 0.9, token_offset: 4 }, ChainMention { text: "It", mention_type: Pronoun, confidence: 0.85, token_offset: 15 }], has_verified_mention: false }, conf: 0.90)

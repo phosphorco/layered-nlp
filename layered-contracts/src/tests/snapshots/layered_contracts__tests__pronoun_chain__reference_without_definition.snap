@@ -1,0 +1,5 @@
+---
+source: layered-contracts/src/tests/pronoun_chain.rs
+expression: "test_chains(r#\"The Company shall deliver. The Company shall pay.\"#)"
+---
+The     Company     shall     deliver  .     The     Company     shall     pay  .

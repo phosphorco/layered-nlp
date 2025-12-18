@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"ABC Corp, hereinafter \"Company\"\"#)"
+---
+ABC     Corp  ,     hereinafter     "  Company  "
+                    ╰─────────╯Hereinafter
+                    ╰───────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Hereinafter }, conf: 0.90)

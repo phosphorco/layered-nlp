@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/obligation.rs
+expression: "test_obligations(\"The Vendor shall deliver products.\")"
+---
+The     Vendor     shall     deliver     products  .
+                   ╰───╯Shall
+                   ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Vendor" }, obligation_type: Duty, action: "deliver products", conditions: [] }, conf: 0.75)

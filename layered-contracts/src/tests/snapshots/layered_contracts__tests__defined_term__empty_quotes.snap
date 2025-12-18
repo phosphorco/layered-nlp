@@ -1,0 +1,6 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"\"\" means nothing\"#)"
+---
+"  "     means     nothing
+         ╰───╯Means

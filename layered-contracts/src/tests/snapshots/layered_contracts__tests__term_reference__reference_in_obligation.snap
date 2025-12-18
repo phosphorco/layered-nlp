@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/term_reference.rs
+expression: "test_term_references(r#\"\"Service Provider\" means ABC Corp. The Service Provider shall deliver services.\"#)"
+---
+"  Service     Provider  "     means     ABC     Corp  .     The     Service     Provider     shall     deliver     services  .
+                               ╰───╯Means
+                                                                                              ╰───╯Shall
+╰──────────────────────────────────╯Scored(DefinedTerm { term_name: "Service Provider", definition_type: QuotedMeans }, conf: 0.95)
+                                                                     ╰──────────────────╯Scored(TermReference { term_name: "Service Provider", definition_type: QuotedMeans }, conf: 0.95)

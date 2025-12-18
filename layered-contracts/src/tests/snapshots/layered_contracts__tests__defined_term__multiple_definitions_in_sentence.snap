@@ -1,0 +1,8 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"\"Company\" means ABC Corp (the \"Parent\") and its subsidiaries\"#)"
+---
+"  Company  "     means     ABC     Corp     (  the     "  Parent  "  )     and     its     subsidiaries
+                  ╰───╯Means
+╰─────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: QuotedMeans }, conf: 0.95)
+                                             ╰────────────────────────╯Scored(DefinedTerm { term_name: "Parent", definition_type: Parenthetical }, conf: 0.90)

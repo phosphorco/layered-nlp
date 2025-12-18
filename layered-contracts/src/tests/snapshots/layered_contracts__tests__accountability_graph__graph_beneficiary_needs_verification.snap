@@ -1,0 +1,8 @@
+---
+source: layered-contracts/src/tests/accountability_graph.rs
+expression: "test_graph(r#\"The Vendor shall deliver goods to Regional Authority.\"#)"
+---
+The     Vendor     shall     deliver     goods     to     Regional     Authority  .
+                   ╰───╯Scored(ContractClause { clause_id: 4, source_offset: 4, obligor: ClauseParty { display_text: "Vendor", chain_id: None, has_verified_chain: false }, duty: ClauseDuty { obligation_type: Duty, action: "deliver goods to Regional Authority" }, conditions: [] }, conf: 0.75)
+                   ╰───╯Scored(ClauseAggregate { aggregate_id: 1, obligor: ClauseParty { display_text: "Vendor", chain_id: None, has_verified_chain: false }, clause_ids: [4], clauses: [ClauseAggregateEntry { clause_id: 4, duty: ClauseDuty { obligation_type: Duty, action: "deliver goods to Regional Authority" }, conditions: [], clause_confidence: 0.75 }], source_start: 4, source_end: 4 }, conf: 0.70)
+                   ╰───╯Scored(ObligationNode { node_id: 1, aggregate_id: 1, obligor: ClauseParty { display_text: "Vendor", chain_id: None, has_verified_chain: false }, beneficiaries: [BeneficiaryLink { display_text: "Regional Authority", chain_id: None, has_verified_chain: false, needs_verification: true, source_clause_id: 4 }], condition_links: [], clauses: [ClauseAggregateEntry { clause_id: 4, duty: ClauseDuty { obligation_type: Duty, action: "deliver goods to Regional Authority" }, conditions: [], clause_confidence: 0.75 }], verification_notes: [], confidence_breakdown: ["Layer8 aggregate: 0.70", "Unresolved beneficiary penalty: -0.10", "Layer9 result: 0.60"] }, conf: 0.60)

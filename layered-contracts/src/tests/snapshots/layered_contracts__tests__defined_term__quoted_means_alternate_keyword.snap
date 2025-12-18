@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"\"Services\" mean all consulting work\"#)"
+---
+"  Services  "     mean     all     consulting     work
+                   ╰──╯Means
+╰─────────────────────╯Scored(DefinedTerm { term_name: "Services", definition_type: QuotedMeans }, conf: 0.95)

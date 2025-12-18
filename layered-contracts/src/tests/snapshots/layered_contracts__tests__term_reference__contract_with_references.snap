@@ -1,0 +1,10 @@
+---
+source: layered-contracts/src/tests/term_reference.rs
+expression: "test_term_references(r#\"This Agreement is between ABC Corporation (the \"Company\") and John Doe (the \"Consultant\"). The Company shall pay the Consultant.\"#)"
+---
+This     Agreement     is     between     ABC     Corporation     (  the     "  Company  "  )     and     John     Doe     (  the     "  Consultant  "  )  .     The     Company     shall     pay     the     Consultant  .
+                                                                                                                                                                                     ╰───╯Shall
+                                                                  ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
+                                                                                                                           ╰────────────────────────────╯Scored(DefinedTerm { term_name: "Consultant", definition_type: Parenthetical }, conf: 0.90)
+                                                                                                                                                                         ╰─────╯Scored(TermReference { term_name: "Company", definition_type: Parenthetical }, conf: 0.95)
+                                                                                                                                                                                                               ╰────────╯Scored(TermReference { term_name: "Consultant", definition_type: Parenthetical }, conf: 0.95)

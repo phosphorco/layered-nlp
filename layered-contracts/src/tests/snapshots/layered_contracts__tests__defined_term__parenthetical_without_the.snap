@@ -1,0 +1,6 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"John Smith (\"Contractor\")\"#)"
+---
+John     Smith     (  "  Contractor  "  )
+                   ╰────────────────────╯Scored(DefinedTerm { term_name: "Contractor", definition_type: Parenthetical }, conf: 0.90)

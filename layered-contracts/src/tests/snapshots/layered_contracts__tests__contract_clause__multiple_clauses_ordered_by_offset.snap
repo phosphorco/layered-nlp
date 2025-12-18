@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/contract_clause.rs
+expression: "test_clauses(r#\"ABC Corp (the \"Seller\") shall deliver goods. XYZ Inc (the \"Buyer\") may inspect the goods.\"#)"
+---
+ABC     Corp     (  the     "  Seller  "  )     shall     deliver     goods  .     XYZ     Inc     (  the     "  Buyer  "  )     may     inspect     the     goods  .
+                                                ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Seller" }, obligation_type: Duty, action: "deliver goods", conditions: [] }, conf: 0.75)
+                                                                                                                                 ╰─╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Buyer" }, obligation_type: Permission, action: "inspect the goods", conditions: [] }, conf: 0.75)
+                                                ╰───╯Scored(ContractClause { clause_id: 12, source_offset: 12, obligor: ClauseParty { display_text: "Seller", chain_id: None, has_verified_chain: false }, duty: ClauseDuty { obligation_type: Duty, action: "deliver goods" }, conditions: [] }, conf: 0.75)
+                                                                                                                                 ╰─╯Scored(ContractClause { clause_id: 31, source_offset: 31, obligor: ClauseParty { display_text: "Buyer", chain_id: None, has_verified_chain: false }, duty: ClauseDuty { obligation_type: Permission, action: "inspect the goods" }, conditions: [] }, conf: 0.75)

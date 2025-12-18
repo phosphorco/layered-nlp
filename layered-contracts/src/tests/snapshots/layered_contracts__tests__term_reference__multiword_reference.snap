@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/term_reference.rs
+expression: "test_term_references(r#\"\"Effective Date\" means January 1. The Effective Date shall govern.\"#)"
+---
+"  Effective     Date  "     means     January     1  .     The     Effective     Date     shall     govern  .
+                             ╰───╯Means
+                                                                                           ╰───╯Shall
+╰────────────────────────────────╯Scored(DefinedTerm { term_name: "Effective Date", definition_type: QuotedMeans }, conf: 0.95)
+                                                                    ╰────────────────╯Scored(TermReference { term_name: "Effective Date", definition_type: QuotedMeans }, conf: 0.95)

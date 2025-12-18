@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/term_reference.rs
+expression: "test_term_references(r#\"ABC Corp (the \"Company\"). The Company shall act. Company agrees.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )  .     The     Company     shall     act  .     Company     agrees  .
+                                                                        ╰───╯Shall
+                 ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
+                                                            ╰─────╯Scored(TermReference { term_name: "Company", definition_type: Parenthetical }, conf: 0.95)
+                                                                                             ╰─────╯Scored(TermReference { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)

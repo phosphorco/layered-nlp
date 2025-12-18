@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"Acme Inc. (the \"Purchasing Party\")\"#)"
+---
+Acme     Inc  .     (  the     "  Purchasing     Party  "  )
+                                                 ╰───╯Party
+                    ╰──────────────────────────────────────╯Scored(DefinedTerm { term_name: "Purchasing Party", definition_type: Parenthetical }, conf: 0.90)

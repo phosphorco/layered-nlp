@@ -1,0 +1,8 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"\"Confidential Information\" means any information disclosed by one party\"#)"
+---
+"  Confidential     Information  "     means     any     information     disclosed     by     one     party
+                                       ╰───╯Means
+                                                                                                      ╰───╯Party
+╰──────────────────────────────────────────╯Scored(DefinedTerm { term_name: "Confidential Information", definition_type: QuotedMeans }, conf: 0.95)

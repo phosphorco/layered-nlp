@@ -1,0 +1,6 @@
+---
+source: layered-contracts/src/tests/pronoun.rs
+expression: "test_pronouns(\"It shall deliver goods.\")"
+---
+It     shall     deliver     goods  .
+       ╰───╯Shall

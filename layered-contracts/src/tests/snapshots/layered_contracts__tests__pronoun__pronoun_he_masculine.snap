@@ -1,0 +1,8 @@
+---
+source: layered-contracts/src/tests/pronoun.rs
+expression: "test_pronouns(r#\"John Doe (the \"Consultant\") agrees. He shall provide services.\"#)"
+---
+John     Doe     (  the     "  Consultant  "  )     agrees  .     He     shall     provide     services  .
+                                                                         ╰───╯Shall
+                 ╰────────────────────────────╯Scored(DefinedTerm { term_name: "Consultant", definition_type: Parenthetical }, conf: 0.90)
+                                                                  ╰╯Scored(PronounReference { pronoun: "He", pronoun_type: ThirdSingularMasculine, candidates: [AntecedentCandidate { text: "Consultant", is_defined_term: true, token_distance: 12, confidence: 0.81 }, AntecedentCandidate { text: "John", is_defined_term: false, token_distance: 22, confidence: 0.45000000000000007 }, AntecedentCandidate { text: "Doe", is_defined_term: false, token_distance: 20, confidence: 0.45000000000000007 }] }, conf: 0.61)

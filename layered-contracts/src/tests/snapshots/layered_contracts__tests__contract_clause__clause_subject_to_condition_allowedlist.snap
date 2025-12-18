@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/contract_clause.rs
+expression: "test_clauses(r#\"ABC Corp (the \"Company\") shall pay the fee subject to Section 5.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )     shall     pay     the     fee     subject     to     Section     5  .
+                                                 ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "pay the fee", conditions: [ConditionRef { condition_type: SubjectTo, text_preview: "Section 5" }] }, conf: 0.75)
+                                                 ╰───╯Scored(ContractClause { clause_id: 12, source_offset: 12, obligor: ClauseParty { display_text: "Company", chain_id: None, has_verified_chain: false }, duty: ClauseDuty { obligation_type: Duty, action: "pay the fee" }, conditions: [ClauseCondition { condition_type: SubjectTo, text: "Section 5", mentions_unknown_entity: false }] }, conf: 0.75)

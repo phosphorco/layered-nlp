@@ -1,0 +1,10 @@
+---
+source: layered-contracts/src/tests/obligation.rs
+expression: "test_obligations(r#\"If payment is late, the Company shall deliver, and the Vendor shall refund.\"#)"
+---
+If     payment     is     late  ,     the     Company     shall     deliver  ,     and     the     Vendor     shall     refund  .
+╰╯If
+                                                          ╰───╯Shall
+                                                                                                              ╰───╯Shall
+                                                          ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "deliver", conditions: [ConditionRef { condition_type: If, text_preview: "payment is late" }] }, conf: 0.75)
+                                                                                                              ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Vendor" }, obligation_type: Duty, action: "refund", conditions: [] }, conf: 0.75)

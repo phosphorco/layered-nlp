@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/obligation.rs
+expression: "test_obligations(r#\"If approved, the fee applies. ABC Corp (the \"Company\") shall deliver goods.\"#)"
+---
+If     approved  ,     the     fee     applies  .     ABC     Corp     (  the     "  Company  "  )     shall     deliver     goods  .
+╰╯If
+                                                                                                       ╰───╯Shall
+                                                                       ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
+                                                                                                       ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "deliver goods", conditions: [] }, conf: 0.75)

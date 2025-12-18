@@ -1,0 +1,33 @@
+# When releasing to crates.io:
+# - Remove path dependencies
+# - Update html_root_url.
+# - Update doc url
+#   - Cargo.toml
+#   - README.md
+# - Create "v0.1.x" git tag
+
+[package]
+name = "layered-contracts"
+version = "0.1.0"
+authors = [
+  "Cole Lawrence <cole@colelawrence.com>",
+]
+edition = "2018"
+description = "Contract language analysis plugin for layered-nlp"
+repository = "https://github.com/storyscript/layered-nlp"
+homepage = "https://github.com/storyscript/layered-nlp"
+license = "MIT OR Apache-2.0"
+categories = [
+    "text-processing",
+    "parsing",
+]
+keywords = ["layered-nlp", "nlp", "contracts", "legal"]
+
+[dependencies]
+layered-nlp = { path = "..", version = "0.1", default-features = false }
+layered-part-of-speech = { path = "../layered-part-of-speech", version = "0.1" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+insta = "1.7"

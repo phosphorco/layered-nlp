@@ -1,0 +1,10 @@
+---
+source: layered-contracts/src/tests/pronoun.rs
+expression: "test_pronouns(r#\"The Service Provider shall deliver services. It shall ensure quality. It must comply with standards.\"#)"
+---
+The     Service     Provider     shall     deliver     services  .     It     shall     ensure     quality  .     It     must     comply     with     standards  .
+                                 ╰───╯Shall
+                                                                              ╰───╯Shall
+                                                                                                                         ╰──╯Shall
+                                                                       ╰╯Scored(PronounReference { pronoun: "It", pronoun_type: ThirdSingularNeuter, candidates: [AntecedentCandidate { text: "Service", is_defined_term: false, token_distance: 29, confidence: 0.35 }, AntecedentCandidate { text: "Provider", is_defined_term: false, token_distance: 27, confidence: 0.35 }, AntecedentCandidate { text: "services", is_defined_term: false, token_distance: 21, confidence: 0.35 }] }, conf: 0.35)
+                                                                                                                  ╰╯Scored(PronounReference { pronoun: "It", pronoun_type: ThirdSingularNeuter, candidates: [AntecedentCandidate { text: "quality", is_defined_term: false, token_distance: 12, confidence: 0.41000000000000003 }, AntecedentCandidate { text: "Service", is_defined_term: false, token_distance: 29, confidence: 0.35 }, AntecedentCandidate { text: "Provider", is_defined_term: false, token_distance: 27, confidence: 0.35 }, AntecedentCandidate { text: "services", is_defined_term: false, token_distance: 21, confidence: 0.35 }, AntecedentCandidate { text: "It", is_defined_term: false, token_distance: 18, confidence: 0.35 }] }, conf: 0.41)

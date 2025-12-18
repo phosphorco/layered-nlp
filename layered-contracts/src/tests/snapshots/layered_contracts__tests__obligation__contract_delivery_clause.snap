@@ -1,0 +1,8 @@
+---
+source: layered-contracts/src/tests/obligation.rs
+expression: "test_obligations(r#\"ABC Corporation (the \"Seller\") shall deliver the Products to Buyer within thirty days of the Effective Date.\"#)"
+---
+ABC     Corporation     (  the     "  Seller  "  )     shall     deliver     the     Products     to     Buyer     within     thirty     days     of     the     Effective     Date  .
+                                                       ╰───╯Shall
+                        ╰────────────────────────╯Scored(DefinedTerm { term_name: "Seller", definition_type: Parenthetical }, conf: 0.90)
+                                                       ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Seller" }, obligation_type: Duty, action: "deliver the Products to Buyer within thirty days of the Effective Date", conditions: [] }, conf: 0.75)

@@ -1,0 +1,6 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(\"ABC Corporation means the company\")"
+---
+ABC     Corporation     means     the     company
+                        ╰───╯Means

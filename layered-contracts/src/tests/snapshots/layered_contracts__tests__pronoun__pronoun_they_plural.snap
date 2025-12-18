@@ -1,0 +1,10 @@
+---
+source: layered-contracts/src/tests/pronoun.rs
+expression: "test_pronouns(r#\"\"Parties\" means the Company and Contractor. They shall cooperate.\"#)"
+---
+"  Parties  "     means     the     Company     and     Contractor  .     They     shall     cooperate  .
+   ╰─────╯Party
+                  ╰───╯Means
+                                                                                   ╰───╯Shall
+╰─────────────────────╯Scored(DefinedTerm { term_name: "Parties", definition_type: QuotedMeans }, conf: 0.95)
+                                                                          ╰──╯Scored(PronounReference { pronoun: "They", pronoun_type: ThirdPlural, candidates: [AntecedentCandidate { text: "Parties", is_defined_term: true, token_distance: 16, confidence: 0.75 }, AntecedentCandidate { text: "Contractor", is_defined_term: false, token_distance: 8, confidence: 0.33999999999999997 }, AntecedentCandidate { text: "and", is_defined_term: false, token_distance: 10, confidence: 0.3 }, AntecedentCandidate { text: "Company", is_defined_term: false, token_distance: 12, confidence: 0.26 }, AntecedentCandidate { text: "means", is_defined_term: false, token_distance: 16, confidence: 0.2 }] }, conf: 0.75)

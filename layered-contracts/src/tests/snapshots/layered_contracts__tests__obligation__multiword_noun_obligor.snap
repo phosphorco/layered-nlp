@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/obligation.rs
+expression: "test_obligations(\"The Service Provider shall deliver services on time.\")"
+---
+The     Service     Provider     shall     deliver     services     on     time  .
+                                 ╰───╯Shall
+                                 ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Service Provider" }, obligation_type: Duty, action: "deliver services on time", conditions: [] }, conf: 0.75)

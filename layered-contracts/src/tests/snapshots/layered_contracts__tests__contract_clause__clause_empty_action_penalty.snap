@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/contract_clause.rs
+expression: "test_clauses(r#\"ABC Corp (the \"Company\") shall.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )     shall  .
+                                                 ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "", conditions: [] }, conf: 0.65)
+                                                 ╰───╯Scored(ContractClause { clause_id: 12, source_offset: 12, obligor: ClauseParty { display_text: "Company", chain_id: None, has_verified_chain: false }, duty: ClauseDuty { obligation_type: Duty, action: "" }, conditions: [] }, conf: 0.55)

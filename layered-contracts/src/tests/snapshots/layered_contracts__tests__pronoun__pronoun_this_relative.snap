@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/pronoun.rs
+expression: "test_pronouns(r#\"The Agreement contains terms. This shall govern.\"#)"
+---
+The     Agreement     contains     terms  .     This     shall     govern  .
+                                                         ╰───╯Shall
+                                                ╰──╯Scored(PronounReference { pronoun: "This", pronoun_type: Relative, candidates: [AntecedentCandidate { text: "terms", is_defined_term: false, token_distance: 8, confidence: 0.49 }, AntecedentCandidate { text: "Agreement", is_defined_term: false, token_distance: 12, confidence: 0.41000000000000003 }] }, conf: 0.29)

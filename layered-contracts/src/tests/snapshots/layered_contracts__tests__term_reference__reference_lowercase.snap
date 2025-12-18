@@ -1,0 +1,9 @@
+---
+source: layered-contracts/src/tests/term_reference.rs
+expression: "test_term_references(r#\"\"Contractor\" means John Doe. The contractor shall deliver.\"#)"
+---
+"  Contractor  "     means     John     Doe  .     The     contractor     shall     deliver  .
+                     ╰───╯Means
+                                                                          ╰───╯Shall
+╰────────────────────────╯Scored(DefinedTerm { term_name: "Contractor", definition_type: QuotedMeans }, conf: 0.95)
+                                                           ╰────────╯Scored(TermReference { term_name: "Contractor", definition_type: QuotedMeans }, conf: 0.70)

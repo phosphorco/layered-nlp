@@ -1,0 +1,10 @@
+---
+source: layered-contracts/src/tests/term_reference.rs
+expression: "test_term_references(r#\"ABC Corp (the \"Company\") and John Doe (the \"Contractor\"). The Company shall pay the Contractor.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )     and     John     Doe     (  the     "  Contractor  "  )  .     The     Company     shall     pay     the     Contractor  .
+                                                                                                                                    ╰───╯Shall
+                 ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
+                                                                          ╰────────────────────────────╯Scored(DefinedTerm { term_name: "Contractor", definition_type: Parenthetical }, conf: 0.90)
+                                                                                                                        ╰─────╯Scored(TermReference { term_name: "Company", definition_type: Parenthetical }, conf: 0.95)
+                                                                                                                                                              ╰────────╯Scored(TermReference { term_name: "Contractor", definition_type: Parenthetical }, conf: 0.95)

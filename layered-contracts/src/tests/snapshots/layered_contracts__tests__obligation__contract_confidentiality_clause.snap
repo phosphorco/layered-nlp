@@ -1,0 +1,12 @@
+---
+source: layered-contracts/src/tests/obligation.rs
+expression: "test_obligations(r#\"XYZ Inc (the \"Receiving Party\") shall not disclose Confidential Information to any third party unless required by law.\"#)"
+---
+XYZ     Inc     (  the     "  Receiving     Party  "  )     shall     not     disclose     Confidential     Information     to     any     third     party     unless     required     by     law  .
+                                            ╰───╯Party
+                                                            ╰───╯Shall
+                                                                                                                                                     ╰───╯Party
+                                                                                                                                                               ╰────╯Unless
+                                                            ╰───────────╯ShallNot
+                ╰─────────────────────────────────────╯Scored(DefinedTerm { term_name: "Receiving Party", definition_type: Parenthetical }, conf: 0.90)
+                                                            ╰───────────╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Receiving Party" }, obligation_type: Prohibition, action: "disclose Confidential Information to any third party", conditions: [ConditionRef { condition_type: Unless, text_preview: "required by law" }] }, conf: 0.75)

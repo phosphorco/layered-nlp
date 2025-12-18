@@ -1,0 +1,6 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"ABC Corporation (the \"Company\")\"#)"
+---
+ABC     Corporation     (  the     "  Company  "  )
+                        ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)

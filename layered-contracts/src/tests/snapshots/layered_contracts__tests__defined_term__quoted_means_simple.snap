@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"\"Company\" means ABC Corporation\"#)"
+---
+"  Company  "     means     ABC     Corporation
+                  ╰───╯Means
+╰─────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: QuotedMeans }, conf: 0.95)

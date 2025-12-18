@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/contract_clause.rs
+expression: "test_clauses(r#\"ABC Corp (the \"Company\") shall deliver goods if Inspector approves.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )     shall     deliver     goods     if     Inspector     approves  .
+                                                 ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "deliver goods", conditions: [ConditionRef { condition_type: If, text_preview: "Inspector approves" }] }, conf: 0.75)
+                                                 ╰───╯Scored(ContractClause { clause_id: 12, source_offset: 12, obligor: ClauseParty { display_text: "Company", chain_id: None, has_verified_chain: false }, duty: ClauseDuty { obligation_type: Duty, action: "deliver goods" }, conditions: [ClauseCondition { condition_type: If, text: "Inspector approves", mentions_unknown_entity: true }] }, conf: 0.60)

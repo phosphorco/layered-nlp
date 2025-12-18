@@ -1,0 +1,6 @@
+---
+source: layered-contracts/src/tests/pronoun.rs
+expression: "test_pronouns(r#\"ABC Corp (the \"Company\") agrees to deliver its products.\"#)"
+---
+ABC     Corp     (  the     "  Company  "  )     agrees     to     deliver     its     products  .
+                 ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)

@@ -1,0 +1,115 @@
+---
+source: layered-contracts/src/tests/accountability_analytics.rs
+expression: payload.to_json_string()
+---
+{
+  "nodes": [
+    {
+      "node_id": 1,
+      "aggregate_id": 1,
+      "confidence": 0.5,
+      "confidence_breakdown": [
+        "Layer8 aggregate: 0.60",
+        "Unresolved beneficiary penalty: -0.10",
+        "Layer9 result: 0.50"
+      ],
+      "obligor": {
+        "display_text": "Seller",
+        "chain_id": 2,
+        "has_verified_chain": false
+      },
+      "beneficiaries": [
+        {
+          "display_text": "the Buyer",
+          "chain_id": 1,
+          "has_verified_chain": false,
+          "needs_verification": false,
+          "source_clause_id": 27
+        },
+        {
+          "display_text": "Regional Authority",
+          "chain_id": null,
+          "has_verified_chain": false,
+          "needs_verification": true,
+          "source_clause_id": 79
+        }
+      ],
+      "conditions": [
+        {
+          "source_clause_id": 27,
+          "condition_type": "SubjectTo",
+          "text": "Section 5",
+          "mentions_unknown_entity": false
+        },
+        {
+          "source_clause_id": 52,
+          "condition_type": "If",
+          "text": "the Buyer submits a written request ...",
+          "mentions_unknown_entity": false
+        }
+      ],
+      "clauses": [
+        {
+          "clause_id": 27,
+          "obligation_type": "Duty",
+          "action": "deliver goods to the Buyer",
+          "conditions": [
+            {
+              "source_clause_id": 27,
+              "condition_type": "SubjectTo",
+              "text": "Section 5",
+              "mentions_unknown_entity": false
+            }
+          ],
+          "clause_confidence": 0.75
+        },
+        {
+          "clause_id": 52,
+          "obligation_type": "Duty",
+          "action": "obtain Buyer consent",
+          "conditions": [
+            {
+              "source_clause_id": 52,
+              "condition_type": "If",
+              "text": "the Buyer submits a written request ...",
+              "mentions_unknown_entity": false
+            }
+          ],
+          "clause_confidence": 0.7
+        },
+        {
+          "clause_id": 79,
+          "obligation_type": "Duty",
+          "action": "remit fees to Regional Authority",
+          "conditions": [],
+          "clause_confidence": 0.7
+        }
+      ],
+      "needs_verification": true,
+      "notes": []
+    }
+  ],
+  "verification_queue": [
+    {
+      "target": {
+        "BeneficiaryLink": {
+          "node_id": 1,
+          "source_clause_id": 79,
+          "beneficiary_display_text": "Regional Authority"
+        }
+      },
+      "node_id": 1,
+      "clause_id": 79,
+      "obligor": {
+        "display_text": "Seller",
+        "chain_id": 2,
+        "has_verified_chain": false
+      },
+      "details": {
+        "type": "beneficiary",
+        "beneficiary_text": "Regional Authority",
+        "has_chain": false
+      }
+    }
+  ]
+}

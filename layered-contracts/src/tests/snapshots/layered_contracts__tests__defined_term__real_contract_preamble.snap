@@ -1,0 +1,8 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"This Agreement is entered into by ABC Corporation (the \"Company\") and John Doe, hereinafter referred to as the \"Contractor\"\"#)"
+---
+This     Agreement     is     entered     into     by     ABC     Corporation     (  the     "  Company  "  )     and     John     Doe  ,     hereinafter     referred     to     as     the     "  Contractor  "
+                                                                                                                                              ╰─────────╯Hereinafter
+                                                                                  ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
+                                                                                                                                              ╰─────────────────────────────────────────────────────────────────╯Scored(DefinedTerm { term_name: "Contractor", definition_type: Hereinafter }, conf: 0.90)

@@ -1,0 +1,8 @@
+---
+source: layered-contracts/src/tests/pronoun.rs
+expression: "test_pronouns(r#\"John Doe (the \"Contractor\") agrees. It shall comply.\"#)"
+---
+John     Doe     (  the     "  Contractor  "  )     agrees  .     It     shall     comply  .
+                                                                         ╰───╯Shall
+                 ╰────────────────────────────╯Scored(DefinedTerm { term_name: "Contractor", definition_type: Parenthetical }, conf: 0.90)
+                                                                  ╰╯Scored(PronounReference { pronoun: "It", pronoun_type: ThirdSingularNeuter, candidates: [AntecedentCandidate { text: "Contractor", is_defined_term: true, token_distance: 10, confidence: 0.85 }, AntecedentCandidate { text: "John", is_defined_term: false, token_distance: 20, confidence: 0.45000000000000007 }, AntecedentCandidate { text: "Doe", is_defined_term: false, token_distance: 18, confidence: 0.45000000000000007 }] }, conf: 0.65)

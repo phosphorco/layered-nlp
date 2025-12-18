@@ -1,0 +1,7 @@
+---
+source: layered-contracts/src/tests/defined_term.rs
+expression: "test_defined_terms(r#\"John Doe, hereinafter the \"Consultant\"\"#)"
+---
+John     Doe  ,     hereinafter     the     "  Consultant  "
+                    ╰─────────╯Hereinafter
+                    ╰──────────────────────────────────────╯Scored(DefinedTerm { term_name: "Consultant", definition_type: Hereinafter }, conf: 0.90)
