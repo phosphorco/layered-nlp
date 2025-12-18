@@ -4,3 +4,6 @@
 
 # ignore for libraries
 Cargo.lock
+
+# WASM build output
+web/pkg/

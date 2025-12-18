@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Analyzer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #fafafa;
+            color: #333;
+            line-height: 1.5;
+        }
+        h1 {
+            margin-bottom: 0.5rem;
+            color: #1a1a1a;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        .input-section {
+            margin-bottom: 2rem;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 1rem;
+            font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #0969da;
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+        }
+        .button-row {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        button {
+            padding: 0.6rem 1.2rem;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        button.primary {
+            background: #0969da;
+            color: white;
+        }
+        button.primary:hover {
+            background: #0860c7;
+        }
+        button.secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        button.secondary:hover {
+            background: #e5e7eb;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .results-section {
+            margin-top: 2rem;
+        }
+        .text-display {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .text-display h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .text-content {
+            font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .tracks-display {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+        }
+        .tracks-display h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .tracks-content {
+            font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+            font-size: 13px;
+            white-space: pre;
+            line-height: 1.4;
+        }
+        .track-line {
+            color: #0969da;
+        }
+        .track-label {
+            color: #6e40c9;
+            font-weight: 500;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            font-size: 13px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        td {
+            font-size: 14px;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover td {
+            background: #f9fafb;
+        }
+        .kind-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .kind-badge.ContractKeyword { background: #fef3c7; color: #92400e; }
+        .kind-badge.DefinedTerm { background: #dbeafe; color: #1e40af; }
+        .kind-badge.TermReference { background: #e0e7ff; color: #3730a3; }
+        .kind-badge.PronounReference { background: #ede9fe; color: #5b21b6; }
+        .kind-badge.ObligationPhrase { background: #dcfce7; color: #166534; }
+        .kind-badge.PronounChain { background: #fce7f3; color: #9d174d; }
+        .kind-badge.ContractClause { background: #cffafe; color: #0e7490; }
+        .kind-badge.ClauseAggregate { background: #f3e8ff; color: #7c3aed; }
+        .kind-badge.ObligationNode { background: #fee2e2; color: #991b1b; }
+        .layer-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+            font-size: 13px;
+        }
+        .layer-filters label {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            cursor: pointer;
+        }
+        .snippet {
+            font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+            font-size: 13px;
+            background: #f3f4f6;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+        .offsets {
+            color: #666;
+            font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+            font-size: 12px;
+        }
+        .metadata {
+            font-size: 12px;
+            color: #666;
+        }
+        .test-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #ddd;
+        }
+        .test-log {
+            background: #1a1a1a;
+            color: #e5e5e5;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .test-pass {
+            color: #22c55e;
+        }
+        .test-fail {
+            color: #ef4444;
+        }
+        .test-info {
+            color: #60a5fa;
+        }
+        .empty-state {
+            color: #666;
+            font-style: italic;
+            padding: 2rem;
+            text-align: center;
+        }
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .version-info {
+            font-size: 12px;
+            color: #999;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Contract Analyzer</h1>
+    <p class="subtitle">Analyze contract text using layered-nlp WASM module</p>
+
+    <div class="input-section">
+        <textarea id="contract-input">SERVICES AGREEMENT
+
+"Company" means ABC Corporation (the "ABC"). "Contractor" means XYZ Services LLC (the "Provider").
+
+The Contractor shall provide consulting services to the Company. The Company shall pay the Contractor within 30 days of invoice receipt. 
+
+The Company may terminate this agreement if Contractor fails to perform. It shall provide 30 days written notice.
+
+Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject to applicable law, the Provider shall indemnify the Company.</textarea>
+        <div class="button-row">
+            <button id="analyze-btn" class="primary">Analyze</button>
+            <button id="clear-btn" class="secondary">Clear</button>
+        </div>
+        <div class="layer-filters" id="layer-filters" style="display: none; margin-top: 1rem;">
+            <strong style="font-size: 13px; color: #666;">Show layers:</strong>
+            <label><input type="checkbox" data-kind="ContractKeyword" checked> Keywords</label>
+            <label><input type="checkbox" data-kind="DefinedTerm" checked> Defined Terms</label>
+            <label><input type="checkbox" data-kind="TermReference" checked> Term Refs</label>
+            <label><input type="checkbox" data-kind="PronounReference" checked> Pronouns</label>
+            <label><input type="checkbox" data-kind="ObligationPhrase" checked> Obligations</label>
+            <label><input type="checkbox" data-kind="PronounChain" checked> Chains</label>
+            <label><input type="checkbox" data-kind="ContractClause" checked> Clauses</label>
+            <label><input type="checkbox" data-kind="ClauseAggregate" checked> Aggregates</label>
+            <label><input type="checkbox" data-kind="ObligationNode" checked> Nodes</label>
+        </div>
+    </div>
+
+    <div id="error-container"></div>
+
+    <div id="results-section" class="results-section" style="display: none;">
+        <div class="text-display">
+            <h3>Analyzed Text</h3>
+            <div id="text-content" class="text-content"></div>
+            <div id="version-info" class="version-info"></div>
+        </div>
+
+        <div class="tracks-display">
+            <h3>Span Tracks</h3>
+            <div id="tracks-content" class="tracks-content"></div>
+        </div>
+
+        <h3 style="margin-bottom: 0.5rem;">Detected Spans</h3>
+        <table id="spans-table">
+            <thead>
+                <tr>
+                    <th>Kind</th>
+                    <th>Label</th>
+                    <th>Offsets</th>
+                    <th>Snippet</th>
+                    <th>Metadata</th>
+                </tr>
+            </thead>
+            <tbody id="spans-tbody"></tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <button id="run-tests-btn" class="secondary">Run Tests</button>
+        <div id="test-log" class="test-log" style="display: none;"></div>
+    </div>
+
+    <script type="module">
+        let wasmModule = null;
+        let lastAnalysisResult = null;
+
+        function getVisibleKinds() {
+            const checkboxes = document.querySelectorAll('#layer-filters input[type="checkbox"]');
+            return Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.dataset.kind);
+        }
+
+        function filterSpans(spans) {
+            const visibleKinds = getVisibleKinds();
+            return spans.filter(s => visibleKinds.includes(s.kind));
+        }
+
+        async function loadWasm() {
+            try {
+                const module = await import('./pkg/layered_nlp_demo.js');
+                await module.default();
+                wasmModule = module;
+                console.log('WASM module loaded');
+                return true;
+            } catch (err) {
+                console.error('Failed to load WASM:', err);
+                showError(`Failed to load WASM module: ${err.message}. Make sure the WASM files are in ./pkg/`);
+                return false;
+            }
+        }
+
+        function showError(message) {
+            const container = document.getElementById('error-container');
+            container.innerHTML = `<div class="error-message">${escapeHtml(message)}</div>`;
+        }
+
+        function clearError() {
+            document.getElementById('error-container').innerHTML = '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function analyzeContract(text) {
+            if (!wasmModule) {
+                throw new Error('WASM module not loaded');
+            }
+            return wasmModule.analyze_contract(text);
+        }
+
+        function assignLanes(spans) {
+            const sortedSpans = [...spans].sort((a, b) => {
+                const aStart = a.start_offset ?? a.start;
+                const bStart = b.start_offset ?? b.start;
+                const aEnd = a.end_offset ?? a.end;
+                const bEnd = b.end_offset ?? b.end;
+                if (aStart !== bStart) return aStart - bStart;
+                return bEnd - aEnd;
+            });
+
+            const lanes = [];
+            const spanLanes = new Map();
+
+            for (const span of sortedSpans) {
+                const start = span.start_offset ?? span.start;
+                const end = span.end_offset ?? span.end;
+                let assignedLane = -1;
+                for (let i = 0; i < lanes.length; i++) {
+                    const laneEnd = lanes[i];
+                    if (start >= laneEnd) {
+                        assignedLane = i;
+                        lanes[i] = end;
+                        break;
+                    }
+                }
+                if (assignedLane === -1) {
+                    assignedLane = lanes.length;
+                    lanes.push(end);
+                }
+                spanLanes.set(span, assignedLane);
+            }
+
+            return { sortedSpans, spanLanes, laneCount: lanes.length };
+        }
+
+        function renderTracks(text, spans) {
+            if (spans.length === 0) {
+                return '<span class="empty-state">No spans detected</span>';
+            }
+
+            const { sortedSpans, spanLanes, laneCount } = assignLanes(spans);
+
+            const lines = text.split('\n');
+            let output = [];
+            let lineOffset = 0;
+
+            for (const line of lines) {
+                const lineStart = lineOffset;
+                const lineEnd = lineOffset + line.length;
+                
+                output.push(escapeHtml(line));
+
+                const lineSpans = sortedSpans.filter(s => {
+                    const start = s.start_offset ?? s.start;
+                    const end = s.end_offset ?? s.end;
+                    return start < lineEnd && end > lineStart;
+                });
+
+                const laneLines = [];
+                for (let lane = 0; lane < laneCount; lane++) {
+                    const laneSpans = lineSpans.filter(s => spanLanes.get(s) === lane);
+                    if (laneSpans.length === 0) continue;
+
+                    let trackLine = ' '.repeat(line.length);
+                    let labels = [];
+
+                    for (const span of laneSpans) {
+                        const spanStart = span.start_offset ?? span.start;
+                        const spanEnd = span.end_offset ?? span.end;
+                        const relStart = Math.max(0, spanStart - lineStart);
+                        const relEnd = Math.min(line.length, spanEnd - lineStart);
+                        
+                        if (relStart >= relEnd) continue;
+
+                        const chars = trackLine.split('');
+                        
+                        if (relEnd - relStart === 1) {
+                            chars[relStart] = '╵';
+                        } else {
+                            chars[relStart] = '╰';
+                            for (let i = relStart + 1; i < relEnd - 1; i++) {
+                                chars[i] = '─';
+                            }
+                            chars[relEnd - 1] = '╯';
+                        }
+                        trackLine = chars.join('');
+
+                        const label = span.label || span.kind;
+                        labels.push({ pos: relEnd, label });
+                    }
+
+                    let trackWithLabels = `<span class="track-line">${escapeHtml(trackLine)}</span>`;
+                    if (labels.length > 0) {
+                        const labelStr = labels.map(l => l.label).join(', ');
+                        trackWithLabels += `<span class="track-label">${escapeHtml(labelStr)}</span>`;
+                    }
+                    laneLines.push(trackWithLabels);
+                }
+
+                output.push(...laneLines);
+                lineOffset = lineEnd + 1;
+            }
+
+            return output.join('\n');
+        }
+
+        function renderSpansTable(spans) {
+            const tbody = document.getElementById('spans-tbody');
+            
+            if (spans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No spans detected</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = spans.map(span => {
+                const start = span.start_offset ?? span.start;
+                const end = span.end_offset ?? span.end;
+                const metadata = span.metadata ? JSON.stringify(span.metadata) : '—';
+                return `
+                    <tr>
+                        <td><span class="kind-badge ${escapeHtml(span.kind)}">${escapeHtml(span.kind)}</span></td>
+                        <td>${escapeHtml(span.label || '—')}</td>
+                        <td class="offsets">${start}..${end}</td>
+                        <td><code class="snippet">${escapeHtml(span.snippet || '')}</code></td>
+                        <td class="metadata">${escapeHtml(metadata)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function handleAnalyze() {
+            clearError();
+            const text = document.getElementById('contract-input').value;
+            
+            if (!wasmModule) {
+                const loaded = await loadWasm();
+                if (!loaded) return;
+            }
+
+            try {
+                const result = analyzeContract(text);
+                
+                // Add snippet to each span
+                const spansWithSnippets = result.spans.map(s => ({
+                    ...s,
+                    start: s.start_offset,
+                    end: s.end_offset,
+                    snippet: result.text.slice(s.start_offset, s.end_offset)
+                }));
+                
+                lastAnalysisResult = { ...result, spans: spansWithSnippets };
+                
+                document.getElementById('layer-filters').style.display = 'flex';
+                document.getElementById('results-section').style.display = 'block';
+                document.getElementById('text-content').textContent = result.text;
+                document.getElementById('version-info').textContent = `Version: ${result.version || 'unknown'}`;
+                
+                renderResults();
+            } catch (err) {
+                showError(`Analysis failed: ${err.message}`);
+            }
+        }
+
+        function handleClear() {
+            document.getElementById('contract-input').value = '';
+            document.getElementById('results-section').style.display = 'none';
+            document.getElementById('layer-filters').style.display = 'none';
+            lastAnalysisResult = null;
+            clearError();
+        }
+
+        function renderResults() {
+            if (!lastAnalysisResult) return;
+            const filteredSpans = filterSpans(lastAnalysisResult.spans);
+            document.getElementById('tracks-content').innerHTML = renderTracks(lastAnalysisResult.text, filteredSpans);
+            renderSpansTable(filteredSpans);
+        }
+
+        // Test framework
+        class TestRunner {
+            constructor() {
+                this.log = [];
+                this.passed = 0;
+                this.failed = 0;
+            }
+
+            logInfo(msg) {
+                this.log.push(`<span class="test-info">[INFO]</span> ${escapeHtml(msg)}`);
+            }
+
+            logPass(name) {
+                this.passed++;
+                this.log.push(`<span class="test-pass">[PASS]</span> ${escapeHtml(name)}`);
+            }
+
+            logFail(name, reason) {
+                this.failed++;
+                this.log.push(`<span class="test-fail">[FAIL]</span> ${escapeHtml(name)}: ${escapeHtml(reason)}`);
+            }
+
+            assert(condition, name, failReason) {
+                if (condition) {
+                    this.logPass(name);
+                } else {
+                    this.logFail(name, failReason);
+                }
+            }
+
+            getOutput() {
+                const summary = `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nResults: ${this.passed} passed, ${this.failed} failed`;
+                return this.log.join('\n') + summary;
+            }
+        }
+
+        async function runTests() {
+            const logEl = document.getElementById('test-log');
+            logEl.style.display = 'block';
+            logEl.innerHTML = 'Loading WASM module...';
+
+            if (!wasmModule) {
+                const loaded = await loadWasm();
+                if (!loaded) {
+                    logEl.innerHTML = '<span class="test-fail">Failed to load WASM module</span>';
+                    return;
+                }
+            }
+
+            const runner = new TestRunner();
+            runner.logInfo('Starting test suite...\n');
+
+            // Test 1: Empty text
+            try {
+                runner.logInfo('test_empty_text');
+                const result = analyzeContract('');
+                runner.assert(
+                    Array.isArray(result.spans) && result.spans.length === 0,
+                    'test_empty_text',
+                    `Expected empty spans array, got ${JSON.stringify(result.spans)}`
+                );
+            } catch (err) {
+                runner.logFail('test_empty_text', err.message);
+            }
+
+            // Test 2: Simple keyword detection
+            try {
+                runner.logInfo('test_simple_keyword');
+                const result = analyzeContract('The party shall pay.');
+                const hasKeyword = result.spans.some(s => 
+                    s.kind === 'ContractKeyword' || s.kind === 'Keyword'
+                );
+                runner.assert(
+                    hasKeyword,
+                    'test_simple_keyword',
+                    `Expected ContractKeyword span, got: ${JSON.stringify(result.spans)}`
+                );
+            } catch (err) {
+                runner.logFail('test_simple_keyword', err.message);
+            }
+
+            // Test 3: Defined term detection
+            try {
+                runner.logInfo('test_defined_term');
+                const result = analyzeContract('"Company" means ABC Corp');
+                const hasDefinedTerm = result.spans.some(s => 
+                    s.kind === 'DefinedTerm' || s.kind === 'Definition'
+                );
+                runner.assert(
+                    hasDefinedTerm,
+                    'test_defined_term',
+                    `Expected DefinedTerm span, got: ${JSON.stringify(result.spans)}`
+                );
+            } catch (err) {
+                runner.logFail('test_defined_term', err.message);
+            }
+
+            runner.logInfo('');
+            logEl.innerHTML = runner.getOutput();
+        }
+
+        // Event listeners
+        document.getElementById('analyze-btn').addEventListener('click', handleAnalyze);
+        document.getElementById('clear-btn').addEventListener('click', handleClear);
+        document.getElementById('run-tests-btn').addEventListener('click', runTests);
+        
+        // Layer filter listeners
+        document.querySelectorAll('#layer-filters input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', renderResults);
+        });
+
+        // Keyboard shortcut: Ctrl/Cmd + Enter to analyze
+        document.getElementById('contract-input').addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                handleAnalyze();
+            }
+        });
+
+        // Try to load WASM on page load
+        loadWasm();
+    </script>
+</body>
+</html>
