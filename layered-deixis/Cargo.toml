@@ -1,0 +1,31 @@
+# When releasing to crates.io:
+# - Remove path dependencies
+# - Update html_root_url.
+# - Update doc url
+#   - Cargo.toml
+#   - README.md
+# - Create "v0.1.x" git tag
+
+[package]
+name = "layered-deixis"
+version = "0.1.0"
+authors = [
+  "Cole Lawrence <cole@colelawrence.com>",
+]
+edition = "2021"
+description = "Deixis detection plugin for layered-nlp - context-dependent references (pronouns, temporal, spatial, discourse)"
+repository = "https://github.com/storyscript/layered-nlp"
+homepage = "https://github.com/storyscript/layered-nlp"
+license = "MIT OR Apache-2.0"
+categories = [
+    "text-processing",
+    "parsing",
+    "wasm",
+]
+keywords = ["layered-nlp", "nlp", "deixis", "pronouns", "wasm"]
+
+[dependencies]
+layered-nlp = { path = "..", version = "0.1", default-features = false }
+
+[dev-dependencies]
+insta = "1.7"
