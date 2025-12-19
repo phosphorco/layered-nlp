@@ -33,6 +33,6 @@ pub use resolvers::TextMatchAssignResolver;
 pub use type_bucket::AnyAttribute;
 
 /// Shorthand of [LLLineDisplay::new]
-pub fn debug_line(ll_line: &LLLine) -> LLLineDisplay {
+pub fn debug_line(ll_line: &LLLine) -> LLLineDisplay<'_> {
     LLLineDisplay::new(ll_line)
 }

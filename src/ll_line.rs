@@ -12,7 +12,6 @@ pub use display::LLLineDisplay;
 use std::fmt::{self, Write};
 use std::iter::FromIterator;
 use std::{collections::HashMap, rc::Rc};
-pub use x::{Attr, AttrEq};
 use x::{XForwards, XMatch};
 
 /// [TextTag] is an attribute added at the beginning of every new line.
@@ -245,7 +244,7 @@ impl LLLine {
     }
 
     /// Returns Attributes' information outside `LLLine`
-    pub fn query<'a, T: 'static>(&'a self) -> Vec<(LRange, String, Vec<&T>)> {
+    pub fn query<'a, T: 'static>(&'a self) -> Vec<(LRange, String, Vec<&'a T>)> {
         self.attrs
             .ranges
             .get::<T>()
