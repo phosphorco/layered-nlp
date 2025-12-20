@@ -5,15 +5,44 @@
 
 //! Contract language analysis plugin for layered-nlp.
 //!
-//! This crate provides resolvers for analyzing contract language, including:
-//! - Contract keywords (shall, may, means, etc.)
-//! - Defined terms and their references
-//! - Pronoun resolution and antecedent tracking
-//! - Obligation phrase detection
+//! This crate provides a comprehensive pipeline for analyzing legal contracts:
+//!
+//! ## Per-Line Resolvers
+//!
+//! - [`ContractKeywordResolver`] - Detects modal verbs (shall, may, must)
+//! - [`DefinedTermResolver`] - Extracts defined terms ("Company" means...)
+//! - [`TermReferenceResolver`] - Links term references to definitions
+//! - [`ObligationPhraseResolver`] - Detects obligation phrases with obligor/action
+//! - [`PronounResolver`] - Resolves pronouns to antecedents
+//! - [`SectionHeaderResolver`] - Parses section headers (Section 3.1, Article IV)
+//! - [`SectionReferenceResolver`] - Detects references to sections
+//! - [`TemporalExpressionResolver`] - Extracts time expressions (within 30 days)
+//!
+//! ## Document-Level Processing
+//!
+//! - [`ContractDocument`] - Multi-line document abstraction
+//! - [`DocumentStructureBuilder`] - Builds hierarchical section tree
+//! - [`SectionReferenceLinker`] - Resolves section references to targets
+//!
+//! ## Contract Comparison (Semantic Diff)
+//!
+//! - [`DocumentAligner`] - Aligns sections between document versions
+//! - [`SemanticDiffEngine`] - Detects semantic changes with risk classification
+//!
+//! ## Confidence Scoring
 //!
 //! All resolvers use a [`Scored<T>`] wrapper to represent confidence levels,
 //! where `confidence < 1.0` means the result needs verification, and
 //! `confidence = 1.0` means the result has been verified.
+//!
+//! ## Example
+//!
+//! ```ignore
+//! use layered_contracts::{ContractDocument, SectionHeaderResolver};
+//!
+//! let doc = ContractDocument::from_text("Section 1.1 Definitions\n...")
+//!     .run_resolver(&SectionHeaderResolver::new());
+//! ```
 
 mod accountability_analytics;
 mod accountability_graph;
@@ -21,10 +50,19 @@ mod contract_clause;
 mod clause_aggregate;
 mod contract_keyword;
 mod defined_term;
+mod deictic;
+mod document;
+mod document_aligner;
+mod document_structure;
 mod obligation;
 mod pronoun;
 mod pronoun_chain;
 mod scored;
+mod section_header;
+mod section_reference;
+mod section_reference_linker;
+mod semantic_diff;
+mod temporal;
 mod term_reference;
 mod utils;
 mod verification;
@@ -56,6 +94,43 @@ pub use verification::{
     apply_verification_action, VerificationAction, VerificationNote, VerificationTarget,
 };
 
+// Document-level abstractions (new)
+pub use document::{ContractDocument, DocPosition, DocSpan, ProcessError, ProcessResult};
+pub use document_aligner::{
+    AlignedPair, AlignmentCandidate, AlignmentCandidates, AlignmentHint, AlignmentResult,
+    AlignmentSignal, AlignmentStats, AlignmentType, DocumentAligner, HintType, SectionRef,
+    SimilarityConfig,
+};
+pub use document_structure::{DocumentProcessor, DocumentStructure, DocumentStructureBuilder, SectionNode};
+pub use section_header::{SectionHeader, SectionHeaderResolver, SectionIdentifier, SectionKind};
+pub use section_reference::{
+    ReferencePurpose, ReferenceType, RelativeReference, SectionReference, SectionReferenceResolver,
+};
+pub use section_reference_linker::{
+    LinkedReference, LinkedReferences, ReferenceResolution, SectionReferenceLinker,
+};
+pub use temporal::{
+    DeadlineType, DurationUnit, TemporalExpression, TemporalExpressionResolver, TemporalType,
+    TimeRelation,
+};
+pub use semantic_diff::{
+    AffectedReference, ChangeSignal, ConditionChange, DiffConfig, DiffHint, DiffHintType,
+    DiffReviewCandidates, DiffSummary, ImpactDirection, ObligationModalChange, PartyChange,
+    PartyImpact, PartySummaryDiff, ReferenceUsageType, RiskLevel, SemanticChange,
+    SemanticChangeType, SemanticDiffEngine, SemanticDiffResult, TemporalChange, TemporalSnapshot,
+    TermChange, TermChangeClass,
+};
+
+// Deictic mapping resolver
+pub use deictic::DeicticResolver;
+
+// Re-export layered_deixis types for convenience
+pub use layered_deixis::{
+    DeicticCategory, DeicticReference, DeicticSource, DeicticSubcategory, ResolvedReferent,
+    // Simple resolvers for gap-filling
+    DiscourseMarkerResolver, PersonPronounResolver, PlaceDeicticResolver, SimpleTemporalResolver,
+};
+
 #[cfg(test)]
 mod tests {
     mod accountability_analytics;
@@ -64,8 +139,10 @@ mod tests {
     mod contract_clause;
     mod contract_keyword;
     mod defined_term;
+    mod document_aligner;
     mod obligation;
     mod pronoun;
     mod pronoun_chain;
+    mod semantic_diff;
     mod term_reference;
 }
