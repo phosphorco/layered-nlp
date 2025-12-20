@@ -1,7 +1,8 @@
-//! Person pronoun resolver for 1st and 2nd person pronouns.
+//! Person pronoun resolver for all person pronouns.
 //!
-//! This resolver detects first and second person pronouns which are
-//! typically skipped by contract-focused pronoun resolvers.
+//! This resolver detects pronouns of all persons (1st, 2nd, 3rd).
+//! It provides basic deictic detection for pronouns that may not be
+//! resolved by domain-specific resolvers.
 
 use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver};
 
@@ -16,10 +17,21 @@ const FIRST_PLURAL: &[&str] = &["we", "us", "our", "ours", "ourselves"];
 /// Second person pronouns (singular and plural forms are identical in English)
 const SECOND_PERSON: &[&str] = &["you", "your", "yours", "yourself", "yourselves"];
 
-/// Resolver that detects 1st and 2nd person pronouns.
+/// Third person singular pronouns (masculine, feminine, neuter)
+const THIRD_SINGULAR: &[&str] = &[
+    "he", "him", "his", "himself", // masculine
+    "she", "her", "hers", "herself", // feminine
+    "it", "its", "itself", // neuter
+];
+
+/// Third person plural pronouns
+const THIRD_PLURAL: &[&str] = &["they", "them", "their", "theirs", "themselves"];
+
+/// Resolver that detects person pronouns (1st, 2nd, and 3rd person).
 ///
-/// This fills the gap left by contract-focused pronoun resolvers that
-/// typically only handle 3rd person pronouns.
+/// This provides basic deictic detection for all pronouns. Domain-specific
+/// resolvers (like contract pronoun resolvers) may provide additional
+/// resolution to specific antecedents.
 #[derive(Debug, Clone, Default)]
 pub struct PersonPronounResolver;
 
@@ -57,6 +69,12 @@ impl Resolver for PersonPronounResolver {
                             DeicticSubcategory::PersonSecond
                         };
                         (subcat, p)
+                    } else if let Some(p) = THIRD_SINGULAR.iter().find(|&&p| p == lower_str).copied()
+                    {
+                        (DeicticSubcategory::PersonThirdSingular, p)
+                    } else if let Some(p) = THIRD_PLURAL.iter().find(|&&p| p == lower_str).copied()
+                    {
+                        (DeicticSubcategory::PersonThirdPlural, p)
                     } else {
                         return None;
                     };
@@ -107,5 +125,47 @@ mod tests {
                                  ╰───────╯DeicticReference { category: Person, subcategory: PersonFirstPlural, surface_text: "ourselves", resolved_referent: None, confidence: 1.0, source: WordList { pattern: "ourselves" } }
                                                        ╰────────╯DeicticReference { category: Person, subcategory: PersonSecondPlural, surface_text: "yourselves", resolved_referent: None, confidence: 1.0, source: WordList { pattern: "yourselves" } }
         "###);
+    }
+
+    #[test]
+    fn test_third_person_pronouns() {
+        let line = create_line_from_string("Amy went to the store and she bought a loaf of bread.");
+        let line = line.run(&PersonPronounResolver);
+
+        let mut display = LLLineDisplay::new(&line);
+        display.include::<DeicticReference>();
+
+        // "she" should be detected as 3rd person singular
+        let deictic_refs: Vec<_> = line
+            .find(&layered_nlp::x::attr::<DeicticReference>())
+            .into_iter()
+            .collect();
+
+        assert_eq!(deictic_refs.len(), 1, "Expected 1 deixis span for 'she'");
+
+        let deictic = deictic_refs[0].attr();
+        assert_eq!(deictic.category, DeicticCategory::Person);
+        assert_eq!(deictic.subcategory, DeicticSubcategory::PersonThirdSingular);
+        assert_eq!(deictic.surface_text, "she");
+    }
+
+    #[test]
+    fn test_third_person_it() {
+        let line = create_line_from_string("The company filed its report. It was approved.");
+        let line = line.run(&PersonPronounResolver);
+
+        let deictic_refs: Vec<_> = line
+            .find(&layered_nlp::x::attr::<DeicticReference>())
+            .into_iter()
+            .collect();
+
+        // "its" and "It" should both be detected
+        assert_eq!(deictic_refs.len(), 2, "Expected 2 deixis spans for 'its' and 'It'");
+
+        for find in &deictic_refs {
+            let deictic = find.attr();
+            assert_eq!(deictic.category, DeicticCategory::Person);
+            assert_eq!(deictic.subcategory, DeicticSubcategory::PersonThirdSingular);
+        }
     }
 }
