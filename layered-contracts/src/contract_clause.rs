@@ -32,7 +32,7 @@ pub struct ClauseParty {
     pub display_text: String,
     /// Identifier of the pronoun chain backing this party, if resolved.
     ///
-    /// Chain IDs only appear when [`PronounChainResolver`] produced a chain
+    /// Chain IDs only appear when `PronounChainResolver` produced a chain
     /// (there must be at least two mentions), so single-mention parties will
     /// leave this as `None`.
     pub chain_id: Option<u32>,

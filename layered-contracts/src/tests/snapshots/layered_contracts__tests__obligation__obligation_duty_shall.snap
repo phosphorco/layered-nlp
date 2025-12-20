@@ -6,3 +6,5 @@ ABC     Corp     (  the     "  Company  "  )     shall     deliver     goods  .
                                                  ╰───╯Shall
                  ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
                                                  ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "deliver goods", conditions: [] }, conf: 0.75)
+                                                   └─@obligor_source─>[8..8]
+                                                   └─#action_span─>[12..16]

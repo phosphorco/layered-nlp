@@ -12,7 +12,7 @@
 //!                      ╰────────────╯action
 //! ```
 
-use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver, TextTag};
+use layered_nlp::{x, Association, LLCursorAssignment, LLSelection, Resolver, SpanRef, TextTag};
 use layered_part_of_speech::Tag;
 
 use crate::contract_keyword::ContractKeyword;
@@ -20,8 +20,34 @@ use crate::pronoun::PronounReference;
 use crate::scored::Scored;
 use crate::term_reference::TermReference;
 
+/// Association linking an obligation to its obligor source span.
+#[derive(Debug, Clone)]
+pub struct ObligorSource;
+
+impl Association for ObligorSource {
+    fn label(&self) -> &'static str {
+        "obligor_source"
+    }
+    fn glyph(&self) -> Option<&'static str> {
+        Some("@")
+    }
+}
+
+/// Association linking an obligation to its action verb span.
+#[derive(Debug, Clone)]
+pub struct ActionSpan;
+
+impl Association for ActionSpan {
+    fn label(&self) -> &'static str {
+        "action_span"
+    }
+    fn glyph(&self) -> Option<&'static str> {
+        Some("#")
+    }
+}
+
 /// The type of obligation expressed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ObligationType {
     /// "shall", "must" - a required duty
     Duty,
@@ -134,15 +160,17 @@ impl ObligationPhraseResolver {
     /// 1. Trailing "and" or "or" alone (e.g., "deliver goods and" → "deliver goods")
     /// 2. Trailing "and/or [the] <Party>" where Party is a capitalized word
     ///    (e.g., "deliver goods and the Vendor" → "deliver goods")
-    fn trim_trailing_conjunction(&self, action: &str) -> String {
+    /// Trim trailing conjunctions and party names from action text.
+    /// Returns (trimmed_text, word_count_to_keep) so span can be adjusted accordingly.
+    fn trim_trailing_conjunction(&self, action: &str, total_words: usize) -> (String, usize) {
         let trimmed = action.trim();
         if trimmed.is_empty() {
-            return String::new();
+            return (String::new(), 0);
         }
 
         let words: Vec<&str> = trimmed.split_whitespace().collect();
         if words.is_empty() {
-            return String::new();
+            return (String::new(), 0);
         }
 
         // Work backwards to find where to trim
@@ -177,9 +205,9 @@ impl ObligationPhraseResolver {
         }
 
         if trim_from < words.len() {
-            words[..trim_from].join(" ")
+            (words[..trim_from].join(" "), trim_from.min(total_words))
         } else {
-            trimmed.to_string()
+            (trimmed.to_string(), total_words)
         }
     }
 
@@ -190,12 +218,15 @@ impl ObligationPhraseResolver {
     }
 
     /// Find the nearest obligor (TermReference or PronounReference) before the modal.
+    ///
+    /// Returns (obligor, has_multiple_candidates, source_span) where source_span
+    /// is the token span of the obligor reference.
     fn find_obligor(
         &self,
         selection: &LLSelection,
         modal_sel: &LLSelection,
-    ) -> Option<(ObligorReference, bool)> {
-        // Returns (obligor, has_multiple_candidates)
+    ) -> Option<(ObligorReference, bool, SpanRef)> {
+        // Returns (obligor, has_multiple_candidates, source_span)
 
         // Look for TermReferences before the modal
         let term_refs: Vec<_> = selection
@@ -237,14 +268,30 @@ impl ObligationPhraseResolver {
                 // The one that is NOT before the other is closer
                 if self.selection_is_before(term_sel, pron_sel) {
                     // Pronoun is closer
-                    Some((self.pronoun_to_obligor(pron_ref), has_multiple))
+                    Some((
+                        self.pronoun_to_obligor(pron_ref),
+                        has_multiple,
+                        pron_sel.span_ref(),
+                    ))
                 } else {
                     // Term is closer
-                    Some((self.term_to_obligor(term_ref), has_multiple))
+                    Some((
+                        self.term_to_obligor(term_ref),
+                        has_multiple,
+                        term_sel.span_ref(),
+                    ))
                 }
             }
-            (Some((_, term_ref)), None) => Some((self.term_to_obligor(term_ref), has_multiple)),
-            (None, Some((_, pron_ref))) => Some((self.pronoun_to_obligor(pron_ref), has_multiple)),
+            (Some((term_sel, term_ref)), None) => Some((
+                self.term_to_obligor(term_ref),
+                has_multiple,
+                term_sel.span_ref(),
+            )),
+            (None, Some((pron_sel, pron_ref))) => Some((
+                self.pronoun_to_obligor(pron_ref),
+                has_multiple,
+                pron_sel.span_ref(),
+            )),
             (None, None) => {
                 // Fall back to looking for plain capitalized nouns
                 self.find_noun_obligor(selection, modal_sel)
@@ -282,7 +329,7 @@ impl ObligationPhraseResolver {
         &self,
         selection: &LLSelection,
         modal_sel: &LLSelection,
-    ) -> Option<(ObligorReference, bool)> {
+    ) -> Option<(ObligorReference, bool, SpanRef)> {
         // Look for capitalized words before the modal that are tagged as nouns
         let noun_words: Vec<_> = selection
             .find_by(&x::all((x::attr_eq(&TextTag::WORD), x::token_text())))
@@ -310,6 +357,7 @@ impl ObligationPhraseResolver {
         // Find the nearest multi-word noun phrase before the modal
         // Start from the last noun (nearest to modal) and look backwards for contiguous nouns
         let mut phrase_parts: Vec<&str> = Vec::new();
+        let mut first_sel: Option<&LLSelection> = None;
         let mut last_sel: Option<&LLSelection> = None;
 
         // Start from the last noun and work backwards to find contiguous nouns
@@ -319,6 +367,7 @@ impl ObligationPhraseResolver {
             if phrase_parts.is_empty() {
                 // First word of the phrase (nearest to modal)
                 phrase_parts.push(text);
+                first_sel = Some(sel);
                 last_sel = Some(sel);
             } else if let Some(prev_sel) = last_sel {
                 // Check if this noun is immediately before the previous one
@@ -337,9 +386,19 @@ impl ObligationPhraseResolver {
         phrase_parts.reverse();
         let phrase_text = phrase_parts.join(" ");
 
+        // Build span from last_sel (earliest) to first_sel (nearest to modal)
+        let span_ref = match (last_sel, first_sel) {
+            (Some(start), Some(end)) => SpanRef {
+                start_idx: start.span_ref().start_idx,
+                end_idx: end.span_ref().end_idx,
+            },
+            _ => return None,
+        };
+
         Some((
             ObligorReference::NounPhrase { text: phrase_text },
             false,
+            span_ref,
         ))
     }
 
@@ -371,8 +430,16 @@ impl ObligationPhraseResolver {
     }
 
     /// Extract the action span following the modal.
-    fn extract_action(&self, _selection: &LLSelection, modal_sel: &LLSelection) -> String {
+    ///
+    /// Returns (action_text, word_spans) where word_spans contains the span for each word.
+    /// This allows trimming to adjust the span to match only the retained words.
+    fn extract_action(
+        &self,
+        _selection: &LLSelection,
+        modal_sel: &LLSelection,
+    ) -> (String, Vec<SpanRef>) {
         let mut action_words = Vec::new();
+        let mut word_spans = Vec::new();
         let mut current = modal_sel.clone();
 
         // Walk forward collecting words until we hit a boundary
@@ -434,13 +501,15 @@ impl ObligationPhraseResolver {
                 current.match_first_forwards(&x::all((x::attr_eq(&TextTag::WORD), x::token_text())))
             {
                 action_words.push(text.to_string());
+                word_spans.push(word_sel.span_ref());
                 current = word_sel;
             } else {
                 break;
             }
         }
 
-        action_words.join(" ")
+        let action_text = action_words.join(" ");
+        (action_text, word_spans)
     }
 
     /// Check if there's a sentence boundary between two selections.
@@ -739,14 +808,31 @@ impl Resolver for ObligationPhraseResolver {
                 None => continue,
             };
 
-            // Find the obligor
-            let (obligor, has_multiple) = match self.find_obligor(&selection, &modal_sel) {
-                Some(o) => o,
-                None => continue, // Skip if no obligor found
-            };
+            // Find the obligor (now returns source span)
+            let (obligor, has_multiple, obligor_span) =
+                match self.find_obligor(&selection, &modal_sel) {
+                    Some(o) => o,
+                    None => continue, // Skip if no obligor found
+                };
 
-            // Extract the action and trim any trailing conjunction
-            let action = self.trim_trailing_conjunction(&self.extract_action(&selection, &modal_sel));
+            // Extract the action words and their spans
+            let (raw_action, word_spans) = self.extract_action(&selection, &modal_sel);
+
+            // Trim trailing conjunction and get count of words to keep
+            let (action, words_to_keep) =
+                self.trim_trailing_conjunction(&raw_action, word_spans.len());
+
+            // Compute action span from only the retained words
+            let action_span = if words_to_keep > 0 && !word_spans.is_empty() {
+                let first = &word_spans[0];
+                let last = &word_spans[words_to_keep - 1];
+                Some(SpanRef {
+                    start_idx: first.start_idx,
+                    end_idx: last.end_idx,
+                })
+            } else {
+                None
+            };
 
             // Find conditions
             let conditions = self.find_conditions(&selection, &modal_sel);
@@ -761,11 +847,17 @@ impl Resolver for ObligationPhraseResolver {
                 conditions,
             };
 
-            results.push(modal_sel.finish_with_attr(Scored::rule_based(
-                phrase,
-                confidence,
-                "obligation_phrase",
-            )));
+            // Build assignment with associations
+            let mut builder = modal_sel
+                .assign(Scored::rule_based(phrase, confidence, "obligation_phrase"))
+                .with_association(ObligorSource, obligor_span);
+
+            // Add action span association if we have one
+            if let Some(span) = action_span {
+                builder = builder.with_association(ActionSpan, span);
+            }
+
+            results.push(builder.build());
         }
 
         results

@@ -22,7 +22,8 @@ fn test_obligations(input: &str) -> String {
     display.include::<Scored<DefinedTerm>>();
     display.include::<Scored<TermReference>>();
     display.include::<Scored<PronounReference>>();
-    display.include::<Scored<ObligationPhrase>>();
+    // Use include_with_associations to show obligor source arrows
+    display.include_with_associations::<Scored<ObligationPhrase>>();
 
     format!("{}", display)
 }
@@ -180,4 +181,91 @@ fn contract_confidentiality_clause() {
     insta::assert_snapshot!(test_obligations(
         r#"XYZ Inc (the "Receiving Party") shall not disclose Confidential Information to any third party unless required by law."#
     ));
+}
+
+// ============ Regression Tests ============
+
+/// Regression test: ActionSpan must align with trimmed action text.
+///
+/// When `trim_trailing_conjunction` removes trailing words like "and the Vendor",
+/// the ActionSpan association must be adjusted to cover only the retained words.
+/// This test verifies that the span indices match the trimmed action, not the
+/// raw extracted text.
+#[test]
+fn action_span_aligns_with_trimmed_text() {
+    use layered_nlp::create_line_from_string;
+
+    let input = r#"ABC Corp (the "Company") shall deliver goods and the Vendor may inspect them."#;
+
+    let ll_line = create_line_from_string(input)
+        .run(&POSTagResolver::default())
+        .run(&ContractKeywordResolver::default())
+        .run(&ProhibitionResolver::default())
+        .run(&DefinedTermResolver::default())
+        .run(&TermReferenceResolver::default())
+        .run(&PronounResolver::default())
+        .run(&ObligationPhraseResolver::default());
+
+    // Query obligations with their associations
+    let obligations = ll_line.query_with_associations::<Scored<ObligationPhrase>>();
+
+    // Find the "deliver goods" obligation (Company's duty)
+    let deliver_obligation = obligations
+        .iter()
+        .flat_map(|(_, _, attrs)| attrs.iter())
+        .find(|(attr, _)| attr.value.action == "deliver goods")
+        .expect("should find 'deliver goods' obligation");
+
+    let (obligation, associations) = deliver_obligation;
+
+    // Verify the action text was trimmed correctly (not "deliver goods and the Vendor")
+    assert_eq!(
+        obligation.value.action, "deliver goods",
+        "Action should be trimmed to 'deliver goods', not include trailing conjunction"
+    );
+
+    // Find the ActionSpan association
+    let action_span_assoc = associations
+        .iter()
+        .find(|assoc| assoc.label() == "action_span")
+        .expect("should have action_span association");
+
+    // Get the action span indices
+    let action_span = action_span_assoc.span;
+
+    // Calculate what the trimmed action covers in tokens:
+    // Token indices: 0=ABC, 1=Corp, 2=(, 3=the, 4=", 5=Company, 6=", 7=), 8=shall, 9=deliver, 10=goods, 11=and, ...
+    // "deliver goods" should be tokens 12-16 (depends on tokenization)
+    // The key assertion: the span should NOT include "and the Vendor" tokens
+
+    // Verify span covers exactly 2 words (deliver, goods) by checking the action_span
+    // doesn't extend to include "and" or beyond
+    let span_length = action_span.end_idx - action_span.start_idx + 1;
+
+    // The span should be small (just "deliver" and "goods" plus any whitespace tokens)
+    // It should NOT be large enough to include "and the Vendor"
+    assert!(
+        span_length <= 5, // deliver (1) + space (1) + goods (1) + possible punctuation = ~3-5 tokens
+        "ActionSpan should cover only 'deliver goods', got span length {} (indices {}..{})",
+        span_length,
+        action_span.start_idx,
+        action_span.end_idx
+    );
+
+    // Also verify the obligor span is present
+    let obligor_span_assoc = associations
+        .iter()
+        .find(|assoc| assoc.label() == "obligor_source")
+        .expect("should have obligor_source association");
+
+    assert_eq!(
+        obligor_span_assoc.glyph(),
+        Some("@"),
+        "obligor_source should have '@' glyph"
+    );
+    assert_eq!(
+        action_span_assoc.glyph(),
+        Some("#"),
+        "action_span should have '#' glyph"
+    );
 }

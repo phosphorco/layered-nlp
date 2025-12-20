@@ -5,3 +5,5 @@ expression: "test_obligations(r#\"The Buyer shall pay the Purchase Price to the 
 The     Buyer     shall     pay     the     Purchase     Price     to     the     Seller     within     fifteen     days     of     delivery  .
                   ╰───╯Shall
                   ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Buyer" }, obligation_type: Duty, action: "pay the Purchase Price to the Seller within fifteen days of delivery", conditions: [] }, conf: 0.75)
+                    └─@obligor_source─>[2..2]
+                    └─#action_span─>[4..28]

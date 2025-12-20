@@ -344,11 +344,23 @@ impl Default for PronounResolver {
     }
 }
 
+/// Known pronouns that we resolve (3rd person + relative)
+const RESOLVABLE_PRONOUNS: &[&str] = &[
+    // 3rd person singular
+    "it", "its", "itself",
+    "he", "him", "his", "himself",
+    "she", "her", "hers", "herself",
+    // 3rd person plural
+    "they", "them", "their", "theirs", "themselves",
+    // Relative/demonstrative
+    "this", "that", "these", "those", "which", "who", "whom", "whose",
+];
+
 impl Resolver for PronounResolver {
     type Attr = Scored<PronounReference>;
 
     fn go(&self, selection: LLSelection) -> Vec<LLCursorAssignment<Self::Attr>> {
-        // Find all pronouns (words tagged with Tag::Pronoun)
+        // Find all pronouns - first try POS tags, then fall back to word-list matching
         let pronouns: Vec<_> = selection
             .find_by(&x::all((
                 x::attr_eq(&Tag::Pronoun),
@@ -356,6 +368,20 @@ impl Resolver for PronounResolver {
             )))
             .into_iter()
             .collect();
+
+        // If no POS-tagged pronouns found, use word-list matching as fallback
+        let pronouns: Vec<_> = if pronouns.is_empty() {
+            selection
+                .find_by(&x::all((x::attr_eq(&TextTag::WORD), x::token_text())))
+                .into_iter()
+                .filter(|(_, (_, text))| {
+                    RESOLVABLE_PRONOUNS.contains(&text.to_lowercase().as_str())
+                })
+                .map(|(sel, (tag, text))| (sel, ((), (tag, text))))
+                .collect()
+        } else {
+            pronouns
+        };
 
         if pronouns.is_empty() {
             return vec![];

@@ -7,3 +7,5 @@ If     approved  ,     the     fee     applies  .     ABC     Corp     (  the   
                                                                                                        ╰───╯Shall
                                                                        ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
                                                                                                        ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "deliver goods", conditions: [] }, conf: 0.75)
+                                                                                                         └─@obligor_source─>[20..20]
+                                                                                                         └─#action_span─>[24..28]

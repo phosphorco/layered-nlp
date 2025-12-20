@@ -5,3 +5,5 @@ expression: "test_obligations(\"The Service Provider shall deliver services on t
 The     Service     Provider     shall     deliver     services     on     time  .
                                  ╰───╯Shall
                                  ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Service Provider" }, obligation_type: Duty, action: "deliver services on time", conditions: [] }, conf: 0.75)
+                                   └─@obligor_source─>[2..4]
+                                   └─#action_span─>[6..14]

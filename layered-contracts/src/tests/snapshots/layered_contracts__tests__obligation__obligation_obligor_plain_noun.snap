@@ -5,3 +5,5 @@ expression: "test_obligations(\"The Vendor shall deliver products.\")"
 The     Vendor     shall     deliver     products  .
                    ╰───╯Shall
                    ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Vendor" }, obligation_type: Duty, action: "deliver products", conditions: [] }, conf: 0.75)
+                     └─@obligor_source─>[2..2]
+                     └─#action_span─>[4..8]

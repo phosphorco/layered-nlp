@@ -4,3 +4,4 @@ expression: "test_pronouns(r#\"ABC Corp (the \"Company\") agrees to deliver its 
 ---
 ABC     Corp     (  the     "  Company  "  )     agrees     to     deliver     its     products  .
                  ╰─────────────────────────╯Scored(DefinedTerm { term_name: "Company", definition_type: Parenthetical }, conf: 0.90)
+                                                                               ╰─╯Scored(PronounReference { pronoun: "its", pronoun_type: ThirdSingularNeuter, candidates: [AntecedentCandidate { text: "Company", is_defined_term: true, token_distance: 11, confidence: 0.8300000000000001 }, AntecedentCandidate { text: "ABC", is_defined_term: false, token_distance: 21, confidence: 0.45000000000000007 }, AntecedentCandidate { text: "Corp", is_defined_term: false, token_distance: 19, confidence: 0.45000000000000007 }] }, conf: 0.63)

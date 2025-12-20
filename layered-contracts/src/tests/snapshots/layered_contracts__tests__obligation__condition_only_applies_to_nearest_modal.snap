@@ -7,4 +7,8 @@ If     payment     is     late  ,     the     Company     shall     deliver  ,  
                                                           ╰───╯Shall
                                                                                                               ╰───╯Shall
                                                           ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "deliver", conditions: [ConditionRef { condition_type: If, text_preview: "payment is late" }] }, conf: 0.75)
+                                                            └─@obligor_source─>[11..11]
+                                                            └─#action_span─>[13..15]
                                                                                                               ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Vendor" }, obligation_type: Duty, action: "refund", conditions: [] }, conf: 0.75)
+                                                                                                                └─@obligor_source─>[22..22]
+                                                                                                                └─#action_span─>[24..26]
