@@ -1,3 +1,14 @@
 [tools]
 "cargo:wasm-pack" = "latest"
 rust = "latest"
+
+[tasks.wasm-build]
+description = "Build WASM demo module"
+dir = "layered-nlp-demo-wasm"
+run = "wasm-pack build --target web --out-dir ../web/pkg"
+
+[tasks.wasm-serve]
+description = "Serve contract viewer at http://localhost:8080"
+depends = ["wasm-build"]
+dir = "web"
+run = "echo 'Open http://localhost:8080/contract-viewer.html' && python3 -m http.server 8080"

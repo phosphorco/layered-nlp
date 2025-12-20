@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Analyzer v2</title>
+    <style>
+        :root {
+            /* Span type colors */
+            --defined-term-bg: #fef3c7;
+            --defined-term-border: #f59e0b;
+            --defined-term-text: #92400e;
+
+            --term-ref-bg: #fef3c7;
+            --term-ref-border: #f59e0b;
+            --term-ref-text: #92400e;
+
+            --obligation-bg: #dbeafe;
+            --obligation-border: #3b82f6;
+            --obligation-text: #1e40af;
+
+            --prohibition-bg: #fee2e2;
+            --prohibition-border: #ef4444;
+            --prohibition-text: #991b1b;
+
+            --permission-bg: #d1fae5;
+            --permission-border: #10b981;
+            --permission-text: #065f46;
+
+            --clause-bg: #f3e8ff;
+            --clause-border: #8b5cf6;
+            --clause-text: #6b21a8;
+
+            --pronoun-bg: #e0e7ff;
+            --pronoun-border: #6366f1;
+            --pronoun-text: #3730a3;
+
+            --deictic-bg: #ccfbf1;
+            --deictic-border: #14b8a6;
+            --deictic-text: #0f766e;
+
+            --keyword-bg: #fef3c7;
+            --keyword-border: #f59e0b;
+            --keyword-text: #92400e;
+
+            --chain-bg: #fce7f3;
+            --chain-border: #ec4899;
+            --chain-text: #9d174d;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        h1 {
+            margin-bottom: 0.25rem;
+            color: #0f172a;
+            font-size: 1.75rem;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        /* Input Section */
+        .input-section {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        textarea {
+            width: 100%;
+            height: 140px;
+            padding: 1rem;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+            font-size: 13px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            resize: vertical;
+            background: #f8fafc;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: white;
+        }
+
+        .button-row {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        button {
+            padding: 0.6rem 1.25rem;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        button.primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        button.primary:hover {
+            background: #2563eb;
+        }
+
+        button.secondary {
+            background: white;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        button.secondary:hover {
+            background: #f1f5f9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Filter Toggle Bar */
+        .filter-bar {
+            display: none;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .filter-bar.visible {
+            display: block;
+        }
+
+        .filter-toggles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 2px solid transparent;
+            user-select: none;
+        }
+
+        .filter-toggle input {
+            display: none;
+        }
+
+        .filter-toggle .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .filter-toggle.inactive {
+            opacity: 0.4;
+        }
+
+        /* Filter toggle colors */
+        .filter-toggle[data-kind="DefinedTerm"] { background: var(--defined-term-bg); color: var(--defined-term-text); }
+        .filter-toggle[data-kind="DefinedTerm"] .dot { background: var(--defined-term-border); }
+
+        .filter-toggle[data-kind="TermReference"] { background: var(--term-ref-bg); color: var(--term-ref-text); border-style: dashed; border-color: var(--term-ref-border); }
+        .filter-toggle[data-kind="TermReference"] .dot { background: var(--term-ref-border); }
+
+        .filter-toggle[data-kind="ObligationPhrase"] { background: var(--obligation-bg); color: var(--obligation-text); }
+        .filter-toggle[data-kind="ObligationPhrase"] .dot { background: var(--obligation-border); }
+
+        .filter-toggle[data-kind="ContractKeyword"] { background: var(--keyword-bg); color: var(--keyword-text); }
+        .filter-toggle[data-kind="ContractKeyword"] .dot { background: var(--keyword-border); }
+
+        .filter-toggle[data-kind="PronounReference"] { background: var(--pronoun-bg); color: var(--pronoun-text); }
+        .filter-toggle[data-kind="PronounReference"] .dot { background: var(--pronoun-border); }
+
+        .filter-toggle[data-kind="PronounChain"] { background: var(--chain-bg); color: var(--chain-text); }
+        .filter-toggle[data-kind="PronounChain"] .dot { background: var(--chain-border); }
+
+        .filter-toggle[data-kind="ContractClause"] { background: var(--clause-bg); color: var(--clause-text); }
+        .filter-toggle[data-kind="ContractClause"] .dot { background: var(--clause-border); }
+
+        .filter-toggle[data-kind="DeicticReference"] { background: var(--deictic-bg); color: var(--deictic-text); }
+        .filter-toggle[data-kind="DeicticReference"] .dot { background: var(--deictic-border); }
+
+        .filter-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-actions button {
+            padding: 0.35rem 0.75rem;
+            font-size: 12px;
+        }
+
+        .connection-legend {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 1.5rem;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .legend-item svg {
+            flex-shrink: 0;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            display: none;
+            gap: 1.5rem;
+        }
+
+        .main-content.visible {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+        }
+
+        /* Contract Text Display */
+        .contract-panel {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .panel-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .contract-container {
+            position: relative;
+            overflow: visible;
+            padding-bottom: 60px; /* Space for connection curves */
+        }
+
+        .connection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: visible;
+            z-index: 10;
+        }
+
+        .contract-text {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 15px;
+            line-height: 2;
+            position: relative;
+            z-index: 1;
+        }
+
+        .contract-text .word {
+            display: inline;
+            padding: 2px 0;
+            border-radius: 3px;
+            cursor: default;
+            transition: all 0.1s;
+        }
+
+        .contract-text .word.has-span {
+            cursor: pointer;
+        }
+
+        .contract-text .word.has-span:hover {
+            filter: brightness(0.95);
+        }
+
+        .contract-text .word.selected {
+            outline: 2px solid #3b82f6;
+            outline-offset: 1px;
+        }
+
+        /* Span type styling */
+        .contract-text .word.DefinedTerm {
+            background: var(--defined-term-bg);
+            border-bottom: 2px solid var(--defined-term-border);
+        }
+
+        .contract-text .word.TermReference {
+            background: var(--term-ref-bg);
+            border-bottom: 2px dashed var(--term-ref-border);
+        }
+
+        .contract-text .word.ObligationPhrase {
+            background: var(--obligation-bg);
+            border-bottom: 2px solid var(--obligation-border);
+        }
+
+        .contract-text .word.ObligationPhrase.prohibition {
+            background: var(--prohibition-bg);
+            border-bottom: 2px solid var(--prohibition-border);
+        }
+
+        .contract-text .word.ObligationPhrase.permission {
+            background: var(--permission-bg);
+            border-bottom: 2px solid var(--permission-border);
+        }
+
+        .contract-text .word.ContractKeyword {
+            background: var(--keyword-bg);
+            border-bottom: 2px solid var(--keyword-border);
+        }
+
+        .contract-text .word.PronounReference {
+            background: var(--pronoun-bg);
+            border-bottom: 2px solid var(--pronoun-border);
+        }
+
+        .contract-text .word.PronounChain {
+            background: var(--chain-bg);
+            border-bottom: 2px solid var(--chain-border);
+        }
+
+        .contract-text .word.ContractClause {
+            background: var(--clause-bg);
+            border-bottom: 2px solid var(--clause-border);
+        }
+
+        .contract-text .word.DeicticReference {
+            background: var(--deictic-bg);
+            border-bottom: 2px solid var(--deictic-border);
+        }
+
+        /* Hidden spans when filter is off */
+        .contract-text .word.hidden-span {
+            background: transparent !important;
+            border-bottom: none !important;
+        }
+
+        /* Detail Panel */
+        .detail-panel {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .detail-empty {
+            color: #94a3b8;
+            font-size: 14px;
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .detail-content {
+            display: none;
+        }
+
+        .detail-content.visible {
+            display: block;
+        }
+
+        .detail-kind {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .detail-kind.DefinedTerm { background: var(--defined-term-bg); color: var(--defined-term-text); }
+        .detail-kind.TermReference { background: var(--term-ref-bg); color: var(--term-ref-text); }
+        .detail-kind.ObligationPhrase { background: var(--obligation-bg); color: var(--obligation-text); }
+        .detail-kind.ContractKeyword { background: var(--keyword-bg); color: var(--keyword-text); }
+        .detail-kind.PronounReference { background: var(--pronoun-bg); color: var(--pronoun-text); }
+        .detail-kind.PronounChain { background: var(--chain-bg); color: var(--chain-text); }
+        .detail-kind.ContractClause { background: var(--clause-bg); color: var(--clause-text); }
+        .detail-kind.DeicticReference { background: var(--deictic-bg); color: var(--deictic-text); }
+
+        .detail-text {
+            font-family: Georgia, serif;
+            font-size: 18px;
+            font-weight: 500;
+            color: #0f172a;
+            margin-bottom: 1rem;
+            word-break: break-word;
+        }
+
+        .detail-section {
+            margin-bottom: 1rem;
+        }
+
+        .detail-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.35rem;
+        }
+
+        .detail-section-content {
+            font-size: 14px;
+            color: #475569;
+        }
+
+        .detail-section-content code {
+            background: #f1f5f9;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-family: ui-monospace, monospace;
+            font-size: 13px;
+        }
+
+        .detail-metadata {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-family: ui-monospace, monospace;
+            font-size: 12px;
+            color: #475569;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .detail-actions {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .detail-actions button {
+            flex: 1;
+            padding: 0.5rem;
+            font-size: 12px;
+        }
+
+        /* Related spans styling */
+        .related-span-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #f1f5f9;
+            flex-wrap: wrap;
+        }
+
+        .related-span-item:last-child {
+            border-bottom: none;
+        }
+
+        .related-span-kind {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .related-span-kind.DefinedTerm { background: var(--defined-term-bg); color: var(--defined-term-text); }
+        .related-span-kind.TermReference { background: var(--term-ref-bg); color: var(--term-ref-text); }
+        .related-span-kind.PronounReference { background: var(--pronoun-bg); color: var(--pronoun-text); }
+
+        .span-link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .span-link:hover {
+            text-decoration: underline;
+        }
+
+        .related-span-reason {
+            font-size: 11px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        #detail-resolution a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        #detail-resolution a:hover {
+            text-decoration: underline;
+        }
+
+        /* Connection lines */
+        .connection-line {
+            fill: none;
+            stroke-width: 2.5;
+            opacity: 0.8;
+            pointer-events: stroke;
+            cursor: pointer;
+        }
+
+        .connection-line.pronoun {
+            stroke: #6366f1;
+        }
+
+        .connection-line.term-ref {
+            stroke: #f59e0b;
+            stroke-dasharray: 8 4;
+        }
+
+        .connection-line.deictic {
+            stroke: #14b8a6;
+            stroke-dasharray: 4 4;
+        }
+
+        .connection-line:hover {
+            stroke-width: 3.5;
+            opacity: 1;
+        }
+
+        /* SVG connections additional styling - uses the base .connection-overlay above */
+
+        /* Error message */
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 0.75rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: fixed;
+            background: #0f172a;
+            color: white;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.15s;
+            max-width: 300px;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        /* Associated span highlighting */
+        .contract-text .word.associated-highlight {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+            animation: pulse-highlight 0.6s ease-in-out;
+        }
+
+        @keyframes pulse-highlight {
+            0%, 100% { outline-color: #3b82f6; }
+            50% { outline-color: #60a5fa; }
+        }
+
+        /* Multi-token span grouping - connected visual treatment */
+        .contract-text .word.span-start {
+            border-top-left-radius: 4px;
+            border-bottom-left-radius: 4px;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            padding-left: 4px;
+            margin-right: -1px;
+        }
+
+        .contract-text .word.span-end {
+            border-top-right-radius: 4px;
+            border-bottom-right-radius: 4px;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            padding-right: 4px;
+            margin-left: -1px;
+        }
+
+        .contract-text .word.span-middle {
+            border-radius: 0;
+            margin-left: -1px;
+            margin-right: -1px;
+        }
+
+        .contract-text .word.span-single {
+            border-radius: 4px;
+            padding: 2px 4px;
+        }
+
+        /* Ensure border-bottom connects across grouped tokens */
+        .contract-text .word.span-start,
+        .contract-text .word.span-middle {
+            border-bottom-right-radius: 0 !important;
+        }
+
+        .contract-text .word.span-end,
+        .contract-text .word.span-middle {
+            border-bottom-left-radius: 0 !important;
+        }
+
+        /* Footer link */
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .footer a {
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <h1>Contract Analyzer</h1>
+    <p class="subtitle">Interactive contract analysis with layered-nlp</p>
+
+    <div class="input-section">
+        <textarea id="contract-input">SERVICES AGREEMENT
+
+"Company" means ABC Corporation (the "ABC"). "Contractor" means XYZ Services LLC (the "Provider").
+
+The Contractor shall provide consulting services to the Company. The Company shall pay the Contractor within 30 days of invoice receipt. We agree to the terms herein.
+
+However, the Company may terminate this agreement if Contractor fails to perform. It shall provide 30 days written notice. Therefore, timely performance is essential.
+
+I, the undersigned, represent that the information provided here is accurate. You shall notify us of any changes.
+
+Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject to applicable law, the Provider shall indemnify the Company.</textarea>
+        <div class="button-row">
+            <button id="analyze-btn" class="primary">Analyze</button>
+            <button id="clear-btn" class="secondary">Clear</button>
+        </div>
+    </div>
+
+    <div id="error-container"></div>
+
+    <div class="filter-bar" id="filter-bar">
+        <div class="filter-toggles">
+            <label class="filter-toggle" data-kind="DefinedTerm">
+                <input type="checkbox" checked>
+                <span class="dot"></span>
+                Defined Terms
+            </label>
+            <label class="filter-toggle" data-kind="TermReference">
+                <input type="checkbox" checked>
+                <span class="dot"></span>
+                Term Refs
+            </label>
+            <label class="filter-toggle" data-kind="ObligationPhrase">
+                <input type="checkbox" checked>
+                <span class="dot"></span>
+                Obligations
+            </label>
+            <label class="filter-toggle" data-kind="ContractKeyword">
+                <input type="checkbox" checked>
+                <span class="dot"></span>
+                Keywords
+            </label>
+            <label class="filter-toggle" data-kind="PronounReference">
+                <input type="checkbox" checked>
+                <span class="dot"></span>
+                Pronouns
+            </label>
+            <label class="filter-toggle" data-kind="PronounChain">
+                <input type="checkbox" checked>
+                <span class="dot"></span>
+                Chains
+            </label>
+            <label class="filter-toggle" data-kind="ContractClause">
+                <input type="checkbox" checked>
+                <span class="dot"></span>
+                Clauses
+            </label>
+            <label class="filter-toggle" data-kind="DeicticReference">
+                <input type="checkbox" checked>
+                <span class="dot"></span>
+                Deixis
+            </label>
+            <div class="filter-actions">
+                <button id="show-all-btn" class="secondary">Show All</button>
+                <button id="hide-all-btn" class="secondary">Hide All</button>
+            </div>
+        </div>
+        <div class="connection-legend" id="connection-legend">
+            <span class="legend-item">
+                <svg width="40" height="12"><path d="M2,6 Q20,12 38,6" stroke="#6366f1" stroke-width="2" fill="none"/></svg>
+                <span>Pronoun → Antecedent</span>
+            </span>
+            <span class="legend-item">
+                <svg width="40" height="12"><path d="M2,6 Q20,12 38,6" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 2" fill="none"/></svg>
+                <span>Reference → Definition</span>
+            </span>
+        </div>
+    </div>
+
+    <div class="main-content" id="main-content">
+        <div class="contract-panel">
+            <div class="panel-header">Analyzed Text</div>
+            <div class="contract-container" id="contract-container">
+                <svg class="connection-overlay" id="connection-overlay">
+                    <defs>
+                        <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                            <path d="M0,0 L6,3 L0,6 Z" fill="#6366f1"/>
+                        </marker>
+                        <marker id="arrowhead-term" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                            <path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b"/>
+                        </marker>
+                        <marker id="arrowhead-deictic" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                            <path d="M0,0 L6,3 L0,6 Z" fill="#14b8a6"/>
+                        </marker>
+                    </defs>
+                </svg>
+                <div class="contract-text" id="contract-text"></div>
+            </div>
+        </div>
+
+        <div class="detail-panel">
+            <div class="panel-header">Span Details</div>
+            <div class="detail-empty" id="detail-empty">
+                Click on a highlighted span to see details
+            </div>
+            <div class="detail-content" id="detail-content">
+                <div class="detail-kind" id="detail-kind"></div>
+                <div class="detail-text" id="detail-text"></div>
+
+                <div class="detail-section">
+                    <div class="detail-section-title">Label</div>
+                    <div class="detail-section-content" id="detail-label"></div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-section-title">Position</div>
+                    <div class="detail-section-content" id="detail-position"></div>
+                </div>
+
+                <div class="detail-section" id="detail-metadata-section">
+                    <div class="detail-section-title">Metadata</div>
+                    <div class="detail-metadata" id="detail-metadata"></div>
+                </div>
+
+                <div class="detail-actions">
+                    <button id="copy-json-btn" class="secondary">Copy JSON</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <div class="footer">
+        <a href="contract-viewer.html">Switch to ASCII view</a>
+    </div>
+
+    <script type="module">
+        let wasmModule = null;
+        let analysisResult = null;
+        let selectedSpan = null;
+        let tokenElements = [];
+        let spansByToken = new Map(); // token index -> array of spans
+
+        // Visible span kinds
+        const visibleKinds = new Set([
+            'DefinedTerm', 'TermReference', 'ObligationPhrase', 'ContractKeyword',
+            'PronounReference', 'PronounChain', 'ContractClause', 'DeicticReference'
+        ]);
+
+        // WASM loading
+        async function loadWasm() {
+            try {
+                const module = await import('./pkg/layered_nlp_demo_wasm.js');
+                await module.default();
+                wasmModule = module;
+                console.log('WASM module loaded');
+                return true;
+            } catch (err) {
+                console.error('Failed to load WASM:', err);
+                showError(`Failed to load WASM module: ${err.message}`);
+                return false;
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('error-container').innerHTML =
+                `<div class="error-message">${escapeHtml(message)}</div>`;
+        }
+
+        function clearError() {
+            document.getElementById('error-container').innerHTML = '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Tokenize text into words and whitespace
+        function tokenize(text) {
+            const tokens = [];
+            const regex = /(\s+)|([^\s]+)/g;
+            let match;
+            let offset = 0;
+
+            while ((match = regex.exec(text)) !== null) {
+                tokens.push({
+                    text: match[0],
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    isWhitespace: !!match[1]
+                });
+            }
+
+            return tokens;
+        }
+
+        // Find which spans cover each token
+        function buildSpanIndex(tokens, spans) {
+            const index = new Map();
+
+            for (let i = 0; i < tokens.length; i++) {
+                const token = tokens[i];
+                const covering = spans.filter(s => {
+                    const start = s.start_offset ?? s.start;
+                    const end = s.end_offset ?? s.end;
+                    return start < token.end && end > token.start;
+                });
+                index.set(i, covering);
+            }
+
+            return index;
+        }
+
+        // Get priority span kind for a token (for styling)
+        function getPriorityKind(spans) {
+            if (!spans || spans.length === 0) return null;
+
+            // Priority order (lower = higher priority)
+            const priority = [
+                'DefinedTerm',
+                'ObligationPhrase',
+                'TermReference',
+                'PronounReference',
+                'DeicticReference',
+                'ContractKeyword',
+                'PronounChain',
+                'ContractClause',
+                'ClauseAggregate',
+                'ObligationNode'
+            ];
+
+            const visible = spans.filter(s => visibleKinds.has(s.kind));
+            if (visible.length === 0) return null;
+
+            visible.sort((a, b) => {
+                const aIdx = priority.indexOf(a.kind);
+                const bIdx = priority.indexOf(b.kind);
+                return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+            });
+
+            return visible[0].kind;
+        }
+
+        // Check if obligation is prohibition or permission
+        function getObligationType(span) {
+            if (span.kind !== 'ObligationPhrase') return null;
+            const label = span.label?.toLowerCase() || '';
+            if (label.includes('prohibition') || label.includes('shall not')) return 'prohibition';
+            if (label.includes('permission') || label.includes('may')) return 'permission';
+            return null;
+        }
+
+        // Render the contract text with inline spans
+        function renderContractText(text, spans) {
+            const container = document.getElementById('contract-text');
+            const tokens = tokenize(text);
+            spansByToken = buildSpanIndex(tokens, spans);
+            tokenElements = [];
+
+            // Build span position info for multi-token grouping
+            const spanPositions = buildSpanPositions(tokens, spans);
+
+            container.innerHTML = '';
+
+            for (let i = 0; i < tokens.length; i++) {
+                const token = tokens[i];
+                const tokenSpans = spansByToken.get(i) || [];
+
+                if (token.isWhitespace) {
+                    // Preserve whitespace (newlines become <br>)
+                    if (token.text.includes('\n')) {
+                        const parts = token.text.split('\n');
+                        for (let j = 0; j < parts.length; j++) {
+                            if (j > 0) container.appendChild(document.createElement('br'));
+                            if (parts[j]) container.appendChild(document.createTextNode(parts[j]));
+                        }
+                    } else {
+                        container.appendChild(document.createTextNode(token.text));
+                    }
+                    tokenElements.push(null);
+                } else {
+                    const el = document.createElement('span');
+                    el.className = 'word';
+                    el.textContent = token.text;
+                    el.dataset.tokenIdx = i;
+
+                    const priorityKind = getPriorityKind(tokenSpans);
+                    if (priorityKind) {
+                        el.classList.add('has-span');
+                        el.classList.add(priorityKind);
+
+                        // Check for prohibition/permission
+                        const oblSpan = tokenSpans.find(s => s.kind === 'ObligationPhrase');
+                        if (oblSpan) {
+                            const oblType = getObligationType(oblSpan);
+                            if (oblType) el.classList.add(oblType);
+                        }
+
+                        // Add span position class for multi-token grouping
+                        const prioritySpan = tokenSpans.find(s => s.kind === priorityKind);
+                        if (prioritySpan) {
+                            const posInfo = spanPositions.get(prioritySpan);
+                            if (posInfo) {
+                                const pos = getTokenPositionInSpan(i, posInfo);
+                                el.classList.add(pos);
+                                el.dataset.spanId = spans.indexOf(prioritySpan);
+                            }
+                        }
+                    }
+
+                    // Store all spans on this token
+                    el.dataset.spans = JSON.stringify(tokenSpans.map(s => spans.indexOf(s)));
+
+                    container.appendChild(el);
+                    tokenElements.push(el);
+                }
+            }
+
+            // Add click handlers
+            container.querySelectorAll('.word.has-span').forEach(el => {
+                el.addEventListener('click', handleSpanClick);
+                el.addEventListener('mouseenter', handleSpanHover);
+                el.addEventListener('mouseleave', hideTooltip);
+            });
+        }
+
+        // Build a map of span -> {firstToken, lastToken} for grouping
+        function buildSpanPositions(tokens, spans) {
+            const positions = new Map();
+
+            for (const span of spans) {
+                const start = span.start_offset ?? span.start;
+                const end = span.end_offset ?? span.end;
+
+                let firstToken = -1;
+                let lastToken = -1;
+
+                for (let i = 0; i < tokens.length; i++) {
+                    const token = tokens[i];
+                    if (token.isWhitespace) continue;
+
+                    // Token overlaps with span
+                    if (token.start < end && token.end > start) {
+                        if (firstToken === -1) firstToken = i;
+                        lastToken = i;
+                    }
+                }
+
+                if (firstToken !== -1) {
+                    positions.set(span, { firstToken, lastToken });
+                }
+            }
+
+            return positions;
+        }
+
+        // Get position class for token within span
+        function getTokenPositionInSpan(tokenIdx, posInfo) {
+            if (posInfo.firstToken === posInfo.lastToken) {
+                return 'span-single';
+            } else if (tokenIdx === posInfo.firstToken) {
+                return 'span-start';
+            } else if (tokenIdx === posInfo.lastToken) {
+                return 'span-end';
+            } else {
+                return 'span-middle';
+            }
+        }
+
+        // Handle span click - show details
+        function handleSpanClick(e) {
+            const tokenIdx = parseInt(e.target.dataset.tokenIdx);
+            const tokenSpans = spansByToken.get(tokenIdx) || [];
+            const visibleSpans = tokenSpans.filter(s => visibleKinds.has(s.kind));
+
+            if (visibleSpans.length === 0) return;
+
+            // Clear previous selection
+            document.querySelectorAll('.word.selected').forEach(el => el.classList.remove('selected'));
+
+            // Select this token
+            e.target.classList.add('selected');
+
+            // Show first visible span in detail panel
+            showSpanDetail(visibleSpans[0]);
+        }
+
+        // Show span detail in panel
+        function showSpanDetail(span) {
+            selectedSpan = span;
+
+            document.getElementById('detail-empty').style.display = 'none';
+            document.getElementById('detail-content').classList.add('visible');
+
+            const kindEl = document.getElementById('detail-kind');
+            kindEl.textContent = span.kind;
+            kindEl.className = 'detail-kind ' + span.kind;
+
+            document.getElementById('detail-text').textContent = span.snippet ||
+                analysisResult.text.slice(span.start_offset, span.end_offset);
+
+            document.getElementById('detail-label').textContent = span.label || '—';
+            document.getElementById('detail-position').innerHTML =
+                `<code>${span.start_offset}</code> to <code>${span.end_offset}</code>`;
+
+            // Show resolution info prominently
+            const meta = getMetadata(span);
+            showResolutionInfo(span, meta);
+
+            // Show related spans
+            showRelatedSpans(span, meta);
+
+            // Metadata (raw)
+            const metadataSection = document.getElementById('detail-metadata-section');
+            const metadataEl = document.getElementById('detail-metadata');
+
+            if (meta) {
+                metadataSection.style.display = 'block';
+                metadataEl.textContent = JSON.stringify(meta, null, 2);
+            } else {
+                metadataSection.style.display = 'none';
+            }
+        }
+
+        // Show resolution information for pronouns and references
+        function showResolutionInfo(span, meta) {
+            let resolutionSection = document.getElementById('detail-resolution-section');
+            if (!resolutionSection) {
+                // Create resolution section if it doesn't exist
+                const posSection = document.querySelector('#detail-content .detail-section:nth-child(3)');
+                resolutionSection = document.createElement('div');
+                resolutionSection.className = 'detail-section';
+                resolutionSection.id = 'detail-resolution-section';
+                resolutionSection.innerHTML = `
+                    <div class="detail-section-title">Resolves To</div>
+                    <div class="detail-section-content" id="detail-resolution"></div>
+                `;
+                posSection.after(resolutionSection);
+            }
+
+            const resolutionEl = document.getElementById('detail-resolution');
+            let resolutionHtml = '';
+
+            // PronounReference resolution
+            if (span.kind === 'PronounReference' && meta?.resolved_to) {
+                resolutionHtml = `<strong>${meta.resolved_to}</strong>`;
+                if (meta.resolution_confidence) {
+                    resolutionHtml += ` <span style="color:#64748b">(${Math.round(meta.resolution_confidence * 100)}% confidence)</span>`;
+                }
+            }
+            // TermReference -> link to definition
+            else if (span.kind === 'TermReference') {
+                const def = analysisResult.spans.find(s =>
+                    s.kind === 'DefinedTerm' && s.label?.toLowerCase() === span.label?.toLowerCase()
+                );
+                if (def) {
+                    resolutionHtml = `<a href="#" class="span-link" data-span-idx="${analysisResult.spans.indexOf(def)}">
+                        ${def.label} (definition)
+                    </a>`;
+                }
+            }
+            // DeicticReference with resolved referent
+            else if (span.kind === 'DeicticReference' && meta?.resolved_referent) {
+                resolutionHtml = `<strong>${meta.resolved_referent.text}</strong>`;
+                if (meta.resolved_referent.confidence) {
+                    resolutionHtml += ` <span style="color:#64748b">(${Math.round(meta.resolved_referent.confidence * 100)}%)</span>`;
+                }
+            }
+
+            if (resolutionHtml) {
+                resolutionSection.style.display = 'block';
+                resolutionEl.innerHTML = resolutionHtml;
+                // Add click handler for span links
+                resolutionEl.querySelectorAll('.span-link').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const idx = parseInt(link.dataset.spanIdx);
+                        const targetSpan = analysisResult.spans[idx];
+                        if (targetSpan) {
+                            highlightSpan(targetSpan);
+                            showSpanDetail(targetSpan);
+                        }
+                    });
+                });
+            } else {
+                resolutionSection.style.display = 'none';
+            }
+        }
+
+        // Show spans related to this one
+        function showRelatedSpans(span, meta) {
+            let relatedSection = document.getElementById('detail-related-section');
+            if (!relatedSection) {
+                const metaSection = document.getElementById('detail-metadata-section');
+                relatedSection = document.createElement('div');
+                relatedSection.className = 'detail-section';
+                relatedSection.id = 'detail-related-section';
+                relatedSection.innerHTML = `
+                    <div class="detail-section-title">Related Spans</div>
+                    <div class="detail-section-content" id="detail-related"></div>
+                `;
+                metaSection.before(relatedSection);
+            }
+
+            const relatedEl = document.getElementById('detail-related');
+            const related = findRelatedSpans(span, meta);
+
+            if (related.length > 0) {
+                relatedSection.style.display = 'block';
+                relatedEl.innerHTML = related.map(r => `
+                    <div class="related-span-item">
+                        <span class="related-span-kind ${r.span.kind}">${r.span.kind}</span>
+                        <a href="#" class="span-link" data-span-idx="${analysisResult.spans.indexOf(r.span)}">
+                            ${r.span.snippet || r.span.label || '...'}
+                        </a>
+                        <span class="related-span-reason">${r.reason}</span>
+                    </div>
+                `).join('');
+                // Add click handlers
+                relatedEl.querySelectorAll('.span-link').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const idx = parseInt(link.dataset.spanIdx);
+                        const targetSpan = analysisResult.spans[idx];
+                        if (targetSpan) {
+                            highlightSpan(targetSpan);
+                            showSpanDetail(targetSpan);
+                        }
+                    });
+                });
+            } else {
+                relatedSection.style.display = 'none';
+            }
+        }
+
+        // Find spans related to the given span
+        function findRelatedSpans(span, meta) {
+            const related = [];
+            if (!analysisResult) return related;
+
+            // For DefinedTerm: find all TermReferences and PronounReferences that point to it
+            if (span.kind === 'DefinedTerm') {
+                const termName = span.label?.toLowerCase();
+                // Find term references
+                for (const s of analysisResult.spans) {
+                    if (s.kind === 'TermReference' && s.label?.toLowerCase() === termName) {
+                        related.push({ span: s, reason: 'references this' });
+                    }
+                    if (s.kind === 'PronounReference') {
+                        const m = getMetadata(s);
+                        if (m?.resolved_to?.toLowerCase() === termName) {
+                            related.push({ span: s, reason: 'resolves to this' });
+                        }
+                    }
+                }
+            }
+
+            // For PronounReference: find the DefinedTerm it resolves to
+            if (span.kind === 'PronounReference' && meta?.resolved_to) {
+                const targetName = meta.resolved_to.toLowerCase();
+                const def = analysisResult.spans.find(s =>
+                    s.kind === 'DefinedTerm' && s.label?.toLowerCase() === targetName
+                );
+                if (def) {
+                    related.push({ span: def, reason: 'antecedent' });
+                }
+            }
+
+            // For TermReference: find its DefinedTerm
+            if (span.kind === 'TermReference') {
+                const termName = span.label?.toLowerCase();
+                const def = analysisResult.spans.find(s =>
+                    s.kind === 'DefinedTerm' && s.label?.toLowerCase() === termName
+                );
+                if (def) {
+                    related.push({ span: def, reason: 'definition' });
+                }
+            }
+
+            // For ObligationPhrase: show provenance links
+            if (span.kind === 'ObligationPhrase' && meta?.provenance) {
+                for (const prov of meta.provenance) {
+                    if (prov.label === 'obligor_source') {
+                        // Find span at that token range
+                        const sourceSpan = findSpanAtTokenRange(prov.target_token_range);
+                        if (sourceSpan) {
+                            related.push({ span: sourceSpan, reason: 'obligor source' });
+                        }
+                    }
+                }
+            }
+
+            return related;
+        }
+
+        // Find a span that covers the given token range
+        function findSpanAtTokenRange(tokenRange) {
+            if (!tokenRange || !analysisResult) return null;
+            // Token ranges from provenance are token indices
+            // We need to map back to spans - for now, use a simple heuristic
+            // Find spans that start near the token position
+            for (const span of analysisResult.spans) {
+                if (span.kind === 'DefinedTerm' || span.kind === 'TermReference') {
+                    // Check if this span overlaps with the token range
+                    // This is approximate since we don't have exact token indices
+                    if (spansByToken.get(tokenRange[0])?.includes(span)) {
+                        return span;
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Handle span hover - show tooltip and highlight associated spans
+        function handleSpanHover(e) {
+            const tokenIdx = parseInt(e.target.dataset.tokenIdx);
+            const tokenSpans = spansByToken.get(tokenIdx) || [];
+            const visibleSpans = tokenSpans.filter(s => visibleKinds.has(s.kind));
+
+            if (visibleSpans.length === 0) return;
+
+            const labels = visibleSpans.map(s => s.label || s.kind).join(', ');
+            showTooltip(e.target, labels);
+
+            // Highlight associated spans
+            highlightAssociatedSpans(visibleSpans);
+        }
+
+        // Find and highlight spans associated with the given spans
+        function highlightAssociatedSpans(spans) {
+            // Clear previous highlights
+            document.querySelectorAll('.word.associated-highlight').forEach(el =>
+                el.classList.remove('associated-highlight'));
+
+            for (const span of spans) {
+                const meta = getMetadata(span);
+
+                // PronounReference -> resolved_to -> find matching DefinedTerm
+                if (span.kind === 'PronounReference' && meta?.resolved_to) {
+                    const targetName = meta.resolved_to.toLowerCase();
+                    highlightSpansMatching(s =>
+                        s.kind === 'DefinedTerm' &&
+                        s.label?.toLowerCase().includes(targetName)
+                    );
+                }
+
+                // TermReference -> term_name -> find matching DefinedTerm
+                if (span.kind === 'TermReference') {
+                    const termName = span.label?.toLowerCase();
+                    if (termName) {
+                        highlightSpansMatching(s =>
+                            s.kind === 'DefinedTerm' &&
+                            s.label?.toLowerCase() === termName
+                        );
+                    }
+                }
+
+                // ObligationPhrase -> provenance -> highlight source tokens
+                if (span.kind === 'ObligationPhrase' && meta?.provenance) {
+                    for (const prov of meta.provenance) {
+                        if (prov.target_token_range) {
+                            highlightTokenRange(prov.target_token_range[0], prov.target_token_range[1]);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Highlight all spans matching a predicate
+        function highlightSpansMatching(predicate) {
+            if (!analysisResult) return;
+            const matchingSpans = analysisResult.spans.filter(predicate);
+            for (const span of matchingSpans) {
+                highlightSpan(span);
+            }
+        }
+
+        // Highlight all tokens covered by a span
+        function highlightSpan(span) {
+            const start = span.start_offset ?? span.start;
+            const end = span.end_offset ?? span.end;
+            for (let i = 0; i < tokenElements.length; i++) {
+                const el = tokenElements[i];
+                if (!el) continue;
+                const tokenSpans = spansByToken.get(i) || [];
+                if (tokenSpans.includes(span)) {
+                    el.classList.add('associated-highlight');
+                }
+            }
+        }
+
+        // Highlight tokens in a given index range (from provenance)
+        function highlightTokenRange(startIdx, endIdx) {
+            // Token indices from provenance are token-based, not character-based
+            // We need to find tokens by offset, but provenance uses token indices
+            // For now, just iterate and highlight based on approximate position
+            for (let i = 0; i < tokenElements.length; i++) {
+                const el = tokenElements[i];
+                if (el) el.classList.add('associated-highlight');
+                // Only highlight first few for now - needs proper token index mapping
+                if (i > endIdx) break;
+                if (i >= startIdx) el?.classList.add('associated-highlight');
+            }
+        }
+
+        // Get metadata as plain object
+        function getMetadata(span) {
+            if (!span.metadata) return null;
+            return span.metadata instanceof Map
+                ? Object.fromEntries(span.metadata)
+                : span.metadata;
+        }
+
+        function showTooltip(target, text) {
+            const tooltip = document.getElementById('tooltip');
+            const rect = target.getBoundingClientRect();
+
+            tooltip.textContent = text;
+            // Position tooltip above the element, centered
+            const tooltipWidth = 200; // approximate
+            tooltip.style.left = Math.max(10, rect.left + rect.width/2 - tooltipWidth/2) + 'px';
+            tooltip.style.top = (rect.top - 35) + 'px';
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.remove('visible');
+            // Clear associated highlights
+            document.querySelectorAll('.word.associated-highlight').forEach(el =>
+                el.classList.remove('associated-highlight'));
+        }
+
+        // Draw connection lines between related spans
+        function drawConnections(spans) {
+            const svg = document.getElementById('connection-overlay');
+            if (!svg) {
+                console.warn('SVG overlay not found');
+                return;
+            }
+            const textEl = document.getElementById('contract-text');
+            if (!textEl) {
+                console.warn('Text element not found');
+                return;
+            }
+
+            // Clear existing paths (keep defs)
+            svg.querySelectorAll('path').forEach(p => p.remove());
+
+            // Size SVG to match content
+            const contentHeight = textEl.scrollHeight || textEl.offsetHeight;
+            const contentWidth = textEl.scrollWidth || textEl.offsetWidth;
+            svg.setAttribute('width', contentWidth);
+            svg.setAttribute('height', contentHeight + 50); // Extra space for curves
+            svg.style.width = contentWidth + 'px';
+            svg.style.height = (contentHeight + 50) + 'px';
+
+            console.log(`Drawing connections for ${spans.length} spans, SVG size: ${contentWidth}x${contentHeight}`);
+
+            let connectionCount = 0;
+
+            // Find pronoun references with resolved antecedents
+            const pronounSpans = spans.filter(s =>
+                s.kind === 'PronounReference' &&
+                visibleKinds.has('PronounReference')
+            );
+
+            console.log(`Found ${pronounSpans.length} PronounReference spans`);
+
+            for (const pronoun of pronounSpans) {
+                const meta = getMetadata(pronoun);
+                const resolvedTo = meta?.resolved_to;
+                console.log(`Pronoun "${pronoun.snippet}" resolved_to: ${resolvedTo}`);
+                if (!resolvedTo) continue;
+
+                // Find the matching DefinedTerm
+                const antecedent = spans.find(s =>
+                    s.kind === 'DefinedTerm' &&
+                    s.label?.toLowerCase() === resolvedTo.toLowerCase()
+                );
+
+                if (antecedent) {
+                    console.log(`Drawing connection: ${pronoun.snippet} -> ${antecedent.snippet}`);
+                    drawConnection(pronoun, antecedent, 'pronoun');
+                    connectionCount++;
+                }
+            }
+
+            // Find term references -> defined terms
+            const termRefs = spans.filter(s =>
+                s.kind === 'TermReference' &&
+                visibleKinds.has('TermReference')
+            );
+
+            console.log(`Found ${termRefs.length} TermReference spans`);
+
+            for (const termRef of termRefs) {
+                const termName = termRef.label?.toLowerCase();
+                if (!termName) continue;
+
+                const definition = spans.find(s =>
+                    s.kind === 'DefinedTerm' &&
+                    s.label?.toLowerCase() === termName
+                );
+
+                if (definition) {
+                    console.log(`Drawing connection: ${termRef.snippet} -> ${definition.snippet}`);
+                    drawConnection(termRef, definition, 'term-ref');
+                    connectionCount++;
+                }
+            }
+
+            console.log(`Total connections drawn: ${connectionCount}`);
+        }
+
+        function drawConnection(fromSpan, toSpan, type) {
+            const svg = document.getElementById('connection-overlay');
+            const textEl = document.getElementById('contract-text');
+            const container = document.getElementById('contract-container');
+
+            // Find elements for these spans
+            const fromEl = findElementForSpan(fromSpan);
+            const toEl = findElementForSpan(toSpan);
+
+            if (!fromEl || !toEl) {
+                console.warn(`Could not find elements for connection: from=${!!fromEl}, to=${!!toEl}`);
+                return;
+            }
+
+            // Get positions relative to the container
+            const containerRect = container.getBoundingClientRect();
+            const fromRect = fromEl.getBoundingClientRect();
+            const toRect = toEl.getBoundingClientRect();
+
+            // Calculate positions relative to container (drawing from bottom of each word)
+            const fromX = fromRect.left - containerRect.left + fromRect.width / 2;
+            const fromY = fromRect.bottom - containerRect.top + 2; // 2px below the word
+            const toX = toRect.left - containerRect.left + toRect.width / 2;
+            const toY = toRect.bottom - containerRect.top + 2;
+
+            // Curve depth based on distance
+            const distance = Math.abs(toX - fromX);
+            const verticalDistance = Math.abs(toY - fromY);
+            const curveDepth = Math.max(20, Math.min(50, distance / 4 + verticalDistance / 2));
+
+            // Create curved path - curve goes below the text
+            const midY = Math.max(fromY, toY) + curveDepth;
+            const midX = (fromX + toX) / 2;
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M${fromX},${fromY} Q${midX},${midY} ${toX},${toY}`);
+            path.setAttribute('class', `connection-line ${type}`);
+            path.setAttribute('marker-end', `url(#arrowhead${type === 'pronoun' ? '' : '-' + type})`);
+
+            svg.appendChild(path);
+            console.log(`Path drawn: "${fromSpan.snippet}" -> "${toSpan.snippet}" at (${fromX.toFixed(0)},${fromY.toFixed(0)}) -> (${toX.toFixed(0)},${toY.toFixed(0)})`);
+        }
+
+        function findElementForSpan(span) {
+            const start = span.start_offset ?? span.start;
+            for (let i = 0; i < tokenElements.length; i++) {
+                const el = tokenElements[i];
+                if (!el) continue;
+                const tokenSpans = spansByToken.get(i) || [];
+                if (tokenSpans.includes(span)) return el;
+            }
+            return null;
+        }
+
+        // Update visibility based on filters
+        function updateVisibility() {
+            // Update filter toggle styling
+            document.querySelectorAll('.filter-toggle').forEach(toggle => {
+                const kind = toggle.dataset.kind;
+                const checkbox = toggle.querySelector('input');
+                if (checkbox.checked) {
+                    visibleKinds.add(kind);
+                    toggle.classList.remove('inactive');
+                } else {
+                    visibleKinds.delete(kind);
+                    toggle.classList.add('inactive');
+                }
+            });
+
+            // Update word styling
+            for (let i = 0; i < tokenElements.length; i++) {
+                const el = tokenElements[i];
+                if (!el || !el.classList.contains('has-span')) continue;
+
+                const tokenSpans = spansByToken.get(i) || [];
+                const priorityKind = getPriorityKind(tokenSpans);
+
+                // Remove all kind classes
+                el.classList.remove('DefinedTerm', 'TermReference', 'ObligationPhrase',
+                    'ContractKeyword', 'PronounReference', 'PronounChain',
+                    'ContractClause', 'DeicticReference', 'hidden-span',
+                    'prohibition', 'permission');
+
+                if (priorityKind) {
+                    el.classList.add(priorityKind);
+
+                    // Check for obligation type
+                    const oblSpan = tokenSpans.find(s => s.kind === 'ObligationPhrase');
+                    if (oblSpan) {
+                        const oblType = getObligationType(oblSpan);
+                        if (oblType) el.classList.add(oblType);
+                    }
+                } else {
+                    el.classList.add('hidden-span');
+                }
+            }
+
+            // Redraw connections
+            if (analysisResult) {
+                drawConnections(analysisResult.spans);
+            }
+        }
+
+        // Main analyze function
+        async function handleAnalyze() {
+            clearError();
+            const text = document.getElementById('contract-input').value.trim();
+
+            if (!text) {
+                showError('Please enter some contract text to analyze.');
+                return;
+            }
+
+            if (!wasmModule) {
+                document.getElementById('main-content').innerHTML =
+                    '<div class="loading">Loading WASM module</div>';
+                document.getElementById('main-content').classList.add('visible');
+
+                const loaded = await loadWasm();
+                if (!loaded) {
+                    document.getElementById('main-content').classList.remove('visible');
+                    return;
+                }
+            }
+
+            try {
+                const result = wasmModule.analyze_contract(text);
+
+                // Add snippets to spans
+                result.spans = result.spans.map(s => ({
+                    ...s,
+                    snippet: text.slice(s.start_offset, s.end_offset)
+                }));
+
+                analysisResult = result;
+
+                // Show UI
+                document.getElementById('filter-bar').classList.add('visible');
+                document.getElementById('main-content').classList.add('visible');
+
+                // Reset main content structure
+                document.getElementById('main-content').innerHTML = `
+                    <div class="contract-panel">
+                        <div class="panel-header">Analyzed Text</div>
+                        <div class="contract-container" id="contract-container">
+                            <svg class="connection-overlay" id="connection-overlay">
+                                <defs>
+                                    <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                                        <path d="M0,0 L8,4 L0,8 Z" fill="#6366f1"/>
+                                    </marker>
+                                    <marker id="arrowhead-term-ref" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                                        <path d="M0,0 L8,4 L0,8 Z" fill="#f59e0b"/>
+                                    </marker>
+                                    <marker id="arrowhead-deictic" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                                        <path d="M0,0 L8,4 L0,8 Z" fill="#14b8a6"/>
+                                    </marker>
+                                </defs>
+                            </svg>
+                            <div class="contract-text" id="contract-text"></div>
+                        </div>
+                    </div>
+                    <div class="detail-panel">
+                        <div class="panel-header">Span Details</div>
+                        <div class="detail-empty" id="detail-empty">Click on a highlighted span to see details</div>
+                        <div class="detail-content" id="detail-content">
+                            <div class="detail-kind" id="detail-kind"></div>
+                            <div class="detail-text" id="detail-text"></div>
+                            <div class="detail-section">
+                                <div class="detail-section-title">Label</div>
+                                <div class="detail-section-content" id="detail-label"></div>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-section-title">Position</div>
+                                <div class="detail-section-content" id="detail-position"></div>
+                            </div>
+                            <div class="detail-section" id="detail-metadata-section">
+                                <div class="detail-section-title">Metadata</div>
+                                <div class="detail-metadata" id="detail-metadata"></div>
+                            </div>
+                            <div class="detail-actions">
+                                <button id="copy-json-btn" class="secondary">Copy JSON</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Re-attach copy button handler
+                document.getElementById('copy-json-btn').addEventListener('click', handleCopyJson);
+
+                // Render
+                renderContractText(result.text, result.spans);
+
+                // Draw connections after DOM is fully laid out
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        drawConnections(result.spans);
+                    });
+                });
+
+            } catch (err) {
+                showError(`Analysis failed: ${err.message}`);
+            }
+        }
+
+        function handleClear() {
+            document.getElementById('contract-input').value = '';
+            document.getElementById('filter-bar').classList.remove('visible');
+            document.getElementById('main-content').classList.remove('visible');
+            analysisResult = null;
+            selectedSpan = null;
+            clearError();
+        }
+
+        function handleCopyJson() {
+            if (!selectedSpan) return;
+
+            let spanData = { ...selectedSpan };
+            if (spanData.metadata instanceof Map) {
+                spanData.metadata = Object.fromEntries(spanData.metadata);
+            }
+
+            navigator.clipboard.writeText(JSON.stringify(spanData, null, 2))
+                .then(() => {
+                    const btn = document.getElementById('copy-json-btn');
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => btn.textContent = 'Copy JSON', 1500);
+                });
+        }
+
+        function handleShowAll() {
+            document.querySelectorAll('.filter-toggle input').forEach(cb => cb.checked = true);
+            updateVisibility();
+        }
+
+        function handleHideAll() {
+            document.querySelectorAll('.filter-toggle input').forEach(cb => cb.checked = false);
+            updateVisibility();
+        }
+
+        // Event listeners
+        document.getElementById('analyze-btn').addEventListener('click', handleAnalyze);
+        document.getElementById('clear-btn').addEventListener('click', handleClear);
+        document.getElementById('show-all-btn').addEventListener('click', handleShowAll);
+        document.getElementById('hide-all-btn').addEventListener('click', handleHideAll);
+        document.getElementById('copy-json-btn').addEventListener('click', handleCopyJson);
+
+        // Filter toggle listeners
+        document.querySelectorAll('.filter-toggle input').forEach(cb => {
+            cb.addEventListener('change', updateVisibility);
+        });
+
+        // Keyboard shortcut
+        document.getElementById('contract-input').addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                handleAnalyze();
+            }
+        });
+
+        // Update connections on resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (analysisResult) {
+                    drawConnections(analysisResult.spans);
+                }
+            }, 100);
+        });
+
+        // Load WASM on page load
+        loadWasm();
+    </script>
+</body>
+</html>
