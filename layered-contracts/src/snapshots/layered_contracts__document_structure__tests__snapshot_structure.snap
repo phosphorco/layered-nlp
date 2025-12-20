@@ -1,0 +1,205 @@
+---
+source: layered-contracts/src/document_structure.rs
+assertion_line: 381
+expression: result.value
+---
+DocumentStructure {
+    sections: [
+        SectionNode {
+            header: SectionHeader {
+                identifier: Named {
+                    kind: Article,
+                    sub_identifier: Some(
+                        Roman {
+                            value: 1,
+                            uppercase: true,
+                        },
+                    ),
+                },
+                title: Some(
+                    "DEFINITIONS",
+                ),
+                raw_text: "ARTICLE I",
+                confidence: 0.95,
+            },
+            start_line: 0,
+            end_line: Some(
+                1,
+            ),
+            content_span: DocSpan {
+                start: DocPosition {
+                    line: 0,
+                    token: 0,
+                },
+                end: DocPosition {
+                    line: 0,
+                    token: 6,
+                },
+            },
+            children: [
+                SectionNode {
+                    header: SectionHeader {
+                        identifier: Named {
+                            kind: Section,
+                            sub_identifier: Some(
+                                Numeric {
+                                    parts: [
+                                        1,
+                                        1,
+                                    ],
+                                },
+                            ),
+                        },
+                        title: Some(
+                            "Terms",
+                        ),
+                        raw_text: "Section 1.1",
+                        confidence: 0.95,
+                    },
+                    start_line: 1,
+                    end_line: Some(
+                        2,
+                    ),
+                    content_span: DocSpan {
+                        start: DocPosition {
+                            line: 1,
+                            token: 0,
+                        },
+                        end: DocPosition {
+                            line: 1,
+                            token: 6,
+                        },
+                    },
+                    children: [
+                        SectionNode {
+                            header: SectionHeader {
+                                identifier: Alpha {
+                                    letter: 'a',
+                                    parenthesized: true,
+                                    uppercase: false,
+                                },
+                                title: Some(
+                                    "First term",
+                                ),
+                                raw_text: "(a)",
+                                confidence: 0.7,
+                            },
+                            start_line: 2,
+                            end_line: Some(
+                                3,
+                            ),
+                            content_span: DocSpan {
+                                start: DocPosition {
+                                    line: 2,
+                                    token: 0,
+                                },
+                                end: DocPosition {
+                                    line: 2,
+                                    token: 6,
+                                },
+                            },
+                            children: [],
+                        },
+                        SectionNode {
+                            header: SectionHeader {
+                                identifier: Alpha {
+                                    letter: 'b',
+                                    parenthesized: true,
+                                    uppercase: false,
+                                },
+                                title: Some(
+                                    "Second term",
+                                ),
+                                raw_text: "(b)",
+                                confidence: 0.7,
+                            },
+                            start_line: 3,
+                            end_line: Some(
+                                4,
+                            ),
+                            content_span: DocSpan {
+                                start: DocPosition {
+                                    line: 3,
+                                    token: 0,
+                                },
+                                end: DocPosition {
+                                    line: 3,
+                                    token: 6,
+                                },
+                            },
+                            children: [],
+                        },
+                    ],
+                },
+                SectionNode {
+                    header: SectionHeader {
+                        identifier: Named {
+                            kind: Section,
+                            sub_identifier: Some(
+                                Numeric {
+                                    parts: [
+                                        1,
+                                        2,
+                                    ],
+                                },
+                            ),
+                        },
+                        title: Some(
+                            "Interpretation",
+                        ),
+                        raw_text: "Section 1.2",
+                        confidence: 0.95,
+                    },
+                    start_line: 4,
+                    end_line: Some(
+                        5,
+                    ),
+                    content_span: DocSpan {
+                        start: DocPosition {
+                            line: 4,
+                            token: 0,
+                        },
+                        end: DocPosition {
+                            line: 4,
+                            token: 6,
+                        },
+                    },
+                    children: [],
+                },
+            ],
+        },
+        SectionNode {
+            header: SectionHeader {
+                identifier: Named {
+                    kind: Article,
+                    sub_identifier: Some(
+                        Roman {
+                            value: 2,
+                            uppercase: true,
+                        },
+                    ),
+                },
+                title: Some(
+                    "SERVICES",
+                ),
+                raw_text: "ARTICLE II",
+                confidence: 0.95,
+            },
+            start_line: 5,
+            end_line: Some(
+                6,
+            ),
+            content_span: DocSpan {
+                start: DocPosition {
+                    line: 5,
+                    token: 0,
+                },
+                end: DocPosition {
+                    line: 5,
+                    token: 6,
+                },
+            },
+            children: [],
+        },
+    ],
+}

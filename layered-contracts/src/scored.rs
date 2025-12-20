@@ -1,4 +1,4 @@
-//! Scored<T> infrastructure for confidence-based attributes.
+//! `Scored<T>` infrastructure for confidence-based attributes.
 //!
 //! The [`Scored<T>`] wrapper represents values with associated confidence scores.
 //! - `confidence = 1.0` means the value has been verified (certain)

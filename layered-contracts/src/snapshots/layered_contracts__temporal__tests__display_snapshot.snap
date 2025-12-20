@@ -1,0 +1,8 @@
+---
+source: layered-contracts/src/temporal.rs
+expression: display.to_string()
+---
+Payment     due     within     thirty     (  30  )     days     of     the     Effective     Date
+                    ╰─────────────────────────────────────╯TemporalExpression { temporal_type: Deadline { deadline_type: Within, reference: Duration { value: 30, unit: Days, written_form: Some("thirty") } }, text: "within thirty (30) days", confidence: 0.85 }
+                               ╰──────────────────────────╯TemporalExpression { temporal_type: Duration { value: 30, unit: Days, written_form: Some("thirty") }, text: "thirty (30) days", confidence: 0.9 }
+                                                                       ╰────────────────────────╯TemporalExpression { temporal_type: DefinedDate { term: "the Effective Date" }, text: "the Effective Date", confidence: 0.8 }

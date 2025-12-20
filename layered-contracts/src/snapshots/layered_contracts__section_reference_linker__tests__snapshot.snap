@@ -1,0 +1,14 @@
+---
+source: layered-contracts/src/section_reference_linker.rs
+assertion_line: 653
+expression: "(result.value.resolved.len(), result.value.unresolved.len(),\nresult.value.filtered.len(), result.value.ambiguous.len(), &result.warnings,)"
+---
+(
+    5,
+    1,
+    6,
+    0,
+    [
+        "Line 16: unresolved reference 'Section 99.99': Section 'SECTION:99.99' not found in document",
+    ],
+)
