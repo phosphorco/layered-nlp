@@ -8,6 +8,18 @@
 | **Created** | 2025-12-18 |
 | **Authors** | Architecture Design Session |
 
+## Addendum
+
+**[RFC-001 Addendum: Critical Gaps and Design Clarifications](./RFC-001-addendum-critical-gaps.md)** addresses:
+- The single-mention entity problem (holes as first-class citizens)
+- ObligationGraph vs ObligationPropertyGraph unification
+- Three-level diff granularity (aggregate/node/clause)
+- WL-hash justification and simpler alternatives
+- Relaxed matching and indeterminate results
+- Beneficiary detection limitations
+
+---
+
 ## Table of Contents
 
 1. [Summary](#1-summary)

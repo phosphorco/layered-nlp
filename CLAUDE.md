@@ -19,6 +19,12 @@ cargo test -p layered-nlp
 cargo test -p layered-part-of-speech
 cargo test -p layered-amount
 cargo test -p layered-clauses
+cargo test -p layered-contracts
+cargo test -p layered-deixis
+cargo test -p layered-nlp-demo-wasm
+
+# Run performance benchmark (release mode)
+cargo test -p layered-nlp-demo-wasm test_performance_benchmark --release -- --nocapture
 
 # Run clippy lints
 cargo clippy
@@ -62,9 +68,12 @@ layered-nlp is a data-oriented NLP framework for incrementally building up recog
 - `layered-part-of-speech/` - Part-of-speech tagging resolver using wiktionary data
 - `layered-amount/` - Numeric amount recognition (handles localized number formats)
 - `layered-clauses/` - Clause detection (splits text on clause keywords)
-- `layered-contracts/` - Contract language analysis (keywords, terms, obligations)
+- `layered-contracts/` - Contract language analysis (keywords, terms, obligations, document diff)
+- `layered-deixis/` - Deictic expression detection (pronouns, place, time, discourse markers)
+- `layered-nlp-demo-wasm/` - WASM demo for browser-based contract analysis
 - `examples/` - Usage examples
 - `docs/` - Additional documentation
+- `web/` - HTML contract viewer (uses WASM demo)
 
 ### Testing
 
@@ -82,3 +91,96 @@ Update snapshots with: `cargo insta review`
 ### Building Resolvers
 
 See [docs/building-resolvers.md](docs/building-resolvers.md) for patterns and best practices when implementing new resolvers.
+
+### Deixis Detection
+
+The `layered-deixis` crate provides resolvers for detecting deictic expressions (context-dependent references):
+
+```rust
+use layered_deixis::{
+    DeicticReference, PersonPronounResolver, PlaceDeicticResolver,
+    SimpleTemporalResolver, DiscourseMarkerResolver,
+};
+use layered_nlp::create_line_from_string;
+
+let line = create_line_from_string("I will meet you there tomorrow. However, plans may change.")
+    .run(&PersonPronounResolver::new())   // Detects: I, you
+    .run(&PlaceDeicticResolver::new())    // Detects: there
+    .run(&SimpleTemporalResolver::new())  // Detects: tomorrow
+    .run(&DiscourseMarkerResolver::new()); // Detects: However
+
+// Query DeicticReference attributes
+for find in line.find(&x::attr::<DeicticReference>()) {
+    let deictic = find.attr();
+    println!("{}: {:?} ({:?})", deictic.surface_text, deictic.category, deictic.subcategory);
+}
+// Output:
+// I: Person (PersonFirst)
+// you: Person (PersonSecond)
+// there: Place (PlaceDistal)
+// tomorrow: Time (TimeFuture)
+// However: Discourse (DiscourseMarker)
+```
+
+Categories: `Person`, `Place`, `Time`, `Discourse`, `Social`
+
+### Contract Diff System
+
+The `layered-contracts` crate includes a semantic diff system for comparing contract versions:
+
+```rust
+use layered_contracts::{
+    ContractDocument, DocumentAligner, DocumentStructureBuilder,
+    SemanticDiffEngine, SectionHeaderResolver, ContractKeywordResolver,
+    DefinedTermResolver, TermReferenceResolver, ObligationPhraseResolver,
+};
+
+// Process both document versions
+let original = ContractDocument::from_text(original_text)
+    .run_resolver(&SectionHeaderResolver::new())
+    .run_resolver(&ContractKeywordResolver::new())
+    .run_resolver(&DefinedTermResolver::new())
+    .run_resolver(&TermReferenceResolver::new())
+    .run_resolver(&ObligationPhraseResolver::new());
+
+let revised = ContractDocument::from_text(revised_text)
+    .run_resolver(&SectionHeaderResolver::new())
+    .run_resolver(&ContractKeywordResolver::new())
+    .run_resolver(&DefinedTermResolver::new())
+    .run_resolver(&TermReferenceResolver::new())
+    .run_resolver(&ObligationPhraseResolver::new());
+
+// Build document structure
+let orig_struct = DocumentStructureBuilder::build(&original).value;
+let rev_struct = DocumentStructureBuilder::build(&revised).value;
+
+// Align sections between versions
+let aligner = DocumentAligner::new();
+let alignments = aligner.align(&orig_struct, &rev_struct, &original, &revised);
+
+// Compute semantic diff
+let engine = SemanticDiffEngine::new();
+let diff = engine.compute_diff(&alignments, &original, &revised);
+
+// Analyze changes
+for change in &diff.changes {
+    println!("{:?}: {} (risk: {:?})",
+        change.change_type, change.explanation, change.risk_level);
+}
+```
+
+**Key components:**
+- `DocumentAligner` - Aligns sections between document versions using title/content similarity
+- `SemanticDiffEngine` - Detects semantic changes (modal changes, term redefinitions, temporal changes)
+- `RiskLevel` - Classifies changes as Critical/High/Medium/Low
+- `PartyImpact` - Tracks how changes affect each party (Favorable/Unfavorable/Neutral)
+
+### WASM Demo
+
+Build and serve the browser-based contract analyzer:
+
+```bash
+cd layered-nlp-demo-wasm && wasm-pack build --target web --out-dir ../web/pkg
+cd ../web && python3 -m http.server 8080
+# Open http://localhost:8080/contract-viewer.html
+```
