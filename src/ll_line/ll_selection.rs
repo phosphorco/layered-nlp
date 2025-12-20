@@ -1,3 +1,4 @@
+use super::association::{AssociatedSpan, Association, SpanRef};
 use super::x::{XBackwards, XForwards};
 use super::{assert_ll_lines_equals, LLCursorAssignment, LLLine, Rc, XMatch};
 
@@ -374,6 +375,101 @@ impl LLSelection {
             end_idx: self.end_idx,
             start_idx: self.start_idx,
             value,
+            associations: Vec::new(),
+        }
+    }
+
+    /// Create an assignment with the given value and associations.
+    ///
+    /// Use this method when you have pre-built associations. For a fluent
+    /// builder API, use [`assign()`](Self::assign) instead.
+    pub fn finish_with_attr_and_associations<Attr>(
+        &self,
+        value: Attr,
+        associations: Vec<AssociatedSpan>,
+    ) -> LLCursorAssignment<Attr> {
+        LLCursorAssignment {
+            end_idx: self.end_idx,
+            start_idx: self.start_idx,
+            value,
+            associations,
+        }
+    }
+
+    /// Returns a [`SpanRef`] representing the token range of this selection.
+    ///
+    /// This is useful for creating associations that reference this selection.
+    pub fn span_ref(&self) -> SpanRef {
+        SpanRef {
+            start_idx: self.start_idx,
+            end_idx: self.end_idx,
+        }
+    }
+
+    /// Begin building an assignment with the given value.
+    ///
+    /// Returns an [`LLAssignmentBuilder`] that allows fluently adding
+    /// associations before finalizing the assignment.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// selection.assign(my_value)
+    ///     .with_association(ObligorSource, obligor_sel.span_ref())
+    ///     .with_association_from_selection(ActionSpan, &action_sel)
+    ///     .build()
+    /// ```
+    pub fn assign<Attr>(&self, value: Attr) -> LLAssignmentBuilder<Attr> {
+        LLAssignmentBuilder {
+            start_idx: self.start_idx,
+            end_idx: self.end_idx,
+            value,
+            associations: Vec::new(),
+        }
+    }
+}
+
+/// A builder for creating [`LLCursorAssignment`] with associations.
+///
+/// Created via [`LLSelection::assign()`].
+pub struct LLAssignmentBuilder<Attr> {
+    start_idx: usize,
+    end_idx: usize,
+    value: Attr,
+    associations: Vec<AssociatedSpan>,
+}
+
+impl<Attr> LLAssignmentBuilder<Attr> {
+    /// Add an association linking to a target span.
+    ///
+    /// # Arguments
+    ///
+    /// * `association` - The association type describing the relationship
+    /// * `span` - The target span being referenced
+    pub fn with_association<A: Association>(mut self, association: A, span: SpanRef) -> Self {
+        self.associations.push(AssociatedSpan::new(association, span));
+        self
+    }
+
+    /// Add an association linking to another selection.
+    ///
+    /// This is a convenience method that extracts the [`SpanRef`] from
+    /// the provided selection.
+    pub fn with_association_from_selection<A: Association>(
+        self,
+        association: A,
+        selection: &LLSelection,
+    ) -> Self {
+        self.with_association(association, selection.span_ref())
+    }
+
+    /// Finalize the builder and create the assignment.
+    pub fn build(self) -> LLCursorAssignment<Attr> {
+        LLCursorAssignment {
+            start_idx: self.start_idx,
+            end_idx: self.end_idx,
+            value: self.value,
+            associations: self.associations,
         }
     }
 }

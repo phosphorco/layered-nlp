@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::ll_line::AssociatedSpan;
 use std::collections::hash_map;
 use std::marker::PhantomData;
 use std::{
@@ -129,6 +130,10 @@ pub struct TypeBucket {
     // Box<Vec<T>>
     // Box<dyn Bucket>
     map: HashMap<TypeId, Box<dyn Bucket + Send + Sync>>,
+    /// Parallel storage for associations, aligned by index with values in `map`.
+    /// Each TypeId maps to a Vec of association lists, where associations[tid][i]
+    /// corresponds to the associations for the value at map[tid][i].
+    associations: HashMap<TypeId, Vec<Vec<AssociatedSpan>>>,
 }
 
 impl fmt::Debug for dyn Bucket + Send + Sync {
@@ -180,6 +185,7 @@ impl TypeBucket {
     pub fn new() -> Self {
         Self {
             map: Default::default(),
+            associations: Default::default(),
         }
     }
 
@@ -187,7 +193,9 @@ impl TypeBucket {
     ///
     /// If a value of this type already exists, it will be returned.
     pub fn insert_any_attribute(&mut self, AnyAttribute(key, empty_value, value): AnyAttribute) {
-        self.map.entry(key).or_insert(empty_value).insert_any(value)
+        self.map.entry(key).or_insert(empty_value).insert_any(value);
+        // Maintain alignment: push empty associations for this value
+        self.associations.entry(key).or_default().push(Vec::new());
     }
 
     /// Insert a value into this `TypeBucket`.
@@ -195,13 +203,40 @@ impl TypeBucket {
     /// If a value of this type already exists, it will be returned.
     #[track_caller]
     pub fn insert<T: 'static + Debug + Send + Sync>(&mut self, val: T) {
+        self.insert_with_associations(val, Vec::new());
+    }
+
+    /// Insert a value with associated spans into this `TypeBucket`.
+    ///
+    /// The associations are stored in parallel with the value and can be
+    /// retrieved later for display or graph traversal.
+    #[track_caller]
+    pub fn insert_with_associations<T: 'static + Debug + Send + Sync>(
+        &mut self,
+        val: T,
+        associations: Vec<AssociatedSpan>,
+    ) {
+        let type_id = TypeId::of::<T>();
+
         self.map
-            .entry(TypeId::of::<T>())
+            .entry(type_id)
             .or_insert_with(|| Box::new(Vec::<T>::new()))
             .as_any_mut()
             .downcast_mut::<Vec<T>>()
             .unwrap()
             .push(val);
+
+        // Maintain alignment: push associations for this value
+        self.associations.entry(type_id).or_default().push(associations);
+
+        // Debug assertion to verify alignment invariant
+        debug_assert_eq!(
+            self.map
+                .get(&type_id)
+                .map(|b| b.as_any().downcast_ref::<Vec<T>>().unwrap().len()),
+            self.associations.get(&type_id).map(|a| a.len()),
+            "TypeBucket alignment invariant violated: values and associations out of sync"
+        );
     }
 
     // /// Check if container contains value for type
@@ -221,6 +256,33 @@ impl TypeBucket {
             .unwrap_or_else(|| &[])
     }
 
+    /// Get values paired with their associations for graph traversal.
+    ///
+    /// Returns a vector of (value_ref, associations_slice) tuples, allowing
+    /// downstream consumers to access provenance data and traverse relationship graphs.
+    pub fn get_with_associations<T: 'static>(&self) -> Vec<(&T, &[AssociatedSpan])> {
+        let type_id = TypeId::of::<T>();
+
+        let values = self
+            .map
+            .get(&type_id)
+            .map(|vec| vec.as_any().downcast_ref::<Vec<T>>().unwrap())
+            .map(|v| v.as_slice())
+            .unwrap_or(&[]);
+
+        let associations = self
+            .associations
+            .get(&type_id)
+            .map(|a| a.as_slice())
+            .unwrap_or(&[]);
+
+        values
+            .iter()
+            .zip(associations.iter())
+            .map(|(val, assocs)| (val, assocs.as_slice()))
+            .collect()
+    }
+
     pub fn get_debug<T: 'static + Debug>(&self) -> Vec<String> {
         self.map
             .get(&TypeId::of::<T>())
@@ -233,6 +295,35 @@ impl TypeBucket {
                     .collect()
             })
             .unwrap_or_default()
+    }
+
+    /// Get debug strings paired with their associations for display purposes.
+    ///
+    /// Returns a vector of (debug_string, associations) tuples, where each tuple
+    /// corresponds to a value of type T stored in this bucket.
+    pub fn get_debug_with_associations<T: 'static + Debug>(
+        &self,
+    ) -> Vec<(String, Vec<AssociatedSpan>)> {
+        let type_id = TypeId::of::<T>();
+
+        let values = self
+            .map
+            .get(&type_id)
+            .map(|vec| vec.as_any().downcast_ref::<Vec<T>>().unwrap())
+            .map(|v| v.as_slice())
+            .unwrap_or(&[]);
+
+        let associations = self
+            .associations
+            .get(&type_id)
+            .map(|a| a.as_slice())
+            .unwrap_or(&[]);
+
+        values
+            .iter()
+            .zip(associations.iter())
+            .map(|(val, assocs)| (format!("{:?}", val), assocs.clone()))
+            .collect()
     }
 
     // /// Get a mutable reference to a value previously inserted on this `TypeBucket`.
@@ -257,6 +348,7 @@ impl TypeBucket {
     #[inline]
     pub fn clear(&mut self) {
         self.map = Default::default();
+        self.associations = Default::default();
     }
 
     // /// Get an entry in the `TypeBucket` for in-place manipulation.

@@ -1,9 +1,34 @@
+use super::association::AssociatedSpan;
 use super::*;
+use std::collections::HashMap;
 use unicode_width::UnicodeWidthStr;
+
+/// Convert a zero-based index to a base-26 label: A, B, ..., Z, AA, AB, ..., AZ, BA, ...
+/// Similar to Excel column naming.
+fn index_to_base26_label(mut n: usize) -> String {
+    let mut result = String::new();
+    loop {
+        let remainder = n % 26;
+        result.insert(0, (b'A' + remainder as u8) as char);
+        if n < 26 {
+            break;
+        }
+        n = n / 26 - 1;
+    }
+    result
+}
+
+/// Internal representation of an included attribute for display.
+struct IncludedAttr {
+    range: LRange,
+    debug_value: String,
+    associations: Vec<AssociatedSpan>,
+    show_associations: bool,
+}
 
 pub struct LLLineDisplay<'a> {
     ll_line: &'a LLLine,
-    include_attrs: Vec<(LRange, String)>,
+    include_attrs: Vec<IncludedAttr>,
 }
 
 // 0,  1,     2,   3, - LRange indexes
@@ -63,20 +88,25 @@ impl<'a> std::fmt::Display for LLLineDisplay<'a> {
 
         f.write_str(&opening_line)?;
 
+        // Build span label map for referenced spans: LRange -> "[A]", "[B]", etc.
+        // Only assign labels to spans that are included in the display
+        let span_labels = self.build_span_labels();
+
         // ex:
-        //     ╰────────────╯ Amount(..)
+        //     ╰────────────╯[A] Amount(..)
         //                            ╰─╯ Amount(..)
-        for ((starts_at_token_idx, ends_at_token_idx), debug_value) in self.include_attrs.iter() {
+        //                       └─@source─>[A]
+        for attr in self.include_attrs.iter() {
             f.write_char('\n')?;
 
-            let start_char_idx = token_idx_to_start_display_char_idx[*starts_at_token_idx];
+            let start_char_idx = token_idx_to_start_display_char_idx[attr.range.0];
             for _ in 0..start_char_idx {
                 f.write_char(' ')?;
             }
 
             f.write_char('╰')?;
 
-            let end_char_idx = token_idx_to_end_display_char_idx[*ends_at_token_idx];
+            let end_char_idx = token_idx_to_end_display_char_idx[attr.range.1];
             let char_len = end_char_idx - start_char_idx;
             for _ in (start_char_idx + 1)..end_char_idx.saturating_sub(1) {
                 f.write_char('─')?;
@@ -86,7 +116,38 @@ impl<'a> std::fmt::Display for LLLineDisplay<'a> {
                 f.write_char('╯')?;
             }
 
-            f.write_str(debug_value)?;
+            // Add span label if this range is referenced by associations
+            if let Some(label) = span_labels.get(&attr.range) {
+                write!(f, "{} ", label)?;
+            }
+
+            f.write_str(&attr.debug_value)?;
+
+            // Render association arrows if enabled
+            if attr.show_associations && !attr.associations.is_empty() {
+                for assoc in &attr.associations {
+                    f.write_char('\n')?;
+
+                    // Indent to align with the span start, plus a small offset
+                    let arrow_indent = start_char_idx + 2;
+                    for _ in 0..arrow_indent {
+                        f.write_char(' ')?;
+                    }
+
+                    // Build the arrow: └─{glyph}{label}─>[target]
+                    let glyph = assoc.glyph().unwrap_or("");
+                    let label = assoc.label();
+                    let target_range = (assoc.span.start_idx, assoc.span.end_idx);
+
+                    let target_str = if let Some(target_label) = span_labels.get(&target_range) {
+                        target_label.clone()
+                    } else {
+                        format!("[{}..{}]", target_range.0, target_range.1)
+                    };
+
+                    write!(f, "└─{}{}─>{}", glyph, label, target_str)?;
+                }
+            }
         }
 
         Ok(())
@@ -100,6 +161,39 @@ impl<'a> LLLineDisplay<'a> {
             include_attrs: Vec::new(),
         }
     }
+
+    /// Build a map from included ranges to labels like "[A]", "[B]", etc.
+    /// Only ranges that are targets of associations get labels.
+    fn build_span_labels(&self) -> HashMap<LRange, String> {
+        // Collect all target ranges from associations
+        let mut target_ranges: Vec<LRange> = self
+            .include_attrs
+            .iter()
+            .filter(|attr| attr.show_associations)
+            .flat_map(|attr| &attr.associations)
+            .map(|assoc| (assoc.span.start_idx, assoc.span.end_idx))
+            .collect();
+
+        // Filter to only ranges that are actually included in the display
+        let included_ranges: std::collections::HashSet<LRange> =
+            self.include_attrs.iter().map(|attr| attr.range).collect();
+        target_ranges.retain(|range| included_ranges.contains(range));
+
+        // Remove duplicates and sort deterministically by (start, end)
+        target_ranges.sort();
+        target_ranges.dedup();
+
+        // Assign labels: [A], [B], ..., [Z], [AA], [AB], etc.
+        target_ranges
+            .into_iter()
+            .enumerate()
+            .map(|(i, range)| {
+                let label = format!("[{}]", index_to_base26_label(i));
+                (range, label)
+            })
+            .collect()
+    }
+
     // TODO consider making this method take and return `self`
     pub fn include<T: 'static + std::fmt::Debug>(&mut self) {
         for ll_range in self.ll_line.attrs.ranges.get::<T>() {
@@ -112,13 +206,78 @@ impl<'a> LLLineDisplay<'a> {
                 .flat_map(|type_bucket| type_bucket.get_debug::<T>())
                 .rev()
             {
-                self.include_attrs.push((*ll_range, debug_value));
+                self.include_attrs.push(IncludedAttr {
+                    range: *ll_range,
+                    debug_value,
+                    associations: Vec::new(),
+                    show_associations: false,
+                });
             }
         }
     }
+
+    /// Include attributes of type T with their associations rendered.
+    ///
+    /// This is similar to [`include`](Self::include) but also renders
+    /// association arrows below each attribute span.
+    pub fn include_with_associations<T: 'static + std::fmt::Debug>(&mut self) {
+        for ll_range in self.ll_line.attrs.ranges.get::<T>() {
+            for (debug_value, associations) in self
+                .ll_line
+                .attrs
+                .values
+                .get(ll_range)
+                .into_iter()
+                .flat_map(|type_bucket| type_bucket.get_debug_with_associations::<T>())
+                .rev()
+            {
+                self.include_attrs.push(IncludedAttr {
+                    range: *ll_range,
+                    debug_value,
+                    associations,
+                    show_associations: true,
+                });
+            }
+        }
+    }
+
     /// Takes self
     pub fn with<T: 'static + std::fmt::Debug>(mut self) -> Self {
         self.include::<T>();
         self
+    }
+
+    /// Takes self, includes associations
+    pub fn with_associations<T: 'static + std::fmt::Debug>(mut self) -> Self {
+        self.include_with_associations::<T>();
+        self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_index_to_base26_label() {
+        // First 26 labels: A-Z
+        assert_eq!(index_to_base26_label(0), "A");
+        assert_eq!(index_to_base26_label(1), "B");
+        assert_eq!(index_to_base26_label(25), "Z");
+
+        // Next 26 labels: AA-AZ
+        assert_eq!(index_to_base26_label(26), "AA");
+        assert_eq!(index_to_base26_label(27), "AB");
+        assert_eq!(index_to_base26_label(51), "AZ");
+
+        // Next 26 labels: BA-BZ
+        assert_eq!(index_to_base26_label(52), "BA");
+        assert_eq!(index_to_base26_label(77), "BZ");
+
+        // ZZ is at 26 + 26*26 - 1 = 701
+        assert_eq!(index_to_base26_label(701), "ZZ");
+
+        // AAA is at 26 + 26*26 = 702
+        assert_eq!(index_to_base26_label(702), "AAA");
     }
 }

@@ -1,10 +1,13 @@
+mod association;
 mod display;
 mod finish_with;
 mod ll_selection;
 pub mod x;
 
+pub use association::{AssociatedSpan, Association, SpanRef};
+
 pub use finish_with::FinishWith;
-pub use ll_selection::LLSelection;
+pub use ll_selection::{LLAssignmentBuilder, LLSelection};
 
 use crate::type_bucket::{self, AnyAttribute};
 use crate::type_id_to_many::TypeIdToMany;
@@ -168,9 +171,11 @@ impl LLLine {
             start_idx,
             end_idx,
             value,
+            associations,
         } in assignments
         {
-            self.attrs.insert((start_idx, end_idx), value);
+            self.attrs
+                .insert_with_associations((start_idx, end_idx), value, associations);
         }
 
         self
@@ -266,10 +271,60 @@ impl LLLine {
             })
             .collect()
     }
+
+    /// Returns Attributes with their associations for graph traversal.
+    ///
+    /// Each result contains the range, text, and a vector of (value, associations) pairs,
+    /// allowing downstream consumers to access provenance data and traverse relationship graphs.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// for (range, text, attrs_with_assocs) in ll_line.query_with_associations::<Scored<ObligationPhrase>>() {
+    ///     for (obligation, associations) in attrs_with_assocs {
+    ///         for assoc in associations {
+    ///             println!("Obligation at {:?} references {:?} via {}", range, assoc.span, assoc.label());
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn query_with_associations<'a, T: 'static>(
+        &'a self,
+    ) -> Vec<(LRange, String, Vec<(&'a T, &'a [AssociatedSpan])>)> {
+        self.attrs
+            .ranges
+            .get::<T>()
+            .iter()
+            .map(|range| {
+                let text =
+                    String::from_iter(self.ll_tokens[range.0..=range.1].iter().map(|token| {
+                        match &token.token {
+                            LToken::Text(text, _) => text,
+                            LToken::Value => "",
+                        }
+                    }));
+
+                (
+                    *range,
+                    text,
+                    self.attrs.values[range].get_with_associations::<T>(),
+                )
+            })
+            .collect()
+    }
 }
 
 impl LLLineAttrs {
     fn insert<T: 'static + std::fmt::Debug + Send + Sync>(&mut self, range: LRange, value: T) {
+        self.insert_with_associations(range, value, Vec::new());
+    }
+
+    fn insert_with_associations<T: 'static + std::fmt::Debug + Send + Sync>(
+        &mut self,
+        range: LRange,
+        value: T,
+        associations: Vec<AssociatedSpan>,
+    ) {
         self.starts_at
             .get_mut(range.0)
             .expect("has initial starts_at value in bounds")
@@ -279,7 +334,10 @@ impl LLLineAttrs {
             .expect("has initial ends_at value in bounds")
             .insert_distinct::<T>(range);
         self.ranges.insert_distinct::<T>(range);
-        self.values.entry(range).or_default().insert(value);
+        self.values
+            .entry(range)
+            .or_default()
+            .insert_with_associations(value, associations);
     }
 }
 
@@ -298,6 +356,8 @@ pub struct LLCursorAssignment<Attr> {
     end_idx: usize,
     // provided from resolver
     value: Attr,
+    // associations linking this span to other spans
+    associations: Vec<AssociatedSpan>,
 }
 
 pub trait Resolver {

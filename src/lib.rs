@@ -26,8 +26,8 @@ pub fn create_line_from_string<T: AsRef<str>>(input_string: T) -> LLLine {
 }
 
 pub use ll_line::{
-    x, FinishWith, LLCursorAssignment, LLLine, LLLineDisplay, LLSelection, LToken, Resolver,
-    TextTag,
+    x, AssociatedSpan, Association, FinishWith, LLAssignmentBuilder, LLCursorAssignment, LLLine,
+    LLLineDisplay, LLSelection, LToken, Resolver, SpanRef, TextTag,
 };
 pub use resolvers::TextMatchAssignResolver;
 pub use type_bucket::AnyAttribute;
