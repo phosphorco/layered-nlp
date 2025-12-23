@@ -308,21 +308,106 @@
             display: inline;
             padding: 2px 0;
             border-radius: 3px;
-            cursor: default;
-            transition: all 0.1s;
-        }
-
-        .contract-text .word.has-span {
             cursor: pointer;
+            transition: all 0.1s;
         }
 
         .contract-text .word.has-span:hover {
             filter: brightness(0.95);
         }
 
+        .contract-text .word:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
         .contract-text .word.selected {
             outline: 2px solid #3b82f6;
             outline-offset: 1px;
+        }
+
+        /* Intersecting spans list */
+        .span-list {
+            margin-bottom: 1rem;
+        }
+
+        .span-list-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.6rem;
+            margin-bottom: 0.5rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 2px solid transparent;
+        }
+
+        .span-list-item:hover {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+
+        .span-list-item.active {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .span-list-item .span-kind-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .span-list-item .span-kind-badge.DefinedTerm { background: var(--defined-term-bg); color: var(--defined-term-text); }
+        .span-list-item .span-kind-badge.TermReference { background: var(--term-ref-bg); color: var(--term-ref-text); }
+        .span-list-item .span-kind-badge.ObligationPhrase { background: var(--obligation-bg); color: var(--obligation-text); }
+        .span-list-item .span-kind-badge.ContractKeyword { background: var(--keyword-bg); color: var(--keyword-text); }
+        .span-list-item .span-kind-badge.PronounReference { background: var(--pronoun-bg); color: var(--pronoun-text); }
+        .span-list-item .span-kind-badge.PronounChain { background: var(--chain-bg); color: var(--chain-text); }
+        .span-list-item .span-kind-badge.ContractClause { background: var(--clause-bg); color: var(--clause-text); }
+        .span-list-item .span-kind-badge.DeicticReference { background: var(--deictic-bg); color: var(--deictic-text); }
+
+        .span-list-item .span-text {
+            font-size: 13px;
+            color: #334155;
+            word-break: break-word;
+        }
+
+        .span-list-item .span-label {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .span-list-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .selected-word-display {
+            font-family: Georgia, serif;
+            font-size: 16px;
+            font-weight: 500;
+            color: #0f172a;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .no-spans-message {
+            color: #94a3b8;
+            font-size: 13px;
+            font-style: italic;
         }
 
         /* Span type styling */
@@ -796,9 +881,12 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
         <div class="detail-panel">
             <div class="panel-header">Span Details</div>
             <div class="detail-empty" id="detail-empty">
-                Click on a highlighted span to see details
+                Click on any word to see intersecting spans
             </div>
             <div class="detail-content" id="detail-content">
+                <div id="selected-word-container"></div>
+                <div id="span-list-container"></div>
+                <div id="span-detail-container" style="display: none;">
                 <div class="detail-kind" id="detail-kind"></div>
                 <div class="detail-text" id="detail-text"></div>
 
@@ -819,6 +907,7 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
 
                 <div class="detail-actions">
                     <button id="copy-json-btn" class="secondary">Copy JSON</button>
+                </div>
                 </div>
             </div>
         </div>
@@ -1014,9 +1103,9 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                 }
             }
 
-            // Add click handlers
-            container.querySelectorAll('.word.has-span').forEach(el => {
-                el.addEventListener('click', handleSpanClick);
+            // Add click handlers to ALL words (not just those with visible spans)
+            container.querySelectorAll('.word').forEach(el => {
+                el.addEventListener('click', handleWordClick);
                 el.addEventListener('mouseenter', handleSpanHover);
                 el.addEventListener('mouseleave', hideTooltip);
             });
@@ -1065,13 +1154,11 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             }
         }
 
-        // Handle span click - show details
-        function handleSpanClick(e) {
+        // Handle word click - show ALL intersecting spans (regardless of filter state)
+        function handleWordClick(e) {
             const tokenIdx = parseInt(e.target.dataset.tokenIdx);
             const tokenSpans = spansByToken.get(tokenIdx) || [];
-            const visibleSpans = tokenSpans.filter(s => visibleKinds.has(s.kind));
-
-            if (visibleSpans.length === 0) return;
+            const wordText = e.target.textContent;
 
             // Clear previous selection
             document.querySelectorAll('.word.selected').forEach(el => el.classList.remove('selected'));
@@ -1079,75 +1166,96 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             // Select this token
             e.target.classList.add('selected');
 
-            // Show first visible span in detail panel
-            showSpanDetail(visibleSpans[0]);
+            // Show all intersecting spans in detail panel
+            showIntersectingSpans(wordText, tokenSpans);
         }
 
-        // Show span detail in panel
-        function showSpanDetail(span) {
-            selectedSpan = span;
-
+        // Show all spans that intersect with the clicked word
+        function showIntersectingSpans(wordText, spans) {
             document.getElementById('detail-empty').style.display = 'none';
             document.getElementById('detail-content').classList.add('visible');
 
-            const kindEl = document.getElementById('detail-kind');
-            kindEl.textContent = span.kind;
-            kindEl.className = 'detail-kind ' + span.kind;
+            const selectedWordContainer = document.getElementById('selected-word-container');
+            const spanListContainer = document.getElementById('span-list-container');
+            const spanDetailContainer = document.getElementById('span-detail-container');
 
-            document.getElementById('detail-text').textContent = span.snippet ||
-                analysisResult.text.slice(span.start_offset, span.end_offset);
+            // Show the clicked word
+            selectedWordContainer.innerHTML = `<div class="selected-word-display">"${escapeHtml(wordText)}"</div>`;
 
-            document.getElementById('detail-label').textContent = span.label || '—';
-            document.getElementById('detail-position').innerHTML =
-                `<code>${span.start_offset}</code> to <code>${span.end_offset}</code>`;
+            // Hide detail view, show list view
+            spanDetailContainer.style.display = 'none';
 
-            // Show resolution info prominently
-            const meta = getMetadata(span);
-            showResolutionInfo(span, meta);
+            if (spans.length === 0) {
+                spanListContainer.innerHTML = `<p class="no-spans-message">No spans intersect this word.</p>`;
+                return;
+            }
 
-            // Show related spans
-            showRelatedSpans(span, meta);
+            // Build span list HTML
+            let html = `<div class="span-list-header">Intersecting Spans (${spans.length})</div>`;
+            html += '<div class="span-list">';
 
-            // Metadata (raw)
-            const metadataSection = document.getElementById('detail-metadata-section');
-            const metadataEl = document.getElementById('detail-metadata');
+            for (let i = 0; i < spans.length; i++) {
+                const span = spans[i];
+                const idx = analysisResult.spans.indexOf(span);
+                const snippet = span.snippet || analysisResult.text.slice(span.start_offset, span.end_offset);
+                const label = span.label || '';
 
-            if (meta) {
-                metadataSection.style.display = 'block';
-                metadataEl.textContent = JSON.stringify(meta, null, 2);
-            } else {
-                metadataSection.style.display = 'none';
+                html += `
+                    <div class="span-list-item" data-span-idx="${idx}">
+                        <span class="span-kind-badge ${span.kind}">${span.kind}</span>
+                        <div>
+                            <div class="span-text">${escapeHtml(snippet)}</div>
+                            ${label ? `<div class="span-label">${escapeHtml(label)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            spanListContainer.innerHTML = html;
+
+            // Add click handlers to span list items
+            spanListContainer.querySelectorAll('.span-list-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const idx = parseInt(item.dataset.spanIdx);
+                    const span = analysisResult.spans[idx];
+                    if (span) {
+                        // Mark this item as active
+                        spanListContainer.querySelectorAll('.span-list-item').forEach(i => i.classList.remove('active'));
+                        item.classList.add('active');
+                        // Show full detail
+                        showSpanDetailInline(span);
+                    }
+                });
+            });
+
+            // Auto-select first span if there's only one
+            if (spans.length === 1) {
+                const firstItem = spanListContainer.querySelector('.span-list-item');
+                if (firstItem) {
+                    firstItem.classList.add('active');
+                    showSpanDetailInline(spans[0]);
+                }
             }
         }
 
-        // Show resolution information for pronouns and references
-        function showResolutionInfo(span, meta) {
-            let resolutionSection = document.getElementById('detail-resolution-section');
-            if (!resolutionSection) {
-                // Create resolution section if it doesn't exist
-                const posSection = document.querySelector('#detail-content .detail-section:nth-child(3)');
-                resolutionSection = document.createElement('div');
-                resolutionSection.className = 'detail-section';
-                resolutionSection.id = 'detail-resolution-section';
-                resolutionSection.innerHTML = `
-                    <div class="detail-section-title">Resolves To</div>
-                    <div class="detail-section-content" id="detail-resolution"></div>
-                `;
-                posSection.after(resolutionSection);
-            }
+        // Show span detail inline (within the span-detail-container)
+        function showSpanDetailInline(span) {
+            selectedSpan = span;
 
-            const resolutionEl = document.getElementById('detail-resolution');
+            const container = document.getElementById('span-detail-container');
+            container.style.display = 'block';
+
+            const meta = getMetadata(span);
+
+            // Build resolution info
             let resolutionHtml = '';
-
-            // PronounReference resolution
             if (span.kind === 'PronounReference' && meta?.resolved_to) {
                 resolutionHtml = `<strong>${meta.resolved_to}</strong>`;
                 if (meta.resolution_confidence) {
                     resolutionHtml += ` <span style="color:#64748b">(${Math.round(meta.resolution_confidence * 100)}% confidence)</span>`;
                 }
-            }
-            // TermReference -> link to definition
-            else if (span.kind === 'TermReference') {
+            } else if (span.kind === 'TermReference') {
                 const def = analysisResult.spans.find(s =>
                     s.kind === 'DefinedTerm' && s.label?.toLowerCase() === span.label?.toLowerCase()
                 );
@@ -1156,78 +1264,93 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                         ${def.label} (definition)
                     </a>`;
                 }
-            }
-            // DeicticReference with resolved referent
-            else if (span.kind === 'DeicticReference' && meta?.resolved_referent) {
+            } else if (span.kind === 'DeicticReference' && meta?.resolved_referent) {
                 resolutionHtml = `<strong>${meta.resolved_referent.text}</strong>`;
                 if (meta.resolved_referent.confidence) {
                     resolutionHtml += ` <span style="color:#64748b">(${Math.round(meta.resolved_referent.confidence * 100)}%)</span>`;
                 }
             }
 
-            if (resolutionHtml) {
-                resolutionSection.style.display = 'block';
-                resolutionEl.innerHTML = resolutionHtml;
-                // Add click handler for span links
-                resolutionEl.querySelectorAll('.span-link').forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        const idx = parseInt(link.dataset.spanIdx);
-                        const targetSpan = analysisResult.spans[idx];
-                        if (targetSpan) {
-                            highlightSpan(targetSpan);
-                            showSpanDetail(targetSpan);
-                        }
-                    });
-                });
-            } else {
-                resolutionSection.style.display = 'none';
-            }
-        }
-
-        // Show spans related to this one
-        function showRelatedSpans(span, meta) {
-            let relatedSection = document.getElementById('detail-related-section');
-            if (!relatedSection) {
-                const metaSection = document.getElementById('detail-metadata-section');
-                relatedSection = document.createElement('div');
-                relatedSection.className = 'detail-section';
-                relatedSection.id = 'detail-related-section';
-                relatedSection.innerHTML = `
-                    <div class="detail-section-title">Related Spans</div>
-                    <div class="detail-section-content" id="detail-related"></div>
-                `;
-                metaSection.before(relatedSection);
-            }
-
-            const relatedEl = document.getElementById('detail-related');
+            // Find related spans
             const related = findRelatedSpans(span, meta);
 
-            if (related.length > 0) {
-                relatedSection.style.display = 'block';
-                relatedEl.innerHTML = related.map(r => `
-                    <div class="related-span-item">
-                        <span class="related-span-kind ${r.span.kind}">${r.span.kind}</span>
-                        <a href="#" class="span-link" data-span-idx="${analysisResult.spans.indexOf(r.span)}">
-                            ${r.span.snippet || r.span.label || '...'}
-                        </a>
-                        <span class="related-span-reason">${r.reason}</span>
+            container.innerHTML = `
+                <div style="border-top: 1px solid #e2e8f0; margin-top: 1rem; padding-top: 1rem;">
+                    <div class="detail-kind ${span.kind}">${span.kind}</div>
+                    <div class="detail-text">${escapeHtml(span.snippet || analysisResult.text.slice(span.start_offset, span.end_offset))}</div>
+
+                    <div class="detail-section">
+                        <div class="detail-section-title">Label</div>
+                        <div class="detail-section-content">${span.label || '—'}</div>
                     </div>
-                `).join('');
-                // Add click handlers
-                relatedEl.querySelectorAll('.span-link').forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        const idx = parseInt(link.dataset.spanIdx);
-                        const targetSpan = analysisResult.spans[idx];
-                        if (targetSpan) {
-                            highlightSpan(targetSpan);
-                            showSpanDetail(targetSpan);
-                        }
-                    });
+
+                    <div class="detail-section">
+                        <div class="detail-section-title">Position</div>
+                        <div class="detail-section-content"><code>${span.start_offset}</code> to <code>${span.end_offset}</code></div>
+                    </div>
+
+                    ${resolutionHtml ? `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Resolves To</div>
+                        <div class="detail-section-content" id="inline-resolution">${resolutionHtml}</div>
+                    </div>
+                    ` : ''}
+
+                    ${related.length > 0 ? `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Related Spans</div>
+                        <div class="detail-section-content">
+                            ${related.map(r => `
+                                <div class="related-span-item">
+                                    <span class="related-span-kind ${r.span.kind}">${r.span.kind}</span>
+                                    <a href="#" class="span-link" data-span-idx="${analysisResult.spans.indexOf(r.span)}">
+                                        ${escapeHtml(r.span.snippet || r.span.label || '...')}
+                                    </a>
+                                    <span class="related-span-reason">${r.reason}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${meta ? `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Metadata</div>
+                        <div class="detail-metadata">${JSON.stringify(meta, null, 2)}</div>
+                    </div>
+                    ` : ''}
+
+                    <div class="detail-actions">
+                        <button id="inline-copy-json-btn" class="secondary">Copy JSON</button>
+                    </div>
+                </div>
+            `;
+
+            // Add click handlers for span links
+            container.querySelectorAll('.span-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const idx = parseInt(link.dataset.spanIdx);
+                    const targetSpan = analysisResult.spans[idx];
+                    if (targetSpan) {
+                        highlightSpan(targetSpan);
+                        // Find and click on the first token of this span
+                        scrollToAndSelectSpan(targetSpan);
+                    }
                 });
-            } else {
-                relatedSection.style.display = 'none';
+            });
+
+            // Add copy button handler
+            container.querySelector('#inline-copy-json-btn')?.addEventListener('click', handleCopyJson);
+        }
+
+        // Scroll to and select a span
+        function scrollToAndSelectSpan(span) {
+            const el = findElementForSpan(span);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Trigger click to show its intersecting spans
+                setTimeout(() => el.click(), 300);
             }
         }
 
@@ -1313,15 +1436,18 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
         function handleSpanHover(e) {
             const tokenIdx = parseInt(e.target.dataset.tokenIdx);
             const tokenSpans = spansByToken.get(tokenIdx) || [];
+
+            if (tokenSpans.length === 0) return;
+
+            // Show count of all spans, not just visible ones
+            const labels = tokenSpans.map(s => s.label || s.kind).join(', ');
+            showTooltip(e.target, `${tokenSpans.length} span${tokenSpans.length > 1 ? 's' : ''}: ${labels}`);
+
+            // Highlight associated spans (for visible ones)
             const visibleSpans = tokenSpans.filter(s => visibleKinds.has(s.kind));
-
-            if (visibleSpans.length === 0) return;
-
-            const labels = visibleSpans.map(s => s.label || s.kind).join(', ');
-            showTooltip(e.target, labels);
-
-            // Highlight associated spans
-            highlightAssociatedSpans(visibleSpans);
+            if (visibleSpans.length > 0) {
+                highlightAssociatedSpans(visibleSpans);
+            }
         }
 
         // Find and highlight spans associated with the given spans
@@ -1673,31 +1799,14 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                     </div>
                     <div class="detail-panel">
                         <div class="panel-header">Span Details</div>
-                        <div class="detail-empty" id="detail-empty">Click on a highlighted span to see details</div>
+                        <div class="detail-empty" id="detail-empty">Click on any word to see intersecting spans</div>
                         <div class="detail-content" id="detail-content">
-                            <div class="detail-kind" id="detail-kind"></div>
-                            <div class="detail-text" id="detail-text"></div>
-                            <div class="detail-section">
-                                <div class="detail-section-title">Label</div>
-                                <div class="detail-section-content" id="detail-label"></div>
-                            </div>
-                            <div class="detail-section">
-                                <div class="detail-section-title">Position</div>
-                                <div class="detail-section-content" id="detail-position"></div>
-                            </div>
-                            <div class="detail-section" id="detail-metadata-section">
-                                <div class="detail-section-title">Metadata</div>
-                                <div class="detail-metadata" id="detail-metadata"></div>
-                            </div>
-                            <div class="detail-actions">
-                                <button id="copy-json-btn" class="secondary">Copy JSON</button>
-                            </div>
+                            <div id="selected-word-container"></div>
+                            <div id="span-list-container"></div>
+                            <div id="span-detail-container" style="display: none;"></div>
                         </div>
                     </div>
                 `;
-
-                // Re-attach copy button handler
-                document.getElementById('copy-json-btn').addEventListener('click', handleCopyJson);
 
                 // Render
                 renderContractText(result.text, result.spans);
