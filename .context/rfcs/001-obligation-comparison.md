@@ -10,7 +10,7 @@
 
 ## Addendum
 
-**[RFC-001 Addendum: Critical Gaps and Design Clarifications](./RFC-001-addendum-critical-gaps.md)** addresses:
+**[Addendum: Critical Gaps and Design Clarifications](./001-obligation-comparison-gaps.md)** addresses:
 - The single-mention entity problem (holes as first-class citizens)
 - ObligationGraph vs ObligationPropertyGraph unification
 - Three-level diff granularity (aggregate/node/clause)
@@ -18,7 +18,7 @@
 - Relaxed matching and indeterminate results
 - Beneficiary detection limitations
 
-**[RFC-001 Appendix: Prior Art and Design Inspiration](./RFC-001-appendix-prior-art.md)** synthesizes research from:
+**[Appendix: Prior Art and Design Inspiration](./001-obligation-comparison-prior-art.md)** synthesizes research from:
 - Entity resolution (NIL clustering, Fellegi-Sunter three-zone model, cluster repair)
 - Type theory (typed holes, Union-Find unification, Skolemization)
 - Active learning (priority scoring, label propagation, weak supervision)
