@@ -18,6 +18,14 @@
 - Relaxed matching and indeterminate results
 - Beneficiary detection limitations
 
+**[RFC-001 Appendix: Prior Art and Design Inspiration](./RFC-001-appendix-prior-art.md)** synthesizes research from:
+- Entity resolution (NIL clustering, Fellegi-Sunter three-zone model, cluster repair)
+- Type theory (typed holes, Union-Find unification, Skolemization)
+- Active learning (priority scoring, label propagation, weak supervision)
+- Legal informatics (LKIF, LegalRuleML, Accord Project Concerto)
+- Semantic diff systems (GumTree tree diff, schema versioning)
+- Deontic logic (SDL operators, conflict detection, temporal extensions)
+
 ---
 
 ## Table of Contents
@@ -444,6 +452,10 @@ pub struct ComparisonSet {
     pub target: DocumentSnapshot,
     pub party_mapping: PartyMapping,
     pub deltas: Vec<ObligationDelta>,
+    /// Optional hierarchical diff tree for aggregate/node/clause drill-downs
+    pub hierarchical: Option<HierarchicalDiff>,
+    /// Parallel list describing whether each delta is definite or indeterminate
+    pub match_results: Vec<MatchResultMetadata>,
     pub status: ComparisonStatus,
     pub created_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
@@ -457,8 +469,37 @@ pub struct DocumentSnapshot {
     pub snapshot_at: DateTime<Utc>,
     pub obligations: Vec<NormalizedObligation>,
     pub party_chains: Vec<PartyChainSnapshot>,
+    /// Optional hole registry snapshot so unresolved parties retain stable IDs
+    pub hole_registry: Option<HoleRegistrySnapshot>,
     pub graph_fingerprint: u64,  // WL-hash for quick structural comparison
 }
+
+/// Captures hole identifiers plus the scope they belong to (document vs. comparison)
+#[derive(Debug, Clone)]
+pub struct HoleRegistrySnapshot {
+    pub registry_kind: RegistryKind,
+    pub owner_id: String,
+    pub holes: Vec<HoleSnapshot>,
+}
+
+#[derive(Debug, Clone)]
+pub struct HoleSnapshot {
+    pub hole_id: u32,
+    pub display_text: String,
+    pub occurrence_count: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RegistryKind {
+    Document,
+    Comparison,
+}
+
+> **Note:** Registry scope determines how long a hole ID remains valid. `RegistryKind::Document`
+> registries persist with the document/version combo (session or corpus, depending on storage),
+> while `RegistryKind::Comparison` registries exist only for a specific `comparison_id`. The
+> concrete serialization format is still TBD but must carry `registry_kind` and `owner_id` so that
+> verification events can resolve `hole_id` values without guessing.
 
 /// Normalized obligation for comparison (stripped of document-specific IDs)
 #[derive(Debug, Clone)]
@@ -581,7 +622,95 @@ pub enum SemanticImpact {
     /// Potentially conflicting with other obligations
     PotentialConflict,
 }
+
+/// Optional aggregate/node/clause hierarchy backing the flat delta list
+#[derive(Debug, Clone)]
+pub struct HierarchicalDiff {
+    pub aggregate_diff: AggregateDiff,
+    pub node_diff: Vec<NodeDiff>,
+    pub clause_diff: Vec<ClauseDiff>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AggregateDiff {
+    pub matched: Vec<AggregateMatch>,
+    pub added: Vec<AggregateRef>,
+    pub removed: Vec<AggregateRef>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AggregateMatch {
+    pub source_aggregate_id: u32,
+    pub target_aggregate_id: u32,
+    pub party_match: PartyMatchType,
+    pub confidence: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct AggregateRef {
+    pub aggregate_id: u32,
+    pub obligor_name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct NodeDiff {
+    pub aggregate_match: AggregateMatch,
+    pub changes: Vec<ChangeDetail>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ClauseDiff {
+    pub node_diff_index: usize,
+    pub source_clause_id: Option<u32>,
+    pub target_clause_id: Option<u32>,
+    pub clause_changes: Vec<ChangeDetail>,
+}
+
+#[derive(Debug, Clone)]
+pub enum PartyMatchType {
+    ChainMatch { chain_id: u32 },
+    NameMatch { normalized: String, has_holes: bool },
+    MappedMatch { source_name: String, target_name: String },
+}
+
+/// Indicates whether a delta was a definite match or requires follow-up
+#[derive(Debug, Clone)]
+pub struct MatchResultMetadata {
+    pub delta_id: u32,
+    pub result: MatchResult,
+}
+
+#[derive(Debug, Clone)]
+pub enum MatchResult {
+    Definite { confidence: f64 },
+    Indeterminate {
+        confidence: f64,
+        ambiguity: AmbiguityReason,
+        resolution_needed: ResolutionHint,
+    },
+    NoMatch,
+}
+
+#[derive(Debug, Clone)]
+pub enum AmbiguityReason {
+    BothUnresolved { source_hole: u32, target_hole: u32 },
+    ConflictingChains { name: String, source_chain: u32, target_chain: u32 },
+    SemanticAmbiguity { similarity: f64 },
+    MultipleInterpretations,
+}
+
+#[derive(Debug, Clone)]
+pub enum ResolutionHint {
+    VerifyPartyIdentity { display_text: String },
+    SemanticAnalysisNeeded { source_clause_id: u32, target_clause_id: u32 },
+    LegalInterpretationNeeded { clause_context: String },
+}
 ```
+
+To preserve backward compatibility, `ComparisonSet` continues to expose a flat `Vec<ObligationDelta>`,
+but it can also attach a `HierarchicalDiff` describing aggregate/node/clause groupings plus a
+`match_results` side-table. Consumers that need nuance (e.g., UI drill-downs, analytics) read the
+hierarchy, while legacy code can keep reading `deltas`.
 
 #### 5.3.4 Diff Pipeline Implementation
 
@@ -794,6 +923,10 @@ pub struct PriorityFactor {
 /// - Plain noun obligor: +0.10
 pub fn calculate_priority(item: &VerificationQueueItem, context: &VerificationContext) -> f64;
 ```
+
+`MatchResultMetadata` feeds directly into the queue: deltas marked as `Indeterminate` inherit an
+uncertainty penalty and include the `resolution_needed` hint so the reviewer understands how to
+resolve the ambiguity (confirm party identity, request LLM analysis, etc.).
 
 #### 5.5.2 Similarity Clustering
 
@@ -1397,16 +1530,29 @@ impl ObligationGraph<'_> {
 
 ## 10. Implementation Plan
 
+### Phase 0: Hole Infrastructure (Pre-req)
+
+**Goal**: Introduce holes and persistence semantics before comparison logic.
+
+**Deliverables**:
+1. `HoleId`, `EntityBinding`, and `HoleRegistry` (document + comparison scoped)
+2. `(RegistryKind, owner_id)` namespacing rules plus serialization format (even if stubbed)
+3. `ClauseParty` migration to `EntityBinding`
+4. Ability to promote a registry from session to corpus storage without leaking across documents
+5. Telemetry/metrics for unresolved vs. resolved holes (baseline unknowns)
+
+Unknowns captured here: the storage backend (file vs. DB) and eviction policy can remain TBD, but the API surface must exist before Phase 1 begins.
+
 ### Phase 1: Foundation (Weeks 1-2)
 
 **Goal**: Basic diffing with content hash matching
 
 **Deliverables**:
-1. `DocumentSnapshot` value object
+1. `DocumentSnapshot` value object (now includes optional `HoleRegistrySnapshot`)
 2. `ContentHashMatcher` implementation
-3. `ObligationDelta` and `DeltaType` structures
-4. Basic `ComparisonSet` aggregate
-5. Unit tests with insta snapshots
+3. `ObligationDelta`, `DeltaType`, and `MatchResult`/metadata plumbing
+4. Basic `ComparisonSet` aggregate with `hierarchical` optional payload
+5. Unit tests with insta snapshots covering both flattened and hierarchical output
 
 **Files to create**:
 - `layered-contracts/src/comparison/mod.rs`

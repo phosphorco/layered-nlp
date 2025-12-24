@@ -242,6 +242,28 @@ impl EntityBinding {
 }
 ```
 
+### 1.6 Registry Scope and Persistence Semantics
+
+Holes only add value if every consumer can unambiguously refer to the same unresolved entity across runs without leaking context between unrelated documents. We therefore scope each `HoleRegistry` and its monotonic `HoleId` counter by an **owner identifier** and a **registry kind**:
+
+```text
+RegistryKind::Document  + owner_id = document_id/version pair
+RegistryKind::Comparison + owner_id = comparison_id
+```
+
+- **Per-document registries** capture holes discovered during extraction. Their owner_id is the canonical document identifier (optionally suffixed with the version). Rehydrating `DocumentSnapshot` must include the tuple `(RegistryKind::Document, owner_id, hole_registry)` so later verification events can target the right namespace.
+- **Per-comparison registries** track hole hypotheses introduced while aligning two documents. Their owner_id equals `ComparisonSet.comparison_id`, ensuring speculative pairings do not bleed into unrelated comparisons.
+
+Persistence is deliberately two-tiered:
+
+1. **Session storage**: keeps a registry alive for the duration of an analysis session (e.g., repeated runs on the same draft) without publishing it beyond that context.
+2. **Application storage**: elevates a registry to long-term storage when a document enters a managed corpus or a comparison becomes canonical (e.g., Amendment 2 vs. Master). Promotion requires explicit intent so that `HoleId` 17 in `contract_a` never collides with `HoleId` 17 in an unrelated matter.
+
+Unknowns:
+- The serialization format for the `(RegistryKind, owner_id, HoleId)` tuple still needs to be specified (JSON vs. binary).
+- We have not yet defined cache eviction/migration when a document is renamed; until then, owner_id renames must be avoided or accompanied by a registry remap tool.
+- WASM compatibility for persisting registries is unverified; the current plan assumes server-side storage.
+
 ---
 
 ## 2. ObligationGraph vs ObligationPropertyGraph
@@ -450,6 +472,28 @@ pub struct ClauseDiff {
 
 **Roll-up**: Summary counts by aggregate
 
+### 3.4 Surfacing the Hierarchy in ComparisonSet
+
+To let downstream systems opt into the richer hierarchy without breaking existing code, `ComparisonSet` should expose **both** representations:
+
+```rust
+pub struct ComparisonSet {
+    pub deltas: Vec<ObligationDelta>,              // Back-compat flat list
+    pub hierarchical: Option<HierarchicalDiff>,    // New structured view
+    pub match_results: Vec<MatchResultMetadata>,   // Indexed by delta_id
+    // ...
+}
+```
+
+- `deltas` remains the primary list for legacy consumers and summary counts.
+- `hierarchical` contains aggregate/node/clause trees. When present, it is the source-of-truth for building UI drill-downs or analytics.
+- `match_results` aligns to each `delta_id` (or node diff) and stores `Definite` vs. `Indeterminate` metadata. This keeps ambiguity metadata adjacent to the data it qualifies.
+
+Open items:
+- The binary and JSON payload schemas need versioning so older clients can ignore `hierarchical`.
+- We still need to define whether `hierarchical` is populated in Phase 1 or guarded by a feature flag.
+- `match_results` may instead be embedded directly in `ObligationDelta`; final placement should be validated once serialization prototypes exist.
+
 ---
 
 ## 4. WL-Hash Justification and Alternatives
@@ -638,6 +682,26 @@ pub struct IndeterminateMatch {
 }
 ```
 
+### 5.3.1 Verification and Storage Contract
+
+- Every `ObligationDelta` (and/or `NodeDiff`) should embed a `MatchResultMetadata` payload:
+
+```rust
+pub struct MatchResultMetadata {
+    pub delta_id: u32,
+    pub result: MatchResult,
+}
+```
+
+- Verification queues read `result` directly, so ambiguous matches can be prioritized without querying the hole registry.
+- When a resolution arrives (human confirmation, LLM verdict, etc.), `ComparisonResult::apply_resolution` updates the metadata and promotes the affected entries from `indeterminate_matches` into `definite_changes`.
+- The metadata must also travel with serialized comparison payloads; otherwise, downstream systems cannot reproduce the same queue ordering.
+
+Unknowns:
+- Whether `MatchResultMetadata` is stored inline (per delta) or in a side-table keyed by `delta_id`.
+- How to deduplicate metadata when multiple clause-level entries roll up into a single node-level delta.
+- The verification UI flow still needs design for referencing either hole ids or concrete clause refs when presenting `resolution_hint`.
+
 ### 5.4 Injecting External Attributes
 
 The user mentioned: *"We would need somebody to inject attributes that are more concrete into the system."*
@@ -823,6 +887,7 @@ Add hole infrastructure:
 2. `HoleRegistry` with get_or_create, unify, fill operations
 3. Update `ClauseParty` to use `EntityBinding` instead of `Option<u32>`
 4. Migration path for existing code
+5. Define `(RegistryKind, owner_id)` namespacing and persistence contract (document vs. comparison scope, session vs. application storage) and ensure serialization prototypes exist even if persistence backend is TBD
 
 ### Revised Phase 1: Basic Diffing with Holes
 
@@ -830,6 +895,8 @@ Add hole infrastructure:
 2. `SimpleFingerprint` for structural matching
 3. `MatchResult` with `Indeterminate` variant
 4. Three-level `HierarchicalDiff` output
+5. `ComparisonSet` carries both `deltas` and optional `hierarchical` plus `MatchResultMetadata` (location can remain TBD but must be captured in the plan)
+6. Comparison payload serialization includes match metadata even if consumers ignore it initially
 
 ### Revised Phase 2: Edge Indexing
 
