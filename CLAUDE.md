@@ -37,6 +37,55 @@ cargo run --example position_of_speech
 
 layered-nlp is a data-oriented NLP framework for incrementally building up recognizers that can produce multiple interpretations of text spans.
 
+### Core Philosophy
+
+The system follows five principles that should guide all development:
+
+1. **Everything is a span** — `SpanRef` (line-local) / `DocSpan` (document) define positions. All semantic content has a position.
+
+2. **Semantics live in attributes** — Each resolver introduces new typed structs attached to spans. Don't embed meaning in code paths; make it queryable data.
+
+3. **Relationships are first-class** — `AssociatedSpan` / `DocAssociatedSpan` create typed edges between spans for provenance tracking and graph traversal.
+
+4. **Confidence is explicit** — `Scored<T>` wraps semantic attributes with confidence (0.0-1.0) and source tracking (`RuleBased`, `LLMPass`, `HumanVerified`, `Derived`).
+
+5. **Queries are type-driven** — `TypeId`-based lookup (`query::<T>()`, `query_all::<T>()`) for attributes; positional methods for geometry.
+
+### Two-Level Resolver Architecture
+
+**Line Level:** `Resolver` trait → `LLLine.run()` → `LLCursorAssignment<Attr>`
+- Operates on single tokenized lines
+- Uses `SpanRef` for token ranges within a line
+- Pattern matching via `LLSelection` and matchers (`x::attr()`, `x::seq()`, etc.)
+
+**Document Level:** `DocumentResolver` trait → `ContractDocument.run_document_resolver()` → `SemanticSpan`
+- Operates across multiple lines
+- Uses `DocSpan` for cross-line ranges
+- Spans stored in `SpanIndex` (BTreeMap-based, O(log n) lookup)
+
+### Key Architectural Insight: Spans Stack
+
+**Multiple spans can exist at the same position.** This is not a limitation—it's the feature that enables:
+- N-best interpretations (AI proposes alternatives)
+- Multi-perspective views (different reviewers annotate independently)
+- Layered enrichment (each resolver adds without overwriting)
+
+This means the system preserves all interpretations rather than forcing one "truth."
+
+### Mentality for Working in This Codebase
+
+1. **Think in layers** — Each resolver adds one type of understanding. Don't try to do everything in one resolver. Chain them: `doc.run_resolver(&A).run_resolver(&B)`.
+
+2. **Query, don't assume** — Use `query::<T>()` to find what previous resolvers produced. Don't hardcode dependencies; make them explicit via `dependencies()` method.
+
+3. **Create associations** — When your resolver uses another span as input, create an `AssociatedSpan` pointing to it. This builds the provenance graph automatically.
+
+4. **Use `Scored<T>` for semantic attributes** — Structural attributes (headers, boundaries) can be unscored. Semantic interpretations (obligations, references, conflicts) must carry confidence.
+
+5. **Test with snapshots** — Use `insta` and `LLLineDisplay` to visualize what your resolver produces. Snapshot tests catch regressions in span coverage.
+
+6. **Consult the architecture docs** — See `.context/ARCHITECTURE.md` for patterns, `.context/ARCHITECTURE-EXAMPLES.md` for worked examples, and `.context/plans/` for the implementation roadmap.
+
 ### Core Concepts
 
 **LLLine** (`src/ll_line.rs`): The main data structure representing a line of tokenized text with attached attributes. Created via `create_line_from_string()` or `create_line_from_input_tokens()`.
