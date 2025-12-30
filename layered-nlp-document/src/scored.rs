@@ -31,7 +31,7 @@ use std::fmt;
 /// let verified = Scored::verified("Company".to_string());
 /// assert!(verified.is_verified());
 /// ```
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Scored<T> {
     /// The actual value
     pub value: T,
@@ -42,7 +42,7 @@ pub struct Scored<T> {
 }
 
 /// The source of a confidence score.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ScoreSource {
     /// Score produced by a rule-based formula
     RuleBased {

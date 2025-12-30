@@ -8,8 +8,7 @@ use crate::{DocSpan, Scored};
 /// Dimension of a scope-bearing operator.
 ///
 /// Used to categorize operators for targeted queries and downstream processing.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ScopeDimension {
     /// Negation operators ("not", "never", "neither")
     Negation,
@@ -20,15 +19,14 @@ pub enum ScopeDimension {
     /// Deictic operators (speaker/time anchors)
     Deictic,
     /// Other scope operators
-    Other,
+    Other(String),
 }
 
 /// Domain with N-best ambiguity support.
 ///
 /// Scope operators often have ambiguous domains (where does the scope end?).
 /// This type preserves multiple candidate interpretations ranked by score.
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ScopeDomain {
     /// Candidates sorted by descending score (best first)
     pub candidates: Vec<Scored<DocSpan>>,
@@ -49,7 +47,10 @@ impl ScopeDomain {
     }
 
     /// Best-scoring domain span.
-    /// Returns None if no candidates.
+    ///
+    /// Returns `None` if no candidates exist. While well-constructed ScopeDomains
+    /// should always have at least one candidate, returning Option allows callers
+    /// to handle edge cases gracefully rather than panicking.
     pub fn primary(&self) -> Option<&DocSpan> {
         self.candidates.first().map(|s| &s.value)
     }
@@ -72,8 +73,7 @@ impl ScopeDomain {
 ///
 /// # Type Parameters
 /// - `O`: Operator-specific payload type
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ScopeOperator<O> {
     /// High-level dimension (Negation, Quantifier, etc.)
     pub dimension: ScopeDimension,
@@ -101,8 +101,7 @@ impl<O> ScopeOperator<O> {
 // ============================================================================
 
 /// M7: Negation operator payload.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct NegationOp {
     /// The negation marker ("not", "never", "neither", etc.)
     pub marker: String,
@@ -111,8 +110,7 @@ pub struct NegationOp {
 }
 
 /// Types of negation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum NegationKind {
     /// Simple negation ("not", "no")
     Simple,
@@ -123,8 +121,7 @@ pub enum NegationKind {
 }
 
 /// M7: Quantifier operator payload.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct QuantifierOp {
     /// The quantifier marker ("each", "all", "any", "no")
     pub marker: String,
@@ -133,8 +130,7 @@ pub struct QuantifierOp {
 }
 
 /// Types of quantifiers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum QuantifierKind {
     /// Universal quantifier ("all", "every", "each")
     Universal,
@@ -145,8 +141,7 @@ pub enum QuantifierKind {
 }
 
 /// M4: Precedence operator payload.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PrecedenceOp {
     /// The precedence connective ("notwithstanding", "subject to")
     pub connective: String,
@@ -157,8 +152,7 @@ pub struct PrecedenceOp {
 }
 
 /// M5: Deictic frame payload.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct DeicticFrame {
     /// Speaker anchor (if identified)
     pub speaker: Option<String>,

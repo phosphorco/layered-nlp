@@ -7,7 +7,7 @@
 use layered_nlp::{LLLine, Resolver};
 
 /// Position within a multi-line document.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DocPosition {
     /// Line index (0-based)
     pub line: usize,
@@ -32,7 +32,7 @@ impl DocPosition {
 }
 
 /// A span within a document that can cross line boundaries.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DocSpan {
     pub start: DocPosition,
     pub end: DocPosition,

@@ -7,8 +7,7 @@
 use crate::Scored;
 
 /// Flag indicating the nature of ambiguity in an aggregated result.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AmbiguityFlag {
     /// No ambiguity concerns - clear winner with high confidence
     None,
@@ -19,8 +18,7 @@ pub enum AmbiguityFlag {
 }
 
 /// Configuration for ambiguity handling during aggregation.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AmbiguityConfig {
     /// Maximum candidates to keep (including best)
     pub n_best: usize,
@@ -49,8 +47,7 @@ impl Default for AmbiguityConfig {
 /// Wraps the best candidate along with alternatives, and provides
 /// a computed flag indicating whether the result should be treated
 /// as uncertain.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Ambiguous<T> {
     /// Top-scoring candidate
     pub best: Scored<T>,
@@ -74,6 +71,8 @@ impl<T> Ambiguous<T> {
         mut candidates: Vec<Scored<T>>,
         cfg: &AmbiguityConfig,
     ) -> Option<Self> {
+        debug_assert!(cfg.n_best > 0, "AmbiguityConfig.n_best must be at least 1");
+
         // Prune below min_score
         candidates.retain(|c| c.confidence >= cfg.min_score);
         if candidates.is_empty() {
