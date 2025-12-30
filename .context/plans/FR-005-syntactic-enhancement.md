@@ -1,8 +1,25 @@
 # FR-005: Syntactic Structure Enhancement
 
+**Status: Phase 4 — Milestones M2, M3, M6, M7**
+
 ## Summary
 
 Introduce lightweight syntactic structure awareness to handle attachment ambiguity, garden path sentences, long-distance dependencies, and terms of art.
+
+## Phase 4 Integration
+
+FR-005 is implemented across 4 milestones, interleaved with FR-006. See [FR-007](FR-007-phase4-plan.md) for the full roadmap.
+
+| Milestone | Component | Status |
+|-----------|-----------|--------|
+| M2 | ClauseBoundaryResolver + CoordinationResolver upgrade | 🔲 Todo |
+| M3 | TermsOfArtResolver | 🔲 Todo |
+| M6 | PP & relative clause attachment | 🔲 Todo |
+| M7 | Negation & quantifier scope | 🔲 Todo |
+
+**Recommended start:** M3 (TermsOfArtResolver) is lowest complexity with high value, followed by M2 (clause boundaries) to unblock scope resolution.
+
+---
 
 ## Current State
 
@@ -877,3 +894,15 @@ This is the most complex FR and may be implemented incrementally:
 2. Phase 2: Terms of art dictionary
 3. Phase 3: PP/relative clause attachment heuristics
 4. Phase 4: Scope resolution (negation, quantifiers)
+
+---
+
+## Future: Multi-Perspective Support
+
+FR-005 syntactic resolvers produce `Scored<T>` with alternatives. This naturally supports the **multi-perspective architecture** being developed:
+
+- AI produces syntactic analysis with confidence + alternatives
+- Human reviewers can accept, reject, or provide different interpretations
+- All perspectives coexist — spans stack at the same position
+
+See [../ARCHITECTURE-ITERATIVE-ENRICHMENT.md](../ARCHITECTURE-ITERATIVE-ENRICHMENT.md) for the vision of layered interpretation where multiple viewers contribute their own analysis.

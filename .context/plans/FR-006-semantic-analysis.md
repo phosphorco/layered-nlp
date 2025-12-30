@@ -1,8 +1,27 @@
 # FR-006: Semantic Analysis and Conflict Detection
 
+**Status: Phase 4 — Milestones M1, M4, M5, M8**
+
 ## Summary
 
 Add semantic analysis capabilities for detecting conflicting provisions, applying precedence rules, tracking deictic context shifts, and resolving metalinguistic references.
+
+## Phase 4 Integration
+
+FR-006 is implemented across 4 milestones, interleaved with FR-005. See [FR-007](FR-007-phase4-plan.md) for the full roadmap.
+
+| Milestone | Component | Status |
+|-----------|-----------|--------|
+| [M1](M1-baseline-conflict-detector.md) | Baseline ConflictDetector | 📋 Planning |
+| M4 | Precedence resolution + richer conflicts | 🔲 Todo |
+| M5 | Metalinguistic references + deictic integration | 🔲 Todo |
+| M8 | Semantic roles + obligation equivalence | 🔲 Todo |
+
+**Key insight:** M1 (Baseline ConflictDetector) can start **immediately** using existing FR-001/FR-004 infrastructure, without waiting for FR-005 syntactic enhancements. Later milestones refine accuracy as syntactic features arrive.
+
+**Recommended start:** M1 delivers immediate user-visible value (conflict detection) with minimal new code.
+
+---
 
 ## Current State
 
@@ -179,6 +198,22 @@ Document B: "must notify in writing no later than 30 days"
 - Requires FR-001 (Obligation Structure) for normalized comparison
 - Enhances FR-002 (Reference Resolution) with deictic context
 - Benefits from FR-005 (Syntactic Enhancement) for role extraction
+
+---
+
+## Future: Multi-Perspective Conflict Analysis
+
+FR-006 conflict detection becomes especially powerful in the **multi-perspective architecture**:
+
+- **Cross-perspective conflicts**: Where Lawyer A sees an obligation that Lawyer B doesn't
+- **Interpretation disagreements**: Same text, different semantic analysis
+- **Consensus building**: Synthesis layer can surface conflicts and track resolution
+
+The `ConflictDetector` can be extended to:
+1. Detect conflicts **within** a perspective (e.g., Section 2 vs Schedule 1)
+2. Detect conflicts **across** perspectives (e.g., AI vs Lawyer A interpretation)
+
+See [../ARCHITECTURE-ITERATIVE-ENRICHMENT.md](../ARCHITECTURE-ITERATIVE-ENRICHMENT.md) for the vision of layered interpretation.
 
 ---
 
