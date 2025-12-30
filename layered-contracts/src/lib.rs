@@ -52,13 +52,11 @@ mod clause_aggregate;
 mod contract_keyword;
 mod defined_term;
 mod deictic;
-mod document;
 mod document_aligner;
 mod document_structure;
 mod obligation;
 mod pronoun;
 mod pronoun_chain;
-mod scored;
 mod section_header;
 mod section_reference;
 mod section_reference_linker;
@@ -69,6 +67,21 @@ mod terms_of_art;
 mod token_diff;
 mod utils;
 mod verification;
+
+// Snapshot system for testing
+pub mod snapshot;
+
+// Re-export document infrastructure from layered-nlp-document
+pub use layered_nlp_document::{
+    DocPosition, DocSpan, LayeredDocument, ProcessError, ProcessResult,
+    Scored, ScoreSource,
+};
+
+/// Backward-compatible type alias for ContractDocument.
+///
+/// This allows existing code using `ContractDocument` to continue working
+/// while the underlying implementation uses the generic `LayeredDocument`.
+pub type ContractDocument = layered_nlp_document::LayeredDocument;
 
 // Pipeline presets for running resolvers in dependency order
 pub mod pipeline;
@@ -98,15 +111,14 @@ pub use obligation::{
 };
 pub use pronoun::{AntecedentCandidate, PronounReference, PronounResolver, PronounType};
 pub use pronoun_chain::{ChainMention, MentionType, PronounChain, PronounChainResolver};
-pub use scored::{ScoreSource, Scored};
+// Note: Scored and ScoreSource are now re-exported from layered_nlp_document at the top
 pub use term_reference::{TermReference, TermReferenceResolver};
 pub use terms_of_art::{TermOfArt, TermOfArtCategory, TermsOfArtResolver};
 pub use verification::{
     apply_verification_action, VerificationAction, VerificationNote, VerificationTarget,
 };
 
-// Document-level abstractions (new)
-pub use document::{ContractDocument, DocPosition, DocSpan, ProcessError, ProcessResult};
+// Note: Document types are now re-exported from layered_nlp_document at the top of this file
 pub use document_aligner::{
     AlignedPair, AlignmentCandidate, AlignmentCandidates, AlignmentHint, AlignmentResult,
     AlignmentSignal, AlignmentStats, AlignmentType, DocumentAligner, HintType, SectionRef,

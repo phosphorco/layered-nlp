@@ -10,7 +10,7 @@
 //! 6. RON round-trip — serialize -> deserialize -> serialize produces identical output
 //! 7. Empty document — Empty input produces valid empty snapshot
 
-use crate::document::ContractDocument;
+use crate::ContractDocument;
 use crate::snapshot::{Snapshot, SnapshotBuilder, SnapshotSpanId};
 use crate::section_header::SectionHeaderResolver;
 use crate::defined_term::DefinedTermResolver;

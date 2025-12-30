@@ -9,7 +9,7 @@
 //! 6. Empty categories — Categories with no spans are omitted
 //! 7. Determinism — Same snapshot produces identical render output
 
-use crate::document::ContractDocument;
+use crate::ContractDocument;
 use crate::snapshot::{
     classify_type_name, SemanticCategory, Snapshot, SnapshotBuilder, SnapshotRenderer,
 };

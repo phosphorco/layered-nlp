@@ -12,7 +12,7 @@ use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver};
 use crate::clause_aggregate::{ClauseAggregate, ClauseAggregateEntry};
 use crate::contract_clause::{ClauseCondition, ClauseParty};
 use crate::pronoun_chain::PronounChain;
-use crate::scored::Scored;
+use crate::Scored;
 use crate::utils::normalize_party_name;
 use crate::verification::VerificationNote;
 

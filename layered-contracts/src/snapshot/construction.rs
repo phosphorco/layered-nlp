@@ -5,8 +5,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::document::ContractDocument;
-use crate::scored::Scored;
+use crate::{ContractDocument, Scored, ScoreSource};
 
 use super::types::{
     InputSource, Snapshot, SnapshotDocPos, SnapshotDocSpan, SnapshotKind,
@@ -217,18 +216,18 @@ impl<T: 'static + std::fmt::Debug + SnapshotKind> SpanExtractor for ScoredLineTy
                     // Snapshot::apply_redactions(). For now, we use a best-effort 
                     // deterministic representation that omits known volatile fields.
                     let source_desc = match &scored.source {
-                        crate::scored::ScoreSource::RuleBased { rule_name } => {
+                        ScoreSource::RuleBased { rule_name } => {
                             Some(format!("RuleBased({})", rule_name))
                         }
-                        crate::scored::ScoreSource::LLMPass { model, .. } => {
+                        ScoreSource::LLMPass { model, .. } => {
                             // Omit pass_id as it may be non-deterministic
                             Some(format!("LLMPass(model={})", model))
                         }
-                        crate::scored::ScoreSource::HumanVerified { .. } => {
+                        ScoreSource::HumanVerified { .. } => {
                             // Omit verifier_id for determinism
                             Some("HumanVerified".to_string())
                         }
-                        crate::scored::ScoreSource::Derived => Some("Derived".to_string()),
+                        ScoreSource::Derived => Some("Derived".to_string()),
                     };
 
                     results.push(RawSpanData {
@@ -251,33 +250,20 @@ impl<T: 'static + std::fmt::Debug + SnapshotKind> SpanExtractor for ScoredLineTy
 }
 
 /// Extractor for document-level SemanticSpan attributes.
+///
+/// Note: Currently a stub since LayeredDocument doesn't yet support document-level
+/// span querying. This will be implemented when SemanticSpan support is added.
+#[allow(dead_code)]
 struct DocTypeExtractor<T> {
     _marker: std::marker::PhantomData<T>,
 }
 
+#[allow(dead_code)]
 impl<T: 'static + std::fmt::Debug + SnapshotKind> SpanExtractor for DocTypeExtractor<T> {
-    fn extract(&self, doc: &ContractDocument) -> Vec<RawSpanData> {
-        let mut results = Vec::new();
-
-        for semantic_span in doc.query_doc::<T>() {
-            if let Some(attr) = semantic_span.downcast_ref::<T>() {
-                let value = ron::Value::String(format!("{:?}", attr));
-
-                results.push(RawSpanData {
-                    prefix: T::SNAPSHOT_PREFIX.to_string(),
-                    type_name: T::SNAPSHOT_TYPE_NAME.to_string(),
-                    start_line: semantic_span.span.start.line,
-                    start_token: semantic_span.span.start.token,
-                    end_line: semantic_span.span.end.line,
-                    end_token: semantic_span.span.end.token,
-                    value,
-                    confidence: None,
-                    source: None,
-                });
-            }
-        }
-
-        results
+    fn extract(&self, _doc: &ContractDocument) -> Vec<RawSpanData> {
+        // Document-level span extraction requires SemanticSpan support,
+        // which will be added in a future gate.
+        Vec::new()
     }
 }
 

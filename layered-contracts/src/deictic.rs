@@ -13,7 +13,7 @@ use layered_deixis::{
 use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver};
 
 use crate::pronoun::{PronounReference, PronounType};
-use crate::scored::Scored;
+use crate::Scored;
 use crate::section_reference::{ReferenceType, RelativeReference, SectionReference};
 use crate::temporal::{TemporalExpression, TemporalType};
 

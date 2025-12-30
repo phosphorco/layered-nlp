@@ -8,7 +8,7 @@
 //! 5. Re-run stability — Running test twice without changes produces no diff
 //! 6. Semantic change detection — Adding a span produces visible diff in both files
 
-use crate::document::ContractDocument;
+use crate::ContractDocument;
 use crate::snapshot::{Snapshot, SnapshotRenderer};
 use crate::contract_keyword::ContractKeywordResolver;
 use crate::section_header::SectionHeaderResolver;
@@ -141,7 +141,7 @@ fn test_macro_types_accessible() {
     // This is a compile-time check more than a runtime check
     fn _type_check() {
         // These types should be accessible for the macros to work
-        let _: fn(&crate::document::ContractDocument) -> crate::snapshot::Snapshot = 
+        let _: fn(&crate::ContractDocument) -> crate::snapshot::Snapshot = 
             crate::snapshot::Snapshot::from_document;
         let _: crate::snapshot::SnapshotRenderer = crate::snapshot::SnapshotRenderer::new();
     }

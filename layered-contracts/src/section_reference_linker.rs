@@ -14,7 +14,7 @@ use std::collections::HashMap;
 
 use layered_nlp::x;
 
-use crate::document::{ContractDocument, DocSpan, ProcessError, ProcessResult};
+use crate::{ContractDocument, DocSpan, ProcessError, ProcessResult};
 use crate::document_structure::{DocumentProcessor, DocumentStructure, SectionNode};
 use crate::section_header::{SectionHeader, SectionIdentifier};
 use crate::section_reference::{ReferenceType, SectionReference};

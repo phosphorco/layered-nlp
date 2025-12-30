@@ -6,7 +6,7 @@
 
 use layered_nlp::x;
 
-use crate::document::{ContractDocument, DocPosition, DocSpan, ProcessResult};
+use crate::{ContractDocument, DocPosition, DocSpan, ProcessResult};
 use crate::section_header::SectionHeader;
 
 /// Hierarchical representation of document structure.

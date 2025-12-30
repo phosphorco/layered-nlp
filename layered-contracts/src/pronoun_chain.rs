@@ -20,7 +20,7 @@ use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver};
 
 use crate::defined_term::DefinedTerm;
 use crate::pronoun::PronounReference;
-use crate::scored::Scored;
+use crate::Scored;
 use crate::term_reference::TermReference;
 
 /// A single mention within a pronoun chain.

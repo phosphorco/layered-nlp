@@ -57,7 +57,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use layered_nlp::x;
 use serde::{Deserialize, Serialize};
 
-use crate::document::ContractDocument;
+use crate::ContractDocument;
 use crate::document_aligner::{AlignedPair, AlignmentResult, AlignmentType};
 use crate::obligation::ObligationType;
 
@@ -609,7 +609,7 @@ impl SemanticDiffEngine {
     /// Extract term definitions from entire document.
     fn extract_document_terms(&self, doc: &ContractDocument) -> HashMap<String, ExtractedTerm> {
         use crate::defined_term::DefinedTerm;
-        use crate::scored::Scored;
+        use crate::Scored;
 
         let mut terms = HashMap::new();
 
@@ -639,8 +639,8 @@ impl SemanticDiffEngine {
     /// Extract term references from entire document.
     fn extract_document_references(&self, doc: &ContractDocument) -> Vec<ExtractedReference> {
         use crate::obligation::ObligationPhrase;
-        use crate::scored::Scored;
         use crate::term_reference::TermReference;
+        use crate::Scored;
 
         let mut references = Vec::new();
 
@@ -809,8 +809,8 @@ impl SemanticDiffEngine {
         _warnings: &mut Vec<String>,
     ) -> SectionSemantics {
         use crate::obligation::ObligationPhrase;
-        use crate::scored::Scored;
         use crate::temporal::TemporalExpression;
+        use crate::Scored;
 
         let mut semantics = SectionSemantics::default();
 

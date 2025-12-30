@@ -20,7 +20,7 @@ use std::fmt;
 ///
 /// # Example
 /// ```
-/// use layered_contracts::{Scored, ScoreSource};
+/// use layered_nlp_document::{Scored, ScoreSource};
 ///
 /// // Create a rule-based score
 /// let term = Scored::rule_based("Contractor".to_string(), 0.85, "capitalized_noun");

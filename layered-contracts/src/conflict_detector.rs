@@ -20,9 +20,8 @@
 
 use std::collections::HashMap;
 
-use crate::document::{DocPosition, DocSpan};
 use crate::obligation::{ObligorReference, ObligationType};
-use crate::scored::Scored;
+use crate::{DocPosition, DocSpan, Scored};
 use crate::temporal::{NormalizedTiming, TimeUnit};
 
 // ============================================================================
@@ -942,7 +941,7 @@ impl ConflictDetector {
     /// ```
     pub fn detect_in_document(
         &self,
-        doc: &crate::document::ContractDocument,
+        doc: &crate::ContractDocument,
     ) -> Vec<Scored<Conflict>> {
         use crate::obligation::ObligationPhrase;
         use layered_nlp::x;
@@ -985,7 +984,7 @@ impl ConflictDetector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::document::DocPosition;
+    use crate::DocPosition;
 
     fn make_span(start_line: usize, start_token: usize, end_line: usize, end_token: usize) -> DocSpan {
         DocSpan::new(
@@ -1816,7 +1815,7 @@ mod tests {
 
     /// Helper to run full resolver chain on text (needed for document integration tests).
     /// Pipeline::standard() doesn't include POSTagResolver which is needed for obligor detection.
-    fn run_full_pipeline(text: &str) -> crate::document::ContractDocument {
+    fn run_full_pipeline(text: &str) -> crate::ContractDocument {
         use layered_part_of_speech::POSTagResolver;
         use crate::{
             ContractKeywordResolver, DefinedTermResolver, ObligationPhraseResolver,
@@ -1825,7 +1824,7 @@ mod tests {
             TermReferenceResolver,
         };
 
-        crate::document::ContractDocument::from_text(text)
+        crate::ContractDocument::from_text(text)
             .run_resolver(&POSTagResolver::default())
             .run_resolver(&SectionHeaderResolver::new())
             .run_resolver(&SectionReferenceResolver::new())

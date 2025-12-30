@@ -27,7 +27,7 @@ categories = [
 keywords = ["nlp", "layered-nlp", "framework", "grammar", "wasm"]
 
 [workspace]
-members = ["examples", "layered-part-of-speech", "layered-amount", "layered-clauses", "layered-contracts", "layered-deixis", "layered-nlp-demo-wasm"]
+members = ["examples", "layered-part-of-speech", "layered-amount", "layered-clauses", "layered-contracts", "layered-deixis", "layered-nlp-demo-wasm", "layered-nlp-document"]
 
 [dependencies]
 once_cell = "1.7"

@@ -8,7 +8,7 @@
 use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver, TextTag};
 
 use crate::contract_keyword::ContractKeyword;
-use crate::scored::Scored;
+use crate::Scored;
 
 /// Represents a formally defined term in a contract.
 #[derive(Debug, Clone, PartialEq, Eq)]

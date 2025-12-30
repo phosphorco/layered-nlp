@@ -66,8 +66,8 @@ impl SnapshotDocPos {
     }
 }
 
-impl From<crate::document::DocPosition> for SnapshotDocPos {
-    fn from(pos: crate::document::DocPosition) -> Self {
+impl From<crate::DocPosition> for SnapshotDocPos {
+    fn from(pos: crate::DocPosition) -> Self {
         Self {
             line: pos.line as u32,
             token: pos.token as u32,
@@ -90,8 +90,8 @@ impl SnapshotDocSpan {
     }
 }
 
-impl From<crate::document::DocSpan> for SnapshotDocSpan {
-    fn from(span: crate::document::DocSpan) -> Self {
+impl From<crate::DocSpan> for SnapshotDocSpan {
+    fn from(span: crate::DocSpan) -> Self {
         Self {
             start: span.start.into(),
             end: span.end.into(),
@@ -187,7 +187,7 @@ impl Snapshot {
     ///
     /// This is the primary construction path for most use cases.
     /// For more control over which types to extract, use `SnapshotBuilder`.
-    pub fn from_document(doc: &crate::document::ContractDocument) -> Self {
+    pub fn from_document(doc: &crate::ContractDocument) -> Self {
         crate::snapshot::SnapshotBuilder::new(doc)
             .with_standard_types()
             .build()
@@ -312,37 +312,8 @@ impl SnapshotKind for crate::pronoun::PronounReference {
     const SNAPSHOT_TYPE_NAME: &'static str = "PronounReference";
 }
 
-impl SnapshotKind for crate::coordination::Coordination {
-    const SNAPSHOT_PREFIX: &'static str = "co";
-    const SNAPSHOT_TYPE_NAME: &'static str = "Coordination";
-}
-
-impl SnapshotKind for crate::bridging_reference::BridgingReference {
-    const SNAPSHOT_PREFIX: &'static str = "br";
-    const SNAPSHOT_TYPE_NAME: &'static str = "BridgingReference";
-}
-
-// Document-level types
-
-impl SnapshotKind for crate::document_types::RecitalSection {
-    const SNAPSHOT_PREFIX: &'static str = "rc";
-    const SNAPSHOT_TYPE_NAME: &'static str = "RecitalSection";
-}
-
-impl SnapshotKind for crate::document_types::AppendixBoundary {
-    const SNAPSHOT_PREFIX: &'static str = "ab";
-    const SNAPSHOT_TYPE_NAME: &'static str = "AppendixBoundary";
-}
-
-impl SnapshotKind for crate::document_types::FootnoteBlock {
-    const SNAPSHOT_PREFIX: &'static str = "fn";
-    const SNAPSHOT_TYPE_NAME: &'static str = "FootnoteBlock";
-}
-
-impl SnapshotKind for crate::document_types::PrecedenceRule {
-    const SNAPSHOT_PREFIX: &'static str = "pc";
-    const SNAPSHOT_TYPE_NAME: &'static str = "PrecedenceRule";
-}
+// Note: SnapshotKind impls for Coordination, BridgingReference, and document_types
+// will be added when those modules are implemented.
 
 #[cfg(test)]
 mod tests {

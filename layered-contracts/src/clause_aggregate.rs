@@ -8,7 +8,7 @@ use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver};
 
 use crate::contract_clause::{ClauseCondition, ClauseDuty, ClauseParty, ContractClause};
 use crate::utils::normalize_party_name;
-use crate::scored::Scored;
+use crate::Scored;
 
 /// Aggregated view of one party's duties across nearby clauses.
 #[derive(Debug, Clone, PartialEq)]

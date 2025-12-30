@@ -17,7 +17,7 @@ use layered_part_of_speech::Tag;
 
 use crate::contract_keyword::ContractKeyword;
 use crate::pronoun::PronounReference;
-use crate::scored::Scored;
+use crate::Scored;
 use crate::term_reference::TermReference;
 
 /// Association linking an obligation to its obligor source span.

@@ -12,7 +12,7 @@ use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver};
 use crate::contract_keyword::ContractKeyword;
 use crate::obligation::{ConditionRef, ObligationPhrase, ObligationType, ObligorReference};
 use crate::pronoun_chain::PronounChain;
-use crate::scored::Scored;
+use crate::Scored;
 use crate::utils::normalize_party_name;
 
 const COMMON_CAPITALIZED_ALLOWLIST: &[&str] = &[

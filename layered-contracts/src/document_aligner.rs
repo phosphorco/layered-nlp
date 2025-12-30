@@ -74,7 +74,7 @@ use std::collections::{HashMap, HashSet};
 use pathfinding::kuhn_munkres::{kuhn_munkres_min, Weights};
 use serde::{Deserialize, Serialize};
 
-use crate::document::ContractDocument;
+use crate::ContractDocument;
 use crate::document_structure::{DocumentStructure, SectionNode};
 use crate::section_header::SectionIdentifier;
 

@@ -15,7 +15,7 @@ use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver, TextTag};
 use layered_part_of_speech::Tag;
 
 use crate::defined_term::DefinedTerm;
-use crate::scored::Scored;
+use crate::Scored;
 use crate::term_reference::TermReference;
 
 /// A candidate antecedent for a pronoun.
