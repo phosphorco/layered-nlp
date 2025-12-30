@@ -209,7 +209,7 @@ Values and associations stored in parallel vectors, maintaining index alignment.
 
 ## Implementation Status
 
-### Complete
+### Complete (Line-Local)
 - Core types: `SpanRef`, `Association` trait, `AssociatedSpan`
 - Storage: Parallel association vectors in `TypeBucket`
 - Builder API: `selection.assign(value).with_association(type, span).build()`
@@ -217,6 +217,15 @@ Values and associations stored in parallel vectors, maintaining index alignment.
 - Contract domain: `ObligorSource`, `ActionSpan` associations
 - Public API: `query_with_associations<T>()` for downstream consumers
 - WASM demo: Provenance data in JSON output
+
+### Complete (Cross-Line Extension - FR-003, December 2024)
+- `DocPosition` and `DocSpan` for cross-line positions
+- `DocAssociatedSpan` - reuses same `Association` trait with `DocSpan` instead of `SpanRef`
+- `SemanticSpan` with type-erased storage and cross-line association support
+- `SpanIndex` for O(log n) lookup of document-level spans
+- `DocumentResolver` trait for document-level pattern detection
+- `ContractDocument.query_doc<T>()` and `query_all<T>()` for unified queries
+- **Key Design:** Same `Association` trait works for both line-local and document-level associations
 
 ### Future Directions
 - Cross-document associations (linking spans across files)

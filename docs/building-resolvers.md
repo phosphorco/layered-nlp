@@ -92,7 +92,8 @@ selection
 **Key points:**
 - `x::attr_eq(&value)` matches spans with exact attribute value
 - `x::attr::<T>()` matches any span with attribute type T
-- Chain resolvers: `.run(&Resolver1).run(&Resolver2)`
+- For low-level experiments, chain resolvers manually: `.run(&Resolver1).run(&Resolver2)`
+- For production use, encode dependencies in the pipeline (see "Pipeline Integration" below)
 
 ## Pattern 4: Configurable Keyword Lists
 
@@ -190,3 +191,158 @@ fn basic_test() {
 3. **Attribute bounds**: Attributes must be `Debug + 'static + Send + Sync`.
 
 4. **Selection spans**: When extending selections, the final span includes all intermediate tokens (including whitespace).
+
+---
+
+## Pipeline Integration
+
+The pipeline orchestrator (`layered_contracts::pipeline`) provides automatic dependency ordering for resolvers.
+
+### Adding a Resolver to a Pipeline
+
+Wrap existing resolvers with `with_meta()` to declare their dependencies and outputs:
+
+```rust
+use layered_contracts::pipeline::{Pipeline, with_meta};
+use layered_contracts::{ContractKeyword, DefinedTerm, Scored};
+
+let pipeline = Pipeline::new()
+    // Resolver with no dependencies
+    .with_line_resolver(
+        with_meta("keywords", MyKeywordResolver::new())
+            .produces::<ContractKeyword>()
+    )
+    // Resolver that depends on keywords
+    .with_line_resolver(
+        with_meta("terms", MyTermResolver::new())
+            .depends_on::<ContractKeyword>()
+            .produces::<Scored<DefinedTerm>>()
+    );
+```
+
+**Key points:**
+- `with_meta(id, resolver)` wraps the resolver with metadata
+- `.produces::<T>()` declares the attribute type(s) this resolver produces
+- `.depends_on::<T>()` declares required dependencies
+- `.optional_depends_on::<T>()` declares optional dependencies
+- The pipeline automatically sorts resolvers topologically
+
+### Using Preset Pipelines
+
+For common use cases, use preset pipelines:
+
+```rust
+use layered_contracts::pipeline::Pipeline;
+
+// Core analysis presets
+let doc = Pipeline::structure_only().run_on_text("Section 1.1")?;  // Headers only
+let doc = Pipeline::fast().run_on_text("Article I...")?;            // Headers + keywords
+let doc = Pipeline::standard().run_on_text("The Company shall...")?; // Full semantic analysis
+
+// Enhanced presets for document-level structure (recitals, appendices, footnotes)
+let doc = Pipeline::enhanced().run_on_text("WHEREAS...\nSection 1...\nEXHIBIT A")?;
+let doc = Pipeline::enhanced_minimal().run_on_text("WHEREAS...\nSection 1...")?;  // No obligation analysis
+```
+
+The `enhanced` and `enhanced_minimal` presets are used internally by
+[`EnhancedDocumentStructureBuilder`](../layered-contracts/src/enhanced_structure.rs)
+to orchestrate full document-structure analysis.
+
+### Migration Patterns
+
+**Wrapper-based migration** (recommended for gradual adoption):
+
+```rust
+// Before: Manual ordering
+let doc = ContractDocument::from_text(text)
+    .run_resolver(&KeywordResolver::new())
+    .run_resolver(&TermResolver::new())  // Must come after keywords
+    .run_resolver(&ReferenceResolver::new());  // Must come after terms
+
+// After: Pipeline handles ordering automatically
+let pipeline = Pipeline::new()
+    .with_line_resolver(
+        with_meta("keywords", KeywordResolver::new())
+            .produces::<Keyword>()
+    )
+    .with_line_resolver(
+        with_meta("terms", TermResolver::new())
+            .depends_on::<Keyword>()
+            .produces::<Term>()
+    )
+    .with_line_resolver(
+        with_meta("refs", ReferenceResolver::new())
+            .depends_on::<Term>()
+            .produces::<Reference>()
+    );
+
+let doc = pipeline.run_on_text(text)?;
+```
+
+**Native implementation** (for new resolvers):
+
+```rust
+use std::any::TypeId;
+use layered_contracts::pipeline::{ResolverMeta, PipelinePhase};
+
+impl ResolverMeta for MyResolver {
+    fn id(&self) -> &'static str { "my_resolver" }
+    
+    fn produces(&self) -> &[TypeId] {
+        static PRODUCES: std::sync::OnceLock<[TypeId; 1]> = std::sync::OnceLock::new();
+        PRODUCES.get_or_init(|| [TypeId::of::<MyOutput>()])
+    }
+    
+    fn requires(&self) -> &[TypeId] {
+        static REQUIRES: std::sync::OnceLock<[TypeId; 1]> = std::sync::OnceLock::new();
+        REQUIRES.get_or_init(|| [TypeId::of::<SomeInput>()])
+    }
+    
+    fn phase(&self) -> PipelinePhase {
+        PipelinePhase::LINE
+    }
+}
+```
+
+### Configuration
+
+Enable or disable resolvers at runtime:
+
+```rust
+use layered_contracts::pipeline::{Pipeline, PipelineConfig};
+
+let config = PipelineConfig::new()
+    .disable("expensive_resolver")
+    .enable("optional_resolver");
+
+let doc = Pipeline::standard()
+    .with_config(config)
+    .run_on_text(text)?;
+```
+
+### Introspection
+
+Debug pipeline execution order:
+
+```rust
+let pipeline = Pipeline::standard();
+
+// Structured view
+let view = pipeline.inspect_plan()?;
+for step in &view.line_steps {
+    println!("{}: produces {:?}, requires {:?}", step.id, step.produces, step.requires);
+}
+
+// Graphviz DOT output
+let dot = pipeline.to_dot()?;
+println!("{}", dot);
+```
+
+### Troubleshooting
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `MissingProducer` | Resolver requires a type no one produces | Add a resolver that produces the required type, or remove the dependency |
+| `Cycle` | Circular dependencies detected | Break the cycle by refactoring resolvers |
+| `DuplicateId` | Two resolvers have the same ID | Use unique IDs for each resolver |
+| `phase_mismatch: true` | Line resolver depends on doc-only type | Line resolvers can only depend on line-phase outputs |

@@ -10,20 +10,108 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
-            padding: 2rem;
-            background: #fafafa;
+            padding: 1rem;
+            background: #f5f5f5;
             color: #333;
-            line-height: 1.5;
+            line-height: 1.4;
         }
         h1 {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
             color: #1a1a1a;
+            font-size: 1.25rem;
         }
         .subtitle {
             color: #666;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Compact status bar - replaces summary cards */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem 0.75rem;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+            font-size: 12px;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+        }
+        .status-bar .status-label {
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .status-bar .status-value {
+            font-weight: 600;
+            color: #111827;
+        }
+        .status-bar .status-divider {
+            color: #d1d5db;
+        }
+        .status-bar .stat-critical { color: #dc2626; }
+        .status-bar .stat-high { color: #ea580c; }
+        .status-bar .stat-medium { color: #ca8a04; }
+        .status-bar .stat-low { color: #16a34a; }
+        .status-bar .stat-clickable {
+            cursor: pointer;
+            padding: 0.125rem 0.375rem;
+            border-radius: 2px;
+            transition: background 0.1s;
+        }
+        .status-bar .stat-clickable:hover {
+            background: #e5e7eb;
+        }
+        .status-bar .search-container {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin-left: auto;
+            margin-right: 1rem;
+        }
+        .status-bar .search-input {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 3px;
+            font-size: 11px;
+            font-family: ui-monospace, monospace;
+            width: 140px;
+            background: white;
+        }
+        .status-bar .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        .status-bar .search-nav {
+            background: none;
+            border: 1px solid #d1d5db;
+            border-radius: 3px;
+            padding: 0.125rem 0.375rem;
+            font-size: 10px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        .status-bar .search-nav:hover {
+            background: #f3f4f6;
+        }
+        .status-bar .search-count {
+            font-size: 10px;
+            color: #6b7280;
+            min-width: 40px;
+        }
+        /* Search highlight styles */
+        .section-row.search-highlight {
+            background: #fef9c3;
+        }
+        .section-row.search-current {
+            background: #fde047;
+            box-shadow: inset 0 0 0 2px #ca8a04;
         }
 
         /* Two-column input layout */
@@ -131,110 +219,114 @@
 
         /* Results section with sidebar */
         .results-section {
-            margin-top: 2rem;
+            margin-top: 0.5rem;
         }
         .results-layout {
             display: grid;
-            grid-template-columns: 220px 1fr;
-            gap: 1.5rem;
+            grid-template-columns: 200px 1fr;
+            gap: 0.5rem;
         }
 
-        /* Section outline sidebar */
+        /* Section outline sidebar - light theme */
         .section-sidebar {
             position: sticky;
-            top: 1rem;
-            max-height: calc(100vh - 2rem);
+            top: 0.5rem;
+            max-height: calc(100vh - 1rem);
             overflow-y: auto;
-            background: white;
+            background: #ffffff;
             border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 0.75rem 0;
+            border-radius: 4px;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
         }
         .sidebar-header {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: #6b7280;
-            padding: 0.5rem 1rem;
+            padding: 0.375rem 0.5rem;
             border-bottom: 1px solid #e5e7eb;
-            margin-bottom: 0.5rem;
+            background: #f9fafb;
         }
         .sidebar-item {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.4rem 1rem;
-            font-size: 13px;
+            gap: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 11px;
             color: #374151;
             cursor: pointer;
             border-left: 3px solid transparent;
             transition: background 0.1s, border-color 0.1s;
         }
         .sidebar-item:hover {
-            background: #f9fafb;
+            background: #f3f4f6;
         }
         .sidebar-item.active {
             background: #eff6ff;
             border-left-color: #3b82f6;
-            font-weight: 500;
+            color: #1e40af;
         }
         .sidebar-item.filtered-out {
-            opacity: 0.4;
+            opacity: 0.3;
             pointer-events: none;
         }
 
-        /* Filter controls in sidebar */
+        /* Filter controls in sidebar - light theme */
         .sidebar-filters {
-            padding: 0.75rem;
+            padding: 0.375rem 0.5rem;
             border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
         }
         .filter-group {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0;
         }
         .filter-group-label {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #9ca3af;
+            color: #6b7280;
             margin-bottom: 0.25rem;
         }
         .filter-option {
             display: flex;
             align-items: center;
-            gap: 0.4rem;
-            padding: 0.2rem 0;
-            font-size: 12px;
+            gap: 0.25rem;
+            padding: 0.125rem 0;
+            font-size: 10px;
             cursor: pointer;
+            color: #374151;
         }
         .filter-option input[type="checkbox"] {
             margin: 0;
+            width: 12px;
+            height: 12px;
         }
         .filter-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             flex-shrink: 0;
         }
         .filter-dot.critical { background: #dc2626; }
-        .filter-dot.high { background: #f97316; }
-        .filter-dot.medium { background: #eab308; }
-        .filter-dot.low { background: #22c55e; }
-        .filter-dot.unchanged { background: #d1d5db; }
+        .filter-dot.high { background: #ea580c; }
+        .filter-dot.medium { background: #ca8a04; }
+        .filter-dot.low { background: #16a34a; }
+        .filter-dot.unchanged { background: #9ca3af; }
         .risk-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             flex-shrink: 0;
         }
         .risk-dot.critical { background: #dc2626; }
-        .risk-dot.high { background: #f97316; }
-        .risk-dot.medium { background: #eab308; }
-        .risk-dot.low { background: #22c55e; }
-        .risk-dot.unchanged { background: #d1d5db; }
-        .risk-dot.inserted { background: #3b82f6; }
-        .risk-dot.deleted { background: #ef4444; }
+        .risk-dot.high { background: #ea580c; }
+        .risk-dot.medium { background: #ca8a04; }
+        .risk-dot.low { background: #16a34a; }
+        .risk-dot.unchanged { background: #9ca3af; }
+        .risk-dot.inserted { background: #2563eb; }
+        .risk-dot.deleted { background: #dc2626; }
         .sidebar-title {
             white-space: nowrap;
             overflow: hidden;
@@ -247,75 +339,73 @@
         }
         .panel {
             background: white;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 2px;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
         }
         .panel h3 {
-            margin: 0 0 1rem 0;
-            font-size: 14px;
-            color: #666;
+            margin: 0 0 0.5rem 0;
+            font-size: 10px;
+            color: #6b7280;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
         }
 
-        /* Summary stats */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 1rem;
+        /* Compact sidebar change items (merged with outline) */
+        .sidebar-change {
+            padding: 0.25rem 0.5rem;
+            border-left: 3px solid #e5e7eb;
+            margin-bottom: 0;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.1s;
+            border-bottom: 1px solid #f3f4f6;
         }
-        .summary-stat {
-            text-align: center;
-            padding: 0.75rem;
-            background: #f9fafb;
-            border-radius: 6px;
+        .sidebar-change:hover {
+            background: #f3f4f6;
         }
-        .summary-stat .value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #1a1a1a;
+        .sidebar-change.risk-critical { border-left-color: #dc2626; }
+        .sidebar-change.risk-high { border-left-color: #ea580c; }
+        .sidebar-change.risk-medium { border-left-color: #ca8a04; }
+        .sidebar-change.risk-low { border-left-color: #16a34a; }
+        .sidebar-change .change-type-icon {
+            font-size: 10px;
+            color: #6b7280;
+            margin-right: 0.25rem;
         }
-        .summary-stat .label {
-            font-size: 12px;
-            color: #666;
+        .sidebar-change .change-desc {
+            color: #374151;
+        }
+        .sidebar-change .risk-indicator {
+            font-size: 9px;
+            font-weight: 600;
             text-transform: uppercase;
+            margin-left: 0.25rem;
+            padding: 0.0625rem 0.25rem;
+            border-radius: 2px;
         }
+        .sidebar-change .risk-indicator.critical { background: #fee2e2; color: #dc2626; }
+        .sidebar-change .risk-indicator.high { background: #ffedd5; color: #ea580c; }
+        .sidebar-change .risk-indicator.medium { background: #fef9c3; color: #ca8a04; }
+        .sidebar-change .risk-indicator.low { background: #dcfce7; color: #16a34a; }
 
-        /* Alignment summary */
-        .alignment-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .alignment-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.3rem 0.6rem;
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        .alignment-badge.exact-match { background: #dcfce7; color: #166534; }
-        .alignment-badge.modified { background: #fef3c7; color: #92400e; }
-        .alignment-badge.inserted { background: #dbeafe; color: #1e40af; }
-        .alignment-badge.deleted { background: #fee2e2; color: #991b1b; }
-        .alignment-badge.renumbered { background: #f3e8ff; color: #7c3aed; }
-        .alignment-badge.other { background: #f3f4f6; color: #374151; }
+        /* Legacy panel styles (hidden but kept for compatibility) */
+        .alignment-badges, .summary-grid { display: none; }
 
-        /* Changes list */
+        /* Changes list (now compact) */
         .changes-list {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.25rem;
         }
         .change-item {
-            padding: 0.75rem;
-            background: #f9fafb;
-            border-radius: 6px;
-            border-left: 4px solid #ddd;
+            padding: 0.375rem 0.5rem;
+            background: #fafafa;
+            border-radius: 2px;
+            border-left: 3px solid #d1d5db;
+            font-size: 12px;
         }
         .change-item.risk-critical { border-left-color: #dc2626; }
         .change-item.risk-high { border-left-color: #f97316; }
@@ -324,28 +414,30 @@
         .change-header {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
+            gap: 0.375rem;
+            margin-bottom: 0.125rem;
         }
         .change-type {
             font-weight: 600;
             color: #374151;
+            font-size: 11px;
         }
         .risk-badge {
             display: inline-block;
-            padding: 0.15rem 0.4rem;
-            border-radius: 3px;
-            font-size: 11px;
+            padding: 0.0625rem 0.25rem;
+            border-radius: 2px;
+            font-size: 9px;
             font-weight: 600;
             text-transform: uppercase;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
         }
         .risk-badge.critical { background: #fee2e2; color: #dc2626; }
         .risk-badge.high { background: #ffedd5; color: #ea580c; }
         .risk-badge.medium { background: #fef9c3; color: #ca8a04; }
         .risk-badge.low { background: #dcfce7; color: #16a34a; }
         .change-explanation {
-            font-size: 14px;
-            color: #4b5563;
+            font-size: 11px;
+            color: #6b7280;
         }
 
         /* Warnings panel */
@@ -399,151 +491,157 @@
             display: none !important;
         }
 
-        /* Section Comparison View */
+        /* Section Comparison View - TUI-style compact layout */
         .comparison-view {
-            margin-top: 1.5rem;
+            margin-top: 0;
         }
         .comparison-header {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 0.5rem;
+            gap: 1px;
             position: sticky;
             top: 0;
-            background: #fafafa;
-            padding: 0.5rem 0;
+            background: #e5e7eb;
             z-index: 10;
-            border-bottom: 2px solid #e5e7eb;
+            border-radius: 4px 4px 0 0;
         }
         .comparison-header-cell {
             font-weight: 600;
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #666;
-            padding: 0.5rem;
+            color: #374151;
+            padding: 0.375rem 0.75rem;
+            background: #f3f4f6;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
         }
         .comparison-rows {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0;
+            border: 1px solid #d1d5db;
+            border-top: none;
+            background: #e5e7eb;
         }
 
-        /* Section row - the container for a pair */
+        /* Section row - TUI-style with left border accent */
         .section-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            border-radius: 6px;
-            overflow: hidden;
+            gap: 1px;
+            background: white;
+            border-left: 4px solid #d1d5db;
         }
         .section-row.unified {
             grid-template-columns: 1fr;
         }
 
-        /* Section cell - left or right side */
+        /* Section cell - minimal chrome */
         .section-cell {
             background: white;
-            border: 1px solid #ddd;
-            border-radius: 6px;
             overflow: hidden;
         }
         .section-cell.empty {
-            background: #f9fafb;
-            border: 1px dashed #d1d5db;
-            min-height: 60px;
+            background: repeating-linear-gradient(
+                -45deg,
+                #fafafa,
+                #fafafa 8px,
+                #f3f4f6 8px,
+                #f3f4f6 16px
+            );
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 11px;
+            font-style: italic;
+            position: relative;
+        }
+        .section-cell.empty::after {
+            content: "Not in this version";
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.125rem 0.5rem;
+            border-radius: 3px;
+            font-family: ui-monospace, monospace;
         }
 
-        /* Section header inside cell */
+        /* Section header - compact inline */
         .section-cell-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.5rem 0.75rem;
+            padding: 0.25rem 0.5rem;
             border-bottom: 1px solid #e5e7eb;
-            background: #f9fafb;
+            background: #fafafa;
         }
         .section-title {
             font-weight: 600;
-            font-size: 13px;
-            color: #374151;
+            font-size: 11px;
+            color: #6b7280;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
         }
         .alignment-type-badge {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 600;
             text-transform: uppercase;
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
+            padding: 0.125rem 0.25rem;
+            border-radius: 2px;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
         }
 
-        /* Section content - readable font for contract text */
+        /* Section content - readable text */
         .section-content {
-            padding: 0.75rem;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            font-size: 14px;
-            line-height: 1.7;
-            white-space: pre-wrap;
+            padding: 0.5rem;
+            font-family: ui-monospace, "Cascadia Code", "Fira Code", Menlo, monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: normal;
             word-break: break-word;
             color: #374151;
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
         }
 
-        /* Alignment type styling */
-        .section-row.exact-match .section-cell {
-            border-color: #86efac;
-            background: #f0fdf4;
-        }
-        .section-row.exact-match .section-cell-header {
-            background: #dcfce7;
+        /* Alignment type styling - LEFT BORDER ACCENTS only */
+        .section-row.exact-match {
+            border-left-color: #d1d5db;
         }
         .section-row.exact-match .alignment-type-badge {
-            background: #22c55e;
-            color: white;
+            background: #e5e7eb;
+            color: #6b7280;
         }
 
-        .section-row.modified .section-cell {
-            border-color: #fcd34d;
-        }
-        .section-row.modified .section-cell-header {
-            background: #fef3c7;
+        .section-row.modified {
+            border-left-color: #f59e0b;
         }
         .section-row.modified .alignment-type-badge {
-            background: #eab308;
-            color: white;
+            background: #fef3c7;
+            color: #92400e;
         }
 
-        .section-row.inserted .section-cell:not(.empty) {
-            border-color: #93c5fd;
-        }
-        .section-row.inserted .section-cell-header {
-            background: #dbeafe;
+        .section-row.inserted {
+            border-left-color: #3b82f6;
         }
         .section-row.inserted .alignment-type-badge {
-            background: #3b82f6;
-            color: white;
+            background: #dbeafe;
+            color: #1e40af;
         }
 
-        .section-row.deleted .section-cell:not(.empty) {
-            border-color: #fca5a5;
-        }
-        .section-row.deleted .section-cell-header {
-            background: #fee2e2;
+        .section-row.deleted {
+            border-left-color: #ef4444;
         }
         .section-row.deleted .alignment-type-badge {
-            background: #dc2626;
-            color: white;
+            background: #fee2e2;
+            color: #991b1b;
         }
 
-        .section-row.renumbered .section-cell {
-            border-color: #c4b5fd;
-        }
-        .section-row.renumbered .section-cell-header {
-            background: #f3e8ff;
+        .section-row.renumbered {
+            border-left-color: #8b5cf6;
         }
         .section-row.renumbered .alignment-type-badge {
-            background: #8b5cf6;
-            color: white;
+            background: #f3e8ff;
+            color: #7c3aed;
         }
 
         /* Collapsed state for ExactMatch */
@@ -639,31 +737,32 @@
             border-radius: 2px;
         }
 
-        /* Inline impact analysis panel */
+        /* Inline impact analysis panel - light compact */
         .impact-panel {
             background: #fffbeb;
             border-top: 1px solid #fcd34d;
-            padding: 0.5rem 0.75rem;
-            font-size: 13px;
+            padding: 0.25rem 0.5rem;
+            font-size: 11px;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+            color: #92400e;
         }
         .impact-header {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.375rem;
             font-weight: 600;
-            color: #92400e;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.125rem;
         }
         .impact-explanation {
             color: #78350f;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.125rem;
         }
         .party-impact {
             display: inline-flex;
             align-items: center;
-            gap: 0.25rem;
-            font-size: 12px;
-            margin-right: 0.75rem;
+            gap: 0.125rem;
+            font-size: 10px;
+            margin-right: 0.5rem;
         }
         .party-favorable { color: #16a34a; }
         .party-unfavorable { color: #dc2626; }
@@ -744,40 +843,52 @@
     <div id="error-container"></div>
 
     <div id="results-section" class="results-section hidden">
-        <!-- Summary panels (full width, above the grid) -->
-        <div class="panel" id="summary-panel">
-            <h3>Diff Summary</h3>
-            <div class="summary-grid" id="summary-stats">
-                <!-- Populated by JS -->
+        <!-- Compact status bar -->
+        <div class="status-bar" id="status-bar">
+            <span class="status-label">Status:</span>
+            <span id="status-total" class="status-value">Total: 0</span>
+            <span class="status-divider">|</span>
+            <span id="status-critical" class="stat-critical stat-clickable" onclick="scrollToRisk('critical')">Crit: 0</span>
+            <span class="status-divider">|</span>
+            <span id="status-high" class="stat-high stat-clickable" onclick="scrollToRisk('high')">High: 0</span>
+            <span class="status-divider">|</span>
+            <span id="status-medium" class="stat-medium stat-clickable" onclick="scrollToRisk('medium')">Med: 0</span>
+            <span class="status-divider">|</span>
+            <span id="status-low" class="stat-low stat-clickable" onclick="scrollToRisk('low')">Low: 0</span>
+            <div class="search-container">
+                <input type="text" class="search-input" id="search-input" placeholder="Search..." />
+                <button class="search-nav" id="search-prev" title="Previous (Shift+Enter)">↑</button>
+                <button class="search-nav" id="search-next" title="Next (Enter)">↓</button>
+                <span class="search-count" id="search-count"></span>
             </div>
+            <span class="status-divider">|</span>
+            <span id="status-sections" class="status-value">Sections: 0</span>
         </div>
 
-        <div class="panel" id="alignment-panel">
-            <h3>Section Alignments</h3>
-            <div class="alignment-badges" id="alignment-badges">
-                <!-- Populated by JS -->
-            </div>
+        <!-- Hidden legacy panels (kept for compatibility) -->
+        <div class="panel hidden" id="summary-panel">
+            <div class="summary-grid" id="summary-stats"></div>
         </div>
-
+        <div class="panel hidden" id="alignment-panel">
+            <div class="alignment-badges" id="alignment-badges"></div>
+        </div>
         <div class="panel warnings-panel hidden" id="warnings-panel">
-            <h3>Alignment Warnings</h3>
-            <div id="warnings-list">
-                <!-- Populated by JS -->
-            </div>
+            <h3>⚠ Warnings</h3>
+            <div id="warnings-list"></div>
         </div>
 
         <!-- Grid layout: Sidebar + Main Content -->
         <div class="results-layout">
-            <!-- Section Outline Sidebar -->
+            <!-- Section Outline Sidebar with changes -->
             <aside class="section-sidebar" id="section-sidebar">
-                <div class="sidebar-header">Section Outline</div>
+                <div class="sidebar-header">Outline</div>
                 <div class="sidebar-filters" id="sidebar-filters">
                     <div class="filter-group">
-                        <div class="filter-group-label">Filter by Risk</div>
+                        <div class="filter-group-label">Filter</div>
                         <label class="filter-option">
                             <input type="checkbox" id="filter-critical" checked>
                             <span class="filter-dot critical"></span>
-                            Critical
+                            Crit
                         </label>
                         <label class="filter-option">
                             <input type="checkbox" id="filter-high" checked>
@@ -787,7 +898,7 @@
                         <label class="filter-option">
                             <input type="checkbox" id="filter-medium" checked>
                             <span class="filter-dot medium"></span>
-                            Medium
+                            Med
                         </label>
                         <label class="filter-option">
                             <input type="checkbox" id="filter-low" checked>
@@ -797,31 +908,29 @@
                         <label class="filter-option">
                             <input type="checkbox" id="filter-unchanged" checked>
                             <span class="filter-dot unchanged"></span>
-                            Unchanged
+                            Same
                         </label>
                     </div>
                 </div>
+                <!-- Changes list moved here -->
+                <div id="sidebar-changes" style="border-bottom: 1px solid #e5e7eb;"></div>
                 <div id="sidebar-items">
                     <!-- Populated by JS -->
                 </div>
             </aside>
 
-            <!-- Main Content Area -->
+            <!-- Main Content Area - Section Comparison is the focus -->
             <div class="main-content">
-                <!-- Semantic Changes -->
-                <div class="panel" id="changes-panel">
-                    <h3>Semantic Changes</h3>
-                    <div class="changes-list" id="changes-list">
-                        <!-- Populated by JS -->
-                    </div>
+                <!-- Hidden changes panel (data moved to sidebar) -->
+                <div class="hidden" id="changes-panel">
+                    <div class="changes-list" id="changes-list"></div>
                 </div>
 
-                <!-- Section Comparison View -->
-                <div class="panel" id="comparison-panel">
-                    <h3>Section Comparison</h3>
-                    <div class="view-controls">
-                        <label>
-                            <input type="checkbox" id="hide-unchanged-toggle">
+                <!-- Section Comparison View - THE MAIN WORKSPACE -->
+                <div id="comparison-panel" style="background: white; border: 1px solid #d1d5db; border-radius: 2px;">
+                    <div class="view-controls" style="padding: 0.25rem 0.5rem; background: #f5f5f5; border-bottom: 1px solid #d1d5db; display: flex; gap: 0.5rem; font-size: 11px;">
+                        <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer;">
+                            <input type="checkbox" id="hide-unchanged-toggle" style="margin: 0;">
                             Hide Unchanged Sections
                         </label>
                         <button class="secondary" id="expand-all-btn">Expand All Unchanged</button>
@@ -987,55 +1096,56 @@ the Effective Date.`;
             const diff = result.diff;
             const summary = diff.summary;
 
-            // Summary stats (clickable to scroll to sections)
-            const summaryStats = document.getElementById('summary-stats');
-            summaryStats.innerHTML = `
-                <div class="summary-stat">
-                    <div class="value">${summary.total_changes}</div>
-                    <div class="label">Total Changes</div>
-                </div>
-                <div class="summary-stat clickable" onclick="scrollToRisk('critical')" title="Click to scroll to critical changes">
-                    <div class="value" style="color: #dc2626;">${summary.critical_changes}</div>
-                    <div class="label">Critical</div>
-                </div>
-                <div class="summary-stat clickable" onclick="scrollToRisk('high')" title="Click to scroll to high-risk changes">
-                    <div class="value" style="color: #f97316;">${summary.high_risk_changes}</div>
-                    <div class="label">High</div>
-                </div>
-                <div class="summary-stat clickable" onclick="scrollToRisk('medium')" title="Click to scroll to medium-risk changes">
-                    <div class="value" style="color: #eab308;">${summary.medium_risk_changes}</div>
-                    <div class="label">Medium</div>
-                </div>
-                <div class="summary-stat clickable" onclick="scrollToRisk('low')" title="Click to scroll to low-risk changes">
-                    <div class="value" style="color: #22c55e;">${summary.low_risk_changes}</div>
-                    <div class="label">Low</div>
-                </div>
-            `;
-
-            // Alignment badges - recalculate with corrected labels
+            // Calculate the CORRECT total changes count:
+            // Total = Modified + Inserted + Deleted sections (NOT semantic changes count)
             const correctedCounts = recalculateAlignmentCounts(result.aligned_pairs || []);
-            const alignmentBadges = document.getElementById('alignment-badges');
-            const badges = [];
-            if (correctedCounts.unchanged > 0) badges.push(`<span class="alignment-badge exact-match">Unchanged: ${correctedCounts.unchanged}</span>`);
-            if (correctedCounts.modified > 0) badges.push(`<span class="alignment-badge modified">Modified: ${correctedCounts.modified}</span>`);
-            if (correctedCounts.inserted > 0) badges.push(`<span class="alignment-badge inserted">Added: ${correctedCounts.inserted}</span>`);
-            if (correctedCounts.deleted > 0) badges.push(`<span class="alignment-badge deleted">Removed: ${correctedCounts.deleted}</span>`);
-            if (correctedCounts.renumbered > 0) badges.push(`<span class="alignment-badge renumbered">Renumbered: ${correctedCounts.renumbered}</span>`);
-            alignmentBadges.innerHTML = badges.length > 0 ? badges.join('') : '<span class="empty-state">No section alignments</span>';
+            const totalChangedSections = correctedCounts.modified + correctedCounts.inserted + correctedCounts.deleted + correctedCounts.renumbered;
+            const totalSections = (result.aligned_pairs || []).length;
 
-            // Warnings panel
+            // Update status bar with correct counts
+            document.getElementById('status-total').textContent = `Total: ${totalChangedSections}`;
+            document.getElementById('status-critical').textContent = `Crit: ${summary.critical_changes}`;
+            document.getElementById('status-high').textContent = `High: ${summary.high_risk_changes}`;
+            document.getElementById('status-medium').textContent = `Med: ${summary.medium_risk_changes}`;
+            document.getElementById('status-low').textContent = `Low: ${summary.low_risk_changes}`;
+            document.getElementById('status-sections').textContent = `Sections: ${totalSections}`;
+
+            // Warnings panel (compact)
             const warningsPanel = document.getElementById('warnings-panel');
             const warningsList = document.getElementById('warnings-list');
             if (diff.warnings && diff.warnings.length > 0) {
                 warningsPanel.classList.remove('hidden');
                 warningsList.innerHTML = diff.warnings.map(w =>
-                    `<div class="warning-item">${w}</div>`
+                    `<div class="warning-item" style="font-size: 11px; padding: 0.25rem 0.5rem;">${w}</div>`
                 ).join('');
             } else {
                 warningsPanel.classList.add('hidden');
             }
 
-            // Changes list
+            // Populate sidebar with semantic changes
+            const sidebarChanges = document.getElementById('sidebar-changes');
+            if (diff.changes && diff.changes.length > 0) {
+                sidebarChanges.innerHTML = `
+                    <div class="sidebar-header" style="border-top: 1px solid #e5e7eb;">Changes</div>
+                    ${diff.changes.map((change, i) => {
+                        const riskClass = `risk-${change.risk_level.toLowerCase()}`;
+                        const changeTypeName = formatChangeType(change.change_type);
+                        const icon = change.change_type === 'SectionAdded' ? '(+)' :
+                                     change.change_type === 'SectionRemoved' ? '(-)' : '(Δ)';
+                        return `
+                            <div class="sidebar-change ${riskClass}" onclick="scrollToChangeInSection(${i})" title="${escapeHtml(change.explanation)}">
+                                <span class="change-type-icon">${icon}</span>
+                                <span class="change-desc">${changeTypeName}</span>
+                                <span class="risk-indicator ${change.risk_level.toLowerCase()}">${change.risk_level.charAt(0)}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                `;
+            } else {
+                sidebarChanges.innerHTML = '';
+            }
+
+            // Legacy changes list (hidden but populated for compatibility)
             const changesList = document.getElementById('changes-list');
             if (diff.changes && diff.changes.length > 0) {
                 changesList.innerHTML = diff.changes.map(change => {
@@ -1052,7 +1162,7 @@ the Effective Date.`;
                     `;
                 }).join('');
             } else {
-                changesList.innerHTML = '<div class="empty-state">No semantic changes detected</div>';
+                changesList.innerHTML = '';
             }
 
             // Section comparison view
@@ -1062,7 +1172,8 @@ the Effective Date.`;
         // Convert alignment type to CSS class
         function alignmentTypeToClass(type) {
             const typeStr = typeof type === 'string' ? type : Object.keys(type)[0];
-            return typeStr.toLowerCase().replace(/([A-Z])/g, '-$1').replace(/^-/, '');
+            // Insert hyphen before capitals, then lowercase (order matters!)
+            return typeStr.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
         }
 
         // Get display label for alignment type
@@ -1086,8 +1197,213 @@ the Effective Date.`;
             return div.innerHTML;
         }
 
-        // Compute word-level diff and render as HTML with highlighting
-        function renderWordDiff(original, revised) {
+        // Tokenize text into words and whitespace, preserving boundaries
+        // This mirrors how layered-nlp tokenizes text
+        function tokenize(text) {
+            const tokens = [];
+            // Match: words, numbers, punctuation, whitespace sequences
+            const regex = /(\s+|[a-zA-Z]+|[0-9]+(?:\.[0-9]+)?|[^\s\w])/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                tokens.push(match[0]);
+            }
+            return tokens;
+        }
+
+        // Compute token-level diff using diff_match_patch with word-mode technique
+        // This produces diffs at the word/token level, not character level
+        function computeTokenDiff(original, revised) {
+            const origTokens = tokenize(original);
+            const revTokens = tokenize(revised);
+
+            // Map unique tokens to unique characters for diffing
+            const tokenToChar = new Map();
+            const charToToken = new Map();
+            let nextChar = 0x100; // Start above ASCII
+
+            function getCharForToken(token) {
+                if (!tokenToChar.has(token)) {
+                    const char = String.fromCharCode(nextChar++);
+                    tokenToChar.set(token, char);
+                    charToToken.set(char, token);
+                }
+                return tokenToChar.get(token);
+            }
+
+            // Convert token arrays to character strings
+            const origChars = origTokens.map(getCharForToken).join('');
+            const revChars = revTokens.map(getCharForToken).join('');
+
+            // Diff at character level (each char = one token)
+            const diffs = dmp.diff_main(origChars, revChars);
+            // Note: Don't call diff_cleanupSemantic - it would merge tokens incorrectly
+
+            // Map back to tokens
+            const tokenDiffs = [];
+            for (const [op, chars] of diffs) {
+                const tokens = [...chars].map(c => charToToken.get(c));
+                tokenDiffs.push([op, tokens.join('')]);
+            }
+
+            // Post-process: Factor out common prefixes/suffixes from adjacent del/add pairs
+            // This handles cases like: DEL "information" + ADD "technical information"
+            // → ADD "technical " + EQUAL "information"
+            return optimizeDiffPairs(tokenDiffs);
+        }
+
+        // Optimize diff output to factor out common content from adjacent del/add pairs
+        function optimizeDiffPairs(diffs) {
+            const result = [];
+            let i = 0;
+
+            while (i < diffs.length) {
+                // Look for DEL followed by ADD (or ADD followed by DEL)
+                if (i + 1 < diffs.length) {
+                    const [op1, text1] = diffs[i];
+                    const [op2, text2] = diffs[i + 1];
+
+                    // Case: DEL then ADD
+                    if (op1 === -1 && op2 === 1) {
+                        const optimized = factorCommonContent(text1, text2);
+                        result.push(...optimized);
+                        i += 2;
+                        continue;
+                    }
+                    // Case: ADD then DEL
+                    if (op1 === 1 && op2 === -1) {
+                        const optimized = factorCommonContent(text2, text1, true);
+                        result.push(...optimized);
+                        i += 2;
+                        continue;
+                    }
+                }
+                result.push(diffs[i]);
+                i++;
+            }
+
+            // Merge adjacent same-op entries
+            return mergeAdjacentDiffs(result);
+        }
+
+        // Factor out common prefix/suffix from a deletion and addition
+        // Handles cases like: DEL "information" + ADD "technical information"
+        // → ADD "technical " + EQUAL "information"
+        function factorCommonContent(deleted, added, swapped = false) {
+            // Get non-whitespace tokens only for comparison
+            const getWords = (text) => text.split(/\s+/).filter(w => w.length > 0);
+            const delWords = getWords(deleted);
+            const addWords = getWords(added);
+
+            // Find common suffix words
+            let suffixCount = 0;
+            while (suffixCount < delWords.length && suffixCount < addWords.length) {
+                const delWord = delWords[delWords.length - 1 - suffixCount];
+                const addWord = addWords[addWords.length - 1 - suffixCount];
+                if (delWord === addWord) {
+                    suffixCount++;
+                } else {
+                    break;
+                }
+            }
+
+            // Find common prefix words
+            let prefixCount = 0;
+            const delRemaining = delWords.length - suffixCount;
+            const addRemaining = addWords.length - suffixCount;
+            while (prefixCount < delRemaining && prefixCount < addRemaining) {
+                if (delWords[prefixCount] === addWords[prefixCount]) {
+                    prefixCount++;
+                } else {
+                    break;
+                }
+            }
+
+            // If we found common content, reconstruct
+            if (prefixCount > 0 || suffixCount > 0) {
+                const result = [];
+
+                // Common prefix
+                if (prefixCount > 0) {
+                    result.push([0, addWords.slice(0, prefixCount).join(' ') + ' ']);
+                }
+
+                // Changed middle
+                const delMiddleWords = delWords.slice(prefixCount, delWords.length - suffixCount);
+                const addMiddleWords = addWords.slice(prefixCount, addWords.length - suffixCount);
+
+                if (swapped) {
+                    if (addMiddleWords.length > 0) {
+                        result.push([1, addMiddleWords.join(' ') + (suffixCount > 0 ? ' ' : '')]);
+                    }
+                    if (delMiddleWords.length > 0) {
+                        result.push([-1, delMiddleWords.join(' ') + (suffixCount > 0 ? ' ' : '')]);
+                    }
+                } else {
+                    if (delMiddleWords.length > 0) {
+                        result.push([-1, delMiddleWords.join(' ') + (suffixCount > 0 ? ' ' : '')]);
+                    }
+                    if (addMiddleWords.length > 0) {
+                        result.push([1, addMiddleWords.join(' ') + (suffixCount > 0 ? ' ' : '')]);
+                    }
+                }
+
+                // Common suffix
+                if (suffixCount > 0) {
+                    result.push([0, addWords.slice(addWords.length - suffixCount).join(' ')]);
+                }
+
+                return result.filter(([op, text]) => text.trim().length > 0);
+            }
+
+            // No common content found, return as-is
+            if (swapped) {
+                return [[1, added], [-1, deleted]].filter(([op, text]) => text.length > 0);
+            }
+            return [[-1, deleted], [1, added]].filter(([op, text]) => text.length > 0);
+        }
+
+        // Merge adjacent diff entries with the same operation
+        function mergeAdjacentDiffs(diffs) {
+            const result = [];
+            for (const [op, text] of diffs) {
+                if (result.length > 0 && result[result.length - 1][0] === op) {
+                    result[result.length - 1][1] += text;
+                } else {
+                    result.push([op, text]);
+                }
+            }
+            return result;
+        }
+
+        // Render token diffs provided by Rust (preferred when available)
+        // Format: [{text, status: "Unchanged"|"Added"|"Removed", tag, ...}]
+        function renderWordDiffFromRust(tokenDiffs) {
+            if (!tokenDiffs || tokenDiffs.length === 0) return '';
+
+            let html = '';
+            for (const token of tokenDiffs) {
+                const escaped = escapeHtml(token.text);
+                if (token.status === 'Removed') {
+                    html += `<span class="diff-del">${escaped}</span>`;
+                } else if (token.status === 'Added') {
+                    html += `<span class="diff-add">${escaped}</span>`;
+                } else {
+                    // Unchanged
+                    html += escaped;
+                }
+            }
+            return html;
+        }
+
+        // Compute token-level diff and render as HTML with highlighting
+        // If rustTokenDiffs is provided, uses those instead of computing JS diff
+        function renderWordDiff(original, revised, rustTokenDiffs = null) {
+            // Prefer Rust-provided diffs when available
+            if (rustTokenDiffs && rustTokenDiffs.length > 0) {
+                return renderWordDiffFromRust(rustTokenDiffs);
+            }
+
+            // Fallback to JavaScript diff computation
             if (!original && !revised) return '';
             if (!original) {
                 // All added
@@ -1098,9 +1414,14 @@ the Effective Date.`;
                 return `<span class="diff-del">${escapeHtml(original)}</span>`;
             }
 
-            // Compute diff
-            const diffs = dmp.diff_main(original, revised);
-            dmp.diff_cleanupSemantic(diffs);
+            // Normalize whitespace to focus on word changes, not formatting
+            // This prevents line break position from affecting the diff
+            const normalizeWhitespace = (text) => text.replace(/\s+/g, ' ').trim();
+            const normOrig = normalizeWhitespace(original);
+            const normRev = normalizeWhitespace(revised);
+
+            // Compute token-level diff on normalized text
+            const diffs = computeTokenDiff(normOrig, normRev);
 
             // Render with highlighting
             let html = '';
@@ -1582,15 +1903,15 @@ the Effective Date.`;
                     const origContent = pair.original_texts.join('\n\n');
                     const revContent = pair.revised_texts.join('\n\n');
 
-                    // Compute unified diff view for the revised side
-                    const diffHtml = renderWordDiff(origContent, revContent);
+                    // Prefer Rust-provided token diffs when available
+                    const diffHtml = renderWordDiff(origContent, revContent, pair.token_diffs);
 
+                    // TUI style: Compact header row, then content
                     html += `
                         <div class="section-row ${typeClass}" id="${rowId}" ${riskAttr}>
                             <div class="section-cell">
                                 <div class="section-cell-header">
                                     <span class="section-title">${escapeHtml(origTitle)}</span>
-                                    <span class="alignment-type-badge" style="opacity: 0.5">Original</span>
                                 </div>
                                 <div class="section-content">${escapeHtml(origContent)}</div>
                             </div>
@@ -1673,6 +1994,122 @@ the Effective Date.`;
                 target.classList.add('highlight');
             }
         }
+
+        // Scroll to section containing a specific change (exposed globally for onclick)
+        window.scrollToChangeInSection = function(changeIndex) {
+            if (!currentResult || !currentResult.diff || !currentResult.diff.changes) return;
+            const change = currentResult.diff.changes[changeIndex];
+            if (!change) return;
+
+            // Find the section that contains this change based on explanation text
+            const sections = document.querySelectorAll('.section-row');
+            for (const section of sections) {
+                const risk = section.dataset.risk;
+                if (risk === change.risk_level.toLowerCase()) {
+                    // Remove previous highlights
+                    document.querySelectorAll('.section-row.highlight').forEach(el => {
+                        el.classList.remove('highlight');
+                    });
+                    section.classList.remove('collapsed');
+                    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    section.classList.add('highlight');
+
+                    // Also highlight the corresponding outline item
+                    const sectionIndex = section.id.replace('section-row-', '');
+                    sidebarItems.querySelectorAll('.sidebar-item').forEach(item => {
+                        if (item.dataset.index === sectionIndex) {
+                            item.classList.add('active');
+                            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+                    return;
+                }
+            }
+        }
+
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        const searchPrev = document.getElementById('search-prev');
+        const searchNext = document.getElementById('search-next');
+        const searchCount = document.getElementById('search-count');
+        let searchMatches = [];
+        let currentSearchIndex = -1;
+
+        function clearSearchHighlights() {
+            document.querySelectorAll('.search-highlight').forEach(el => {
+                el.classList.remove('search-highlight', 'search-current');
+            });
+            searchMatches = [];
+            currentSearchIndex = -1;
+            searchCount.textContent = '';
+        }
+
+        function performSearch(query) {
+            clearSearchHighlights();
+            if (!query || query.length < 2) return;
+
+            const lowerQuery = query.toLowerCase();
+            const sections = document.querySelectorAll('.section-content');
+
+            sections.forEach(section => {
+                const text = section.textContent.toLowerCase();
+                if (text.includes(lowerQuery)) {
+                    // Mark the section row as a match
+                    const row = section.closest('.section-row');
+                    if (row && !row.classList.contains('hidden-unchanged')) {
+                        row.classList.add('search-highlight');
+                        searchMatches.push(row);
+                    }
+                }
+            });
+
+            if (searchMatches.length > 0) {
+                currentSearchIndex = 0;
+                highlightCurrentMatch();
+                searchCount.textContent = `1/${searchMatches.length}`;
+            } else {
+                searchCount.textContent = '0/0';
+            }
+        }
+
+        function highlightCurrentMatch() {
+            searchMatches.forEach((el, i) => {
+                el.classList.toggle('search-current', i === currentSearchIndex);
+            });
+            if (searchMatches[currentSearchIndex]) {
+                const match = searchMatches[currentSearchIndex];
+                match.classList.remove('collapsed');
+                match.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Update sidebar
+                const index = match.id.replace('section-row-', '');
+                sidebarItems.querySelectorAll('.sidebar-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.index === index);
+                });
+            }
+        }
+
+        function searchNavigate(direction) {
+            if (searchMatches.length === 0) return;
+            currentSearchIndex = (currentSearchIndex + direction + searchMatches.length) % searchMatches.length;
+            highlightCurrentMatch();
+            searchCount.textContent = `${currentSearchIndex + 1}/${searchMatches.length}`;
+        }
+
+        searchInput.addEventListener('input', (e) => performSearch(e.target.value));
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchNavigate(e.shiftKey ? -1 : 1);
+            } else if (e.key === 'Escape') {
+                searchInput.value = '';
+                clearSearchHighlights();
+            }
+        });
+        searchPrev.addEventListener('click', () => searchNavigate(-1));
+        searchNext.addEventListener('click', () => searchNavigate(1));
 
         // Event listeners
         originalInput.addEventListener('input', () => updateCounter(originalInput, originalCounter));

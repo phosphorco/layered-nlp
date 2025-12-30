@@ -224,6 +224,40 @@ for change in &diff.changes {
 - `RiskLevel` - Classifies changes as Critical/High/Medium/Low
 - `PartyImpact` - Tracks how changes affect each party (Favorable/Unfavorable/Neutral)
 
+### Token-Level Diff
+
+For word-level change highlighting within sections, use `TokenAligner`:
+
+```rust
+use layered_contracts::{TokenAligner, TokenAlignmentConfig};
+
+let original = "The Company shall deliver goods within thirty (30) days.";
+let revised = "The Company may deliver goods within sixty (60) days.";
+
+let orig_tokens = TokenAligner::extract_tokens_from_text(original);
+let rev_tokens = TokenAligner::extract_tokens_from_text(revised);
+
+let alignment = TokenAligner::align(&orig_tokens, &rev_tokens, &TokenAlignmentConfig::default());
+
+// Query the alignment
+println!("Similarity: {:.2}", alignment.similarity());
+
+// Iterate over changes (additions, removals)
+for change in alignment.changes() {
+    if let Some(left) = &change.left {
+        println!("Removed: {}", left.text);
+    }
+    if let Some(right) = &change.right {
+        println!("Added: {}", right.text);
+    }
+}
+```
+
+**Key components:**
+- `TokenAligner::extract_tokens_from_text()` - Tokenizes text into comparable units
+- `TokenAlignment` - Queryable structure with `added()`, `removed()`, `changes()`, `similarity()` methods
+- `WhitespaceMode` - Controls whitespace handling: `Normalize` (default), `Preserve`, `Ignore`
+
 ### WASM Demo
 
 Build and serve the browser-based contract analyzer:

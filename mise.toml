@@ -18,3 +18,28 @@ description = "Build and serve WASM demos at http://localhost:8080"
 depends = ["wasm-build"]
 dir = "web"
 run = "echo 'Open http://localhost:8080' && python3 -m http.server 8080"
+
+[tasks.pipeline-dot]
+description = "Generate DOT visualization of the resolver pipeline"
+run = """
+cargo run --example pipeline_dot -p layered-contracts > pipeline.dot
+echo 'Generated pipeline.dot'
+echo 'To convert to PNG: dot -Tpng pipeline.dot -o pipeline.png'
+echo 'To convert to SVG: dot -Tsvg pipeline.dot -o pipeline.svg'
+"""
+
+[tasks.pipeline-png]
+description = "Generate PNG visualization of the resolver pipeline (requires graphviz)"
+depends = ["pipeline-dot"]
+run = """
+dot -Tpng pipeline.dot -o pipeline.png
+echo 'Generated pipeline.png'
+"""
+
+[tasks.pipeline-svg]
+description = "Generate SVG visualization of the resolver pipeline (requires graphviz)"
+depends = ["pipeline-dot"]
+run = """
+dot -Tsvg pipeline.dot -o pipeline.svg
+echo 'Generated pipeline.svg'
+"""

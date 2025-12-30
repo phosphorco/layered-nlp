@@ -7,3 +7,8 @@ Cargo.lock
 
 # WASM build output
 web/pkg/
+
+# Generated pipeline visualizations
+pipeline.dot
+pipeline.png
+pipeline.svg
