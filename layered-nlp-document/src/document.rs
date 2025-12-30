@@ -70,6 +70,36 @@ impl DocSpan {
     pub fn line_count(&self) -> usize {
         self.end.line - self.start.line + 1
     }
+
+    /// Check if this span contains the given position.
+    pub fn contains(&self, pos: &DocPosition) -> bool {
+        // A position is contained if:
+        // 1. It's on a line between start.line and end.line (inclusive)
+        // 2. If on start line, token >= start.token
+        // 3. If on end line, token <= end.token
+        if pos.line < self.start.line || pos.line > self.end.line {
+            return false;
+        }
+        if pos.line == self.start.line && pos.token < self.start.token {
+            return false;
+        }
+        if pos.line == self.end.line && pos.token > self.end.token {
+            return false;
+        }
+        true
+    }
+
+    /// Check if this span overlaps with another span.
+    pub fn overlaps(&self, other: &DocSpan) -> bool {
+        // Two spans overlap if neither ends before the other starts
+        // No overlap if: self ends before other starts OR other ends before self starts
+        let self_ends_before = self.end.line < other.start.line
+            || (self.end.line == other.start.line && self.end.token < other.start.token);
+        let other_ends_before = other.end.line < self.start.line
+            || (other.end.line == self.start.line && other.end.token < self.start.token);
+
+        !self_ends_before && !other_ends_before
+    }
 }
 
 /// A document composed of multiple lines with cross-line structure.
@@ -329,5 +359,45 @@ mod tests {
         result.add_error(ProcessError::Other("test error".into()));
         assert!(result.has_errors());
         assert_eq!(result.errors.len(), 1);
+    }
+
+    #[test]
+    fn test_docspan_contains() {
+        let span = DocSpan::new(
+            DocPosition { line: 1, token: 5 },
+            DocPosition { line: 3, token: 10 },
+        );
+
+        // Inside
+        assert!(span.contains(&DocPosition { line: 2, token: 0 }));
+        assert!(span.contains(&DocPosition { line: 1, token: 5 })); // start boundary
+        assert!(span.contains(&DocPosition { line: 3, token: 10 })); // end boundary
+
+        // Outside
+        assert!(!span.contains(&DocPosition { line: 0, token: 5 })); // before
+        assert!(!span.contains(&DocPosition { line: 4, token: 0 })); // after
+        assert!(!span.contains(&DocPosition { line: 1, token: 4 })); // same line, before start token
+        assert!(!span.contains(&DocPosition { line: 3, token: 11 })); // same line, after end token
+    }
+
+    #[test]
+    fn test_docspan_overlaps() {
+        let span1 = DocSpan::new(
+            DocPosition { line: 1, token: 0 },
+            DocPosition { line: 1, token: 10 },
+        );
+        let span2 = DocSpan::new(
+            DocPosition { line: 1, token: 5 },
+            DocPosition { line: 1, token: 15 },
+        );
+        let span3 = DocSpan::new(
+            DocPosition { line: 1, token: 11 },
+            DocPosition { line: 1, token: 20 },
+        );
+
+        assert!(span1.overlaps(&span2)); // overlap
+        assert!(span2.overlaps(&span1)); // symmetric
+        assert!(!span1.overlaps(&span3)); // no overlap (adjacent but not overlapping)
+        assert!(span2.overlaps(&span3)); // overlap
     }
 }

@@ -41,7 +41,7 @@ These foundational features are **complete and verified**. See FR-000-index.md f
 
 | Milestone | FR | Plan Doc | Code Modules | Status | Notes |
 |-----------|-----|----------|--------------|--------|-------|
-| **M0** | Foundation | [M0-foundation-types.md](M0-foundation-types.md) | `span_link.rs`, `scope_operator.rs`, `ambiguity.rs` | 📋 Planned | NEW: Unifying abstractions |
+| **M0** | Foundation | [M0-foundation-types.md](M0-foundation-types.md) | `span_link.rs`, `scope_operator.rs`, `scope_index.rs`, `ambiguity.rs` | ✓ Verified | 38 tests (2024-12-30) |
 | **M1** | FR-006 | [M1-baseline-conflict-detector.md](completed/M1-baseline-conflict-detector.md) | `conflict_detector.rs` | ✓ Verified | 54 tests |
 | **M2** | FR-005 | PHASE4-REVISED-ROADMAP §M2 | `clause_boundary_resolver.rs` | 📋 Planned | Uses SpanLink<ClauseRole> |
 | **M3** | FR-005 | [M3-terms-of-art-resolver.md](completed/M3-terms-of-art-resolver.md) | `terms_of_art.rs` | ✓ Verified | 36 tests |

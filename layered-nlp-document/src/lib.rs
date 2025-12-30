@@ -8,6 +8,7 @@
 //! - [`LayeredDocument`] - Multi-line document abstraction
 //! - [`DocPosition`] / [`DocSpan`] - Position within documents
 //! - [`Scored<T>`] - Values with confidence scores
+//! - [`Ambiguous<T>`] - N-best alternatives with ambiguity detection
 //!
 //! ## Example
 //!
@@ -23,6 +24,10 @@
 
 mod document;
 mod scored;
+mod ambiguity;
+mod span_link;
+mod scope_operator;
+mod scope_index;
 
 // Document types
 pub use document::{
@@ -38,3 +43,36 @@ pub use scored::{
     Scored,
     ScoreSource,
 };
+
+// Ambiguity infrastructure
+pub use ambiguity::{
+    AmbiguityFlag,
+    AmbiguityConfig,
+    Ambiguous,
+};
+
+// Span link infrastructure
+pub use span_link::{
+    SpanLink,
+    DocSpanLink,
+    ClauseRole,
+    AttachmentRole,
+    SemanticRole,
+    ConflictRole,
+};
+
+// Scope operator infrastructure
+pub use scope_operator::{
+    ScopeDimension,
+    ScopeDomain,
+    ScopeOperator,
+    NegationOp,
+    NegationKind,
+    QuantifierOp,
+    QuantifierKind,
+    PrecedenceOp,
+    DeicticFrame,
+};
+
+// Scope index
+pub use scope_index::ScopeIndex;

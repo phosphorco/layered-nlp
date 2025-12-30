@@ -73,8 +73,19 @@ pub mod snapshot;
 
 // Re-export document infrastructure from layered-nlp-document
 pub use layered_nlp_document::{
+    // Core document types
     DocPosition, DocSpan, LayeredDocument, ProcessError, ProcessResult,
+    // Scoring infrastructure
     Scored, ScoreSource,
+    // Ambiguity infrastructure (M0 Gate 4)
+    AmbiguityFlag, AmbiguityConfig, Ambiguous,
+    // Span link infrastructure (M0 Gate 1)
+    SpanLink, DocSpanLink, ClauseRole, AttachmentRole, SemanticRole, ConflictRole,
+    // Scope operator infrastructure (M0 Gate 2)
+    ScopeDimension, ScopeDomain, ScopeOperator,
+    NegationOp, NegationKind, QuantifierOp, QuantifierKind, PrecedenceOp, DeicticFrame,
+    // Scope index (M0 Gate 3)
+    ScopeIndex,
 };
 
 /// Backward-compatible type alias for ContractDocument.
