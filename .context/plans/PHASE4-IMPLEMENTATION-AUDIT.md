@@ -67,9 +67,9 @@ These foundational features are **complete and verified**. See FR-000-index.md f
 
 ---
 
-## Recovery Notes (2024-12-29)
+## Recovery Notes (2024-12-29) — RESOLVED
 
-### What Was Lost
+### Initial Loss (2024-12-29)
 
 The M1 ConflictDetector implementation was developed in a Claude Code session (2024-12-29) through Gates 0-3, but:
 - Code was **never committed to git**
@@ -82,12 +82,19 @@ The M1 ConflictDetector implementation was developed in a Claude Code session (2
 - `token_diff.rs` - **committed**
 - All 268 existing tests pass
 
-### Recovery Strategy
+### Recovery Outcome — RESOLVED
 
-1. Reconstruct M1 plan from session transcript (session contains gate definitions, examples, code snippets)
-2. Treat M1 as fresh implementation using the reconstructed plan
-3. Implement Gates 0-4 with proper git commits at each gate
-4. Use learnings from session: need `Pipeline::standard()` for resolver chain, defined term format for obligations
+**Status:** M1 implementation has been successfully recovered and completed.
+
+- `conflict_detector.rs` exists with 54 passing tests
+- All gates (0-4) completed and verified
+- Code is now committed to git
+- See [M1-baseline-conflict-detector.md](completed/M1-baseline-conflict-detector.md) for implementation details
+
+**Recovery approach used:**
+1. Reconstructed M1 plan from session transcript (gate definitions, examples, code snippets)
+2. Re-implemented Gates 0-4 with proper git commits at each gate
+3. Applied learnings from original session: `Pipeline::standard()` for resolver chain, defined term format for obligations
 
 ---
 
