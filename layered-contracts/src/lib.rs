@@ -46,6 +46,7 @@
 
 mod accountability_analytics;
 mod accountability_graph;
+mod conflict_detector;
 mod contract_clause;
 mod clause_aggregate;
 mod contract_keyword;
@@ -64,8 +65,12 @@ mod section_reference_linker;
 mod semantic_diff;
 mod temporal;
 mod term_reference;
+mod token_diff;
 mod utils;
 mod verification;
+
+// Pipeline presets for running resolvers in dependency order
+pub mod pipeline;
 
 pub use accountability_analytics::{
     AccountabilityNodePayload, AccountabilityPayload, BeneficiaryDescriptor, BeneficiaryGroup,
@@ -77,6 +82,10 @@ pub use accountability_graph::{
 };
 pub use clause_aggregate::{
     ClauseAggregate, ClauseAggregateEntry, ClauseAggregationResolver,
+};
+pub use conflict_detector::{
+    Conflict, ConflictDetector, ConflictType, NormalizedObligation, ObligationNormalizer,
+    ObligationTopic, TopicClassifier, group_by_topic,
 };
 pub use contract_clause::{
     ClauseCondition, ClauseDuty, ClauseParty, ContractClause, ContractClauseResolver,
@@ -110,8 +119,8 @@ pub use section_reference_linker::{
     LinkedReference, LinkedReferences, ReferenceResolution, SectionReferenceLinker,
 };
 pub use temporal::{
-    DeadlineType, DurationUnit, TemporalExpression, TemporalExpressionResolver, TemporalType,
-    TimeRelation,
+    DeadlineType, DurationUnit, NormalizedTiming, TemporalConverter, TemporalExpression,
+    TemporalExpressionResolver, TemporalType, TimeRelation, TimeUnit,
 };
 pub use semantic_diff::{
     AffectedReference, ChangeSignal, ConditionChange, DiffConfig, DiffHint, DiffHintType,
@@ -120,6 +129,12 @@ pub use semantic_diff::{
     SemanticChangeType, SemanticDiffEngine, SemanticDiffResult, TemporalChange, TemporalSnapshot,
     TermChange, TermChangeClass,
 };
+pub use token_diff::{
+    AlignedTokenPair, TokenAlignment, TokenAlignmentConfig, TokenAligner, TokenRef,
+    TokenRelation, WhitespaceMode,
+};
+// Note: token_diff::AlignmentStats is accessible but not re-exported to avoid
+// name collision with document_aligner::AlignmentStats
 
 // Deictic mapping resolver
 pub use deictic::DeicticResolver;

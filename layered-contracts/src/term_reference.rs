@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver, TextTag};
 
 use crate::defined_term::{DefinedTerm, DefinitionType};
-use crate::scored::Scored;
+use crate::Scored;
 
 /// A reference to a previously defined term.
 #[derive(Debug, Clone, PartialEq, Eq)]

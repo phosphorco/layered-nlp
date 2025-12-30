@@ -60,6 +60,21 @@ impl LLToken {
     pub fn get_token(&self) -> &LToken {
         &self.token
     }
+
+    /// Get the byte position where this token starts (inclusive).
+    pub fn pos_starts_at(&self) -> usize {
+        self.pos_starts_at
+    }
+
+    /// Get the byte position where this token ends (exclusive).
+    pub fn pos_ends_at(&self) -> usize {
+        self.pos_ends_at
+    }
+
+    /// Get the token's index in the line's token sequence.
+    pub fn token_idx(&self) -> usize {
+        self.token_idx
+    }
 }
 
 /// (starts at, ends at) token indexes

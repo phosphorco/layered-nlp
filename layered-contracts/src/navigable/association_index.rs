@@ -24,7 +24,7 @@
 use std::collections::HashMap;
 
 use crate::document::ContractDocument;
-use crate::semantic_span::SpanId;
+use crate::SpanId;
 
 /// An entry in the association index representing one edge.
 #[derive(Debug, Clone)]
@@ -130,7 +130,7 @@ impl AssociationIndex {
 mod tests {
     use super::*;
     use crate::document::DocSpan;
-    use crate::semantic_span::{DocAssociatedSpan, SemanticSpan};
+    use crate::{DocAssociatedSpan, SemanticSpan};
     use layered_nlp::Association;
 
     #[derive(Debug, Clone, Default)]

@@ -115,6 +115,172 @@ pub enum TimeRelation {
     AtTimeOf,
 }
 
+// ============================================================================
+// Normalized Timing Types (for conflict detection)
+// ============================================================================
+
+/// Normalized time unit for conflict comparison.
+///
+/// This mirrors `DurationUnit` but is separate to allow future divergence
+/// (e.g., if conflict detection needs different granularity).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TimeUnit {
+    Days,
+    Weeks,
+    Months,
+    Years,
+    BusinessDays,
+}
+
+impl From<DurationUnit> for TimeUnit {
+    fn from(unit: DurationUnit) -> Self {
+        match unit {
+            DurationUnit::Days => TimeUnit::Days,
+            DurationUnit::Weeks => TimeUnit::Weeks,
+            DurationUnit::Months => TimeUnit::Months,
+            DurationUnit::Years => TimeUnit::Years,
+            DurationUnit::BusinessDays => TimeUnit::BusinessDays,
+        }
+    }
+}
+
+/// A normalized timing value for conflict comparison.
+///
+/// This struct represents a time duration in a form suitable for comparing
+/// potentially conflicting obligations. The `to_approx_days()` method provides
+/// a common unit for comparison.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NormalizedTiming {
+    /// The numeric value (e.g., 30 for "30 days")
+    pub value: f64,
+    /// The original unit (for display and context)
+    pub unit: TimeUnit,
+    /// Whether this timing is approximate (e.g., from vague expressions)
+    pub is_approximate: bool,
+}
+
+impl NormalizedTiming {
+    /// Create a new normalized timing.
+    pub fn new(value: f64, unit: TimeUnit, is_approximate: bool) -> Self {
+        Self {
+            value,
+            unit,
+            is_approximate,
+        }
+    }
+
+    /// Convert to approximate days for comparison.
+    ///
+    /// Conversion factors:
+    /// - Days: 1.0
+    /// - BusinessDays: 1.4 (5 business days ≈ 7 calendar days)
+    /// - Weeks: 7.0
+    /// - Months: 30.0
+    /// - Years: 365.0
+    pub fn to_approx_days(&self) -> f64 {
+        match self.unit {
+            TimeUnit::Days => self.value,
+            TimeUnit::BusinessDays => self.value * 1.4,
+            TimeUnit::Weeks => self.value * 7.0,
+            TimeUnit::Months => self.value * 30.0,
+            TimeUnit::Years => self.value * 365.0,
+        }
+    }
+}
+
+/// Converts `TemporalExpression` to `Option<NormalizedTiming>`.
+///
+/// Returns `None` for expressions that cannot be meaningfully compared:
+/// - Vague expressions (promptly, reasonable, ASAP)
+/// - Defined dates (the Effective Date)
+/// - Relative times (upon termination)
+/// - Specific dates without context (December 31, 2024)
+#[derive(Debug, Clone, Default)]
+pub struct TemporalConverter {
+    /// Patterns that indicate vague/non-comparable timing
+    vague_patterns: Vec<&'static str>,
+}
+
+impl TemporalConverter {
+    /// Create a new converter with default vague patterns.
+    pub fn new() -> Self {
+        Self {
+            vague_patterns: vec![
+                "promptly",
+                "reasonable",
+                "reasonably",
+                "asap",
+                "as soon as",
+                "immediately",
+                "forthwith",
+                "without delay",
+                "timely",
+            ],
+        }
+    }
+
+    /// Check if the expression text contains vague patterns.
+    fn is_vague(&self, text: &str) -> bool {
+        let lower = text.to_lowercase();
+        self.vague_patterns.iter().any(|p| lower.contains(p))
+    }
+
+    /// Convert a temporal expression to normalized timing.
+    ///
+    /// Returns `Some(NormalizedTiming)` for Duration and Deadline types.
+    /// Returns `None` for vague expressions, defined dates, and relative times.
+    pub fn convert(&self, expr: &TemporalExpression) -> Option<NormalizedTiming> {
+        // Check for vague patterns in the raw text
+        if self.is_vague(&expr.text) {
+            return None;
+        }
+
+        match &expr.temporal_type {
+            TemporalType::Duration { value, unit, .. } => Some(NormalizedTiming::new(
+                *value as f64,
+                TimeUnit::from(*unit),
+                false,
+            )),
+
+            TemporalType::Deadline { reference, deadline_type, .. } => {
+                // PromptlyFollowing is inherently vague
+                if matches!(deadline_type, DeadlineType::PromptlyFollowing) {
+                    return None;
+                }
+
+                // Recursively extract the duration from the reference
+                self.extract_duration_from_type(reference)
+            }
+
+            // Cannot compare these types - they're context-dependent
+            TemporalType::Date { .. } => None,
+            TemporalType::DefinedDate { .. } => None,
+            TemporalType::RelativeTime { .. } => None,
+        }
+    }
+
+    /// Extract duration from a TemporalType (handles nested Deadline → Duration).
+    fn extract_duration_from_type(&self, temporal_type: &TemporalType) -> Option<NormalizedTiming> {
+        match temporal_type {
+            TemporalType::Duration { value, unit, .. } => Some(NormalizedTiming::new(
+                *value as f64,
+                TimeUnit::from(*unit),
+                false,
+            )),
+
+            TemporalType::Deadline { reference, deadline_type, .. } => {
+                if matches!(deadline_type, DeadlineType::PromptlyFollowing) {
+                    return None;
+                }
+                // Recursive unwrap for nested deadlines
+                self.extract_duration_from_type(reference)
+            }
+
+            _ => None,
+        }
+    }
+}
+
 /// Resolver for detecting temporal expressions in contract text.
 #[derive(Debug, Clone)]
 pub struct TemporalExpressionResolver {
@@ -1258,5 +1424,249 @@ mod tests {
         let mut display = LLLineDisplay::new(&line);
         display.include::<TemporalExpression>();
         insta::assert_snapshot!(display.to_string());
+    }
+
+    // ========================================================================
+    // TemporalConverter Tests
+    // ========================================================================
+
+    #[test]
+    fn test_converter_duration_days() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::Duration {
+                value: 30,
+                unit: DurationUnit::Days,
+                written_form: None,
+            },
+            text: "30 days".to_string(),
+            confidence: 0.9,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_some());
+        let timing = result.unwrap();
+        assert_eq!(timing.value, 30.0);
+        assert_eq!(timing.unit, TimeUnit::Days);
+        assert_eq!(timing.to_approx_days(), 30.0);
+    }
+
+    #[test]
+    fn test_converter_duration_business_days() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::Duration {
+                value: 5,
+                unit: DurationUnit::BusinessDays,
+                written_form: None,
+            },
+            text: "5 business days".to_string(),
+            confidence: 0.9,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_some());
+        let timing = result.unwrap();
+        assert_eq!(timing.value, 5.0);
+        assert_eq!(timing.unit, TimeUnit::BusinessDays);
+        assert_eq!(timing.to_approx_days(), 7.0); // 5 * 1.4
+    }
+
+    #[test]
+    fn test_converter_duration_months() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::Duration {
+                value: 3,
+                unit: DurationUnit::Months,
+                written_form: Some("three".to_string()),
+            },
+            text: "three months".to_string(),
+            confidence: 0.9,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_some());
+        let timing = result.unwrap();
+        assert_eq!(timing.value, 3.0);
+        assert_eq!(timing.unit, TimeUnit::Months);
+        assert_eq!(timing.to_approx_days(), 90.0); // 3 * 30
+    }
+
+    #[test]
+    fn test_converter_duration_years() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::Duration {
+                value: 2,
+                unit: DurationUnit::Years,
+                written_form: None,
+            },
+            text: "2 years".to_string(),
+            confidence: 0.9,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_some());
+        let timing = result.unwrap();
+        assert_eq!(timing.value, 2.0);
+        assert_eq!(timing.unit, TimeUnit::Years);
+        assert_eq!(timing.to_approx_days(), 730.0); // 2 * 365
+    }
+
+    #[test]
+    fn test_converter_deadline_with_duration() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::Deadline {
+                deadline_type: DeadlineType::Within,
+                reference: Box::new(TemporalType::Duration {
+                    value: 30,
+                    unit: DurationUnit::Days,
+                    written_form: Some("thirty".to_string()),
+                }),
+            },
+            text: "within thirty (30) days".to_string(),
+            confidence: 0.85,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_some());
+        let timing = result.unwrap();
+        assert_eq!(timing.value, 30.0);
+        assert_eq!(timing.unit, TimeUnit::Days);
+    }
+
+    #[test]
+    fn test_converter_vague_promptly() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::Deadline {
+                deadline_type: DeadlineType::PromptlyFollowing,
+                reference: Box::new(TemporalType::Duration {
+                    value: 5,
+                    unit: DurationUnit::Days,
+                    written_form: None,
+                }),
+            },
+            text: "promptly following 5 days".to_string(),
+            confidence: 0.85,
+        };
+        // Should return None because "promptly" is vague
+        let result = converter.convert(&expr);
+        assert!(result.is_none(), "Promptly should be treated as vague");
+    }
+
+    #[test]
+    fn test_converter_vague_reasonable() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::Duration {
+                value: 30,
+                unit: DurationUnit::Days,
+                written_form: None,
+            },
+            text: "a reasonable period of 30 days".to_string(),
+            confidence: 0.5,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_none(), "Reasonable should be treated as vague");
+    }
+
+    #[test]
+    fn test_converter_vague_asap() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::Duration {
+                value: 5,
+                unit: DurationUnit::Days,
+                written_form: None,
+            },
+            text: "ASAP but no later than 5 days".to_string(),
+            confidence: 0.5,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_none(), "ASAP should be treated as vague");
+    }
+
+    #[test]
+    fn test_converter_defined_date_returns_none() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::DefinedDate {
+                term: "the Effective Date".to_string(),
+            },
+            text: "the Effective Date".to_string(),
+            confidence: 0.8,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_none(), "DefinedDate cannot be compared");
+    }
+
+    #[test]
+    fn test_converter_relative_time_returns_none() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::RelativeTime {
+                trigger: "termination".to_string(),
+                relation: TimeRelation::Upon,
+            },
+            text: "upon termination".to_string(),
+            confidence: 0.8,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_none(), "RelativeTime cannot be compared");
+    }
+
+    #[test]
+    fn test_converter_date_returns_none() {
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::Date {
+                year: Some(2024),
+                month: Some(12),
+                day: Some(31),
+            },
+            text: "December 31, 2024".to_string(),
+            confidence: 0.95,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_none(), "Specific dates cannot be compared without context");
+    }
+
+    #[test]
+    fn test_converter_nested_deadline() {
+        // Edge case: Deadline wrapping another Deadline (shouldn't happen often)
+        let converter = TemporalConverter::new();
+        let expr = TemporalExpression {
+            temporal_type: TemporalType::Deadline {
+                deadline_type: DeadlineType::NoLaterThan,
+                reference: Box::new(TemporalType::Deadline {
+                    deadline_type: DeadlineType::Within,
+                    reference: Box::new(TemporalType::Duration {
+                        value: 60,
+                        unit: DurationUnit::Days,
+                        written_form: None,
+                    }),
+                }),
+            },
+            text: "no later than within 60 days".to_string(),
+            confidence: 0.7,
+        };
+        let result = converter.convert(&expr);
+        assert!(result.is_some(), "Should unwrap nested deadline to find duration");
+        let timing = result.unwrap();
+        assert_eq!(timing.value, 60.0);
+        assert_eq!(timing.unit, TimeUnit::Days);
+    }
+
+    #[test]
+    fn test_time_unit_from_duration_unit() {
+        assert_eq!(TimeUnit::from(DurationUnit::Days), TimeUnit::Days);
+        assert_eq!(TimeUnit::from(DurationUnit::Weeks), TimeUnit::Weeks);
+        assert_eq!(TimeUnit::from(DurationUnit::Months), TimeUnit::Months);
+        assert_eq!(TimeUnit::from(DurationUnit::Years), TimeUnit::Years);
+        assert_eq!(TimeUnit::from(DurationUnit::BusinessDays), TimeUnit::BusinessDays);
+    }
+
+    #[test]
+    fn test_normalized_timing_weeks() {
+        let timing = NormalizedTiming::new(2.0, TimeUnit::Weeks, false);
+        assert_eq!(timing.to_approx_days(), 14.0); // 2 * 7
     }
 }

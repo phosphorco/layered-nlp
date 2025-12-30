@@ -18,6 +18,8 @@ use layered_contracts::{
     DocumentAligner, DocumentStructureBuilder, SemanticDiffEngine, SemanticDiffResult,
     AlignmentResult, AlignmentType, AlignedPair, SectionRef as AlignmentSectionRef,
     ContractDocument, DocumentStructure, SectionNode,
+    // Token diff imports (re-exported from crate root)
+    TokenAligner, TokenAlignmentConfig, TokenRelation, AlignedTokenPair,
 };
 use layered_deixis::{
     DeicticCategory, DeicticReference, DeicticSubcategory, DiscourseMarkerResolver,
@@ -533,6 +535,77 @@ impl From<&AlignmentSectionRef> for FrontendSectionRef {
     }
 }
 
+/// Token-level diff span for frontend rendering.
+/// Computed from Rust's TokenAligner for consistent, accurate diffing.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WasmTokenDiff {
+    /// The token text
+    pub text: String,
+    /// Status: "Unchanged", "Added", "Removed"
+    pub status: String,
+    /// Position in original text [start, end] (null if Added)
+    pub original_pos: Option<[usize; 2]>,
+    /// Position in revised text [start, end] (null if Removed)
+    pub revised_pos: Option<[usize; 2]>,
+    /// Token type: "WORD", "SPACE", "PUNC", "NATN", "SYMB"
+    pub tag: String,
+}
+
+impl WasmTokenDiff {
+    /// Convert from AlignedTokenPair to serializable format
+    fn from_pair(pair: &AlignedTokenPair) -> Self {
+        let (text, original_pos, revised_pos, tag) = match (&pair.left, &pair.right, &pair.relation) {
+            (Some(left), Some(_right), TokenRelation::Identical) => (
+                left.text.clone(),
+                Some([left.start, left.end]),
+                pair.right.as_ref().map(|r| [r.start, r.end]),
+                format!("{:?}", left.tag),
+            ),
+            (Some(left), None, TokenRelation::LeftOnly) => (
+                left.text.clone(),
+                Some([left.start, left.end]),
+                None,
+                format!("{:?}", left.tag),
+            ),
+            (None, Some(right), TokenRelation::RightOnly) => (
+                right.text.clone(),
+                None,
+                Some([right.start, right.end]),
+                format!("{:?}", right.tag),
+            ),
+            // Fallback for unexpected combinations
+            (Some(left), _, _) => (
+                left.text.clone(),
+                Some([left.start, left.end]),
+                pair.right.as_ref().map(|r| [r.start, r.end]),
+                format!("{:?}", left.tag),
+            ),
+            (None, Some(right), _) => (
+                right.text.clone(),
+                None,
+                Some([right.start, right.end]),
+                format!("{:?}", right.tag),
+            ),
+            (None, None, _) => (String::new(), None, None, "WORD".to_string()),
+        };
+
+        let status = match pair.relation {
+            TokenRelation::Identical => "Unchanged",
+            TokenRelation::LeftOnly => "Removed",
+            TokenRelation::RightOnly => "Added",
+            TokenRelation::WhitespaceEquivalent => "Unchanged",
+        };
+
+        Self {
+            text,
+            status: status.to_string(),
+            original_pos,
+            revised_pos,
+            tag,
+        }
+    }
+}
+
 /// Aligned pair with section texts for frontend display
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FrontendAlignedPair {
@@ -546,6 +619,9 @@ pub struct FrontendAlignedPair {
     pub revised_texts: Vec<String>,
     /// Canonical IDs of all sections in this pair (for matching with change explanations)
     pub section_ids: Vec<String>,
+    /// Token-level diff computed by Rust (null for exact matches, insertions, deletions)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_diffs: Option<Vec<WasmTokenDiff>>,
 }
 
 impl FrontendAlignedPair {
@@ -594,6 +670,9 @@ impl FrontendAlignedPair {
             })
             .collect();
 
+        // Compute token-level diff for Modified/Moved/Renumbered pairs
+        let token_diffs = Self::compute_token_diffs(pair, &original_texts, &revised_texts);
+
         Self {
             index,
             alignment_type: format!("{:?}", pair.alignment_type),
@@ -603,7 +682,84 @@ impl FrontendAlignedPair {
             original_texts,
             revised_texts,
             section_ids,
+            token_diffs,
         }
+    }
+
+    /// Compute token-level diff for pairs that have both original and revised content.
+    fn compute_token_diffs(
+        pair: &AlignedPair,
+        original_texts: &[String],
+        revised_texts: &[String],
+    ) -> Option<Vec<WasmTokenDiff>> {
+        // Only compute diff for alignment types where comparison is meaningful.
+        // Note: ExactMatch is included because "exact" means ≥90% similarity,
+        // so there may still be small text changes to highlight.
+        let should_diff = matches!(
+            pair.alignment_type,
+            AlignmentType::ExactMatch
+                | AlignmentType::Modified
+                | AlignmentType::Moved
+                | AlignmentType::Renumbered
+        );
+
+        if !should_diff {
+            return None;
+        }
+
+        // For simple 1:1 alignments, compute token diff directly
+        if original_texts.len() == 1 && revised_texts.len() == 1 {
+            let original_text = &original_texts[0];
+            let revised_text = &revised_texts[0];
+
+            // Skip if either is empty
+            if original_text.is_empty() || revised_text.is_empty() {
+                return None;
+            }
+
+            // Extract tokens and compute alignment
+            let original_tokens = TokenAligner::extract_tokens_from_text(original_text);
+            let revised_tokens = TokenAligner::extract_tokens_from_text(revised_text);
+
+            let config = TokenAlignmentConfig::default(); // Uses Normalize whitespace mode
+            let alignment = TokenAligner::align(&original_tokens, &revised_tokens, &config);
+
+            // Convert to serializable format
+            let diffs: Vec<WasmTokenDiff> = alignment
+                .pairs
+                .iter()
+                .map(WasmTokenDiff::from_pair)
+                .collect();
+
+            return Some(diffs);
+        }
+
+        // For multi-section pairs (Split/Merged), concatenate and diff
+        // This is a simplified approach - could be enhanced later
+        if !original_texts.is_empty() && !revised_texts.is_empty() {
+            let combined_original = original_texts.join("\n\n");
+            let combined_revised = revised_texts.join("\n\n");
+
+            if combined_original.is_empty() || combined_revised.is_empty() {
+                return None;
+            }
+
+            let original_tokens = TokenAligner::extract_tokens_from_text(&combined_original);
+            let revised_tokens = TokenAligner::extract_tokens_from_text(&combined_revised);
+
+            let config = TokenAlignmentConfig::default();
+            let alignment = TokenAligner::align(&original_tokens, &revised_tokens, &config);
+
+            let diffs: Vec<WasmTokenDiff> = alignment
+                .pairs
+                .iter()
+                .map(WasmTokenDiff::from_pair)
+                .collect();
+
+            return Some(diffs);
+        }
+
+        None
     }
 }
 
@@ -1412,6 +1568,169 @@ Section 1.2 The Company shall provide updates."#;
                 pair.section_ids,
                 pair.original_texts.len(),
                 pair.revised_texts.len()
+            );
+        }
+    }
+
+    /// Test 12: Verify token_diffs are computed for aligned pairs with text changes.
+    /// Note: ExactMatch means ≥90% similarity, so small changes like "shall"→"may" still
+    /// produce ExactMatch. We compute token diffs for all such pairs.
+    #[test]
+    fn test_token_diffs_for_aligned_pairs() {
+        let original = r#"ARTICLE I: DEFINITIONS
+
+Section 1.1 "Company" means ABC Corporation.
+
+ARTICLE II: OBLIGATIONS
+
+Section 2.1 The Company shall deliver goods within thirty (30) days."#;
+
+        let revised = r#"ARTICLE I: DEFINITIONS
+
+Section 1.1 "Company" means ABC Corporation.
+
+ARTICLE II: OBLIGATIONS
+
+Section 2.1 The Company may deliver goods within sixty (60) days."#;
+
+        let result = compare_contracts_test(original, revised).expect("Should succeed");
+
+        // Debug output
+        println!("Alignment types and token_diffs:");
+        for pair in &result.aligned_pairs {
+            let has_diffs = pair.token_diffs.is_some();
+            let change_count = pair.token_diffs.as_ref()
+                .map(|d| d.iter().filter(|t| t.status != "Unchanged").count())
+                .unwrap_or(0);
+            println!("  {} - token_diffs: {}, changes: {}",
+                pair.alignment_type, has_diffs, change_count);
+        }
+
+        // Find the pair with Section 2.1 (has shall→may change)
+        let section_2_1_pair = result
+            .aligned_pairs
+            .iter()
+            .find(|p| p.original_texts.iter().any(|t| t.contains("shall")));
+
+        assert!(
+            section_2_1_pair.is_some(),
+            "Should find a pair containing 'shall'. Pairs: {:?}",
+            result.aligned_pairs.iter()
+                .map(|p| format!("{}: {:?}", p.alignment_type, &p.original_texts))
+                .collect::<Vec<_>>()
+        );
+
+        let pair = section_2_1_pair.unwrap();
+
+        // Pairs with text content should have token_diffs
+        assert!(
+            pair.token_diffs.is_some(),
+            "Pair with text content should have token_diffs"
+        );
+
+        let diffs = pair.token_diffs.as_ref().unwrap();
+
+        // Should have multiple token diffs
+        assert!(
+            !diffs.is_empty(),
+            "token_diffs should not be empty"
+        );
+
+        // Find specific changes: "shall" -> "may", "thirty" -> "sixty", "30" -> "60"
+        let removed_tokens: Vec<_> = diffs.iter().filter(|d| d.status == "Removed").collect();
+        let added_tokens: Vec<_> = diffs.iter().filter(|d| d.status == "Added").collect();
+
+        // Should have removed "shall"
+        assert!(
+            removed_tokens.iter().any(|d| d.text == "shall"),
+            "Should have 'shall' as removed. Removed: {:?}",
+            removed_tokens.iter().map(|d| &d.text).collect::<Vec<_>>()
+        );
+
+        // Should have added "may"
+        assert!(
+            added_tokens.iter().any(|d| d.text == "may"),
+            "Should have 'may' as added. Added: {:?}",
+            added_tokens.iter().map(|d| &d.text).collect::<Vec<_>>()
+        );
+
+        // Should have removed "thirty" and "30"
+        assert!(
+            removed_tokens.iter().any(|d| d.text == "thirty"),
+            "Should have 'thirty' as removed"
+        );
+        assert!(
+            removed_tokens.iter().any(|d| d.text == "30"),
+            "Should have '30' as removed"
+        );
+
+        // Should have added "sixty" and "60"
+        assert!(
+            added_tokens.iter().any(|d| d.text == "sixty"),
+            "Should have 'sixty' as added"
+        );
+        assert!(
+            added_tokens.iter().any(|d| d.text == "60"),
+            "Should have '60' as added"
+        );
+
+        // Verify token types are correct
+        let shall_token = removed_tokens.iter().find(|d| d.text == "shall").unwrap();
+        assert_eq!(shall_token.tag, "Word", "Modal verb should be tagged as Word");
+
+        let thirty_num = removed_tokens.iter().find(|d| d.text == "30").unwrap();
+        assert_eq!(thirty_num.tag, "Natn", "Number should be tagged as Natn");
+
+        println!("Token diff test:");
+        println!("  Total diffs: {}", diffs.len());
+        println!("  Removed: {:?}", removed_tokens.iter().map(|d| &d.text).collect::<Vec<_>>());
+        println!("  Added: {:?}", added_tokens.iter().map(|d| &d.text).collect::<Vec<_>>());
+    }
+
+    /// Test 13: Verify token_diffs behavior for different alignment types:
+    /// - ExactMatch: HAS token_diffs (all Unchanged when truly identical)
+    /// - Inserted: NO token_diffs (no original to compare)
+    /// - Deleted: NO token_diffs (no revised to compare)
+    #[test]
+    fn test_token_diffs_null_for_non_modified() {
+        let original = r#"Section 1.1 The Company shall deliver goods."#;
+        let revised = r#"Section 1.1 The Company shall deliver goods.
+
+Section 1.2 Additional section inserted."#;
+
+        let result = compare_contracts_test(original, revised).expect("Should succeed");
+
+        // ExactMatch pairs SHOULD have token_diffs (with all Unchanged tokens)
+        let exact_pair = result
+            .aligned_pairs
+            .iter()
+            .find(|p| p.alignment_type == "ExactMatch");
+
+        if let Some(pair) = exact_pair {
+            assert!(
+                pair.token_diffs.is_some(),
+                "ExactMatch pairs should have token_diffs"
+            );
+            // All tokens should be Unchanged for truly identical sections
+            let diffs = pair.token_diffs.as_ref().unwrap();
+            let changes = diffs.iter().filter(|d| d.status != "Unchanged").count();
+            assert_eq!(
+                changes, 0,
+                "Truly identical ExactMatch should have no changes. Found: {}",
+                changes
+            );
+        }
+
+        // Inserted pairs should NOT have token_diffs (no original to compare)
+        let inserted_pair = result
+            .aligned_pairs
+            .iter()
+            .find(|p| p.alignment_type == "Inserted");
+
+        if let Some(pair) = inserted_pair {
+            assert!(
+                pair.token_diffs.is_none(),
+                "Inserted pairs should not have token_diffs"
             );
         }
     }
