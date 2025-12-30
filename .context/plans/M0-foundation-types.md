@@ -446,3 +446,45 @@ After M0:
 | `Ambiguous<T>` | N-best aggregation | M6, M7 |
 | `AmbiguityConfig` | Pruning thresholds | All |
 | `AmbiguityFlag` | Review surfacing | All |
+
+---
+
+## Learnings & Deviations
+
+These implementation learnings capture where the final design diverged from the plan, with rationale:
+
+### 1. ScopeDimension::Other uses String instead of &'static str
+
+**Plan:** `Other(&'static str)` for custom scope dimensions
+**Implemented:** `Other(String)`
+
+**Rationale:** Static lifetime constraints prevent runtime flexibility. Contract analysis encounters operator types unknown at compile time (e.g., "notwithstanding" clauses discovered in custom contracts). Using `String` allows resolvers to classify operators dynamically without requiring source code changes.
+
+**Trade-off:** Small heap allocation cost vs. extensibility for domain-specific operators.
+
+### 2. ScopeDomain::primary() returns Option<&DocSpan> instead of panicking
+
+**Plan:** `pub fn primary(&self) -> &DocSpan` that panics on empty domains
+**Implemented:** `pub fn primary(&self) -> Option<&DocSpan>`
+
+**Rationale:** Defensive API design that allows callers to handle edge cases gracefully. While empty domains represent programming errors, returning `Option` enables explicit error handling via `?` operator in Effect code paths. Documents that empty domains are contract violations but doesn't enforce at runtime.
+
+**Pattern:** Follows layered-nlp's philosophy of making invariant violations queryable rather than fatal.
+
+### 3. Serde derives are unconditional, not feature-gated
+
+**Plan:** `#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]`
+**Implemented:** `#[derive(serde::Serialize, serde::Deserialize)]`
+
+**Rationale:** Serde is a required dependency for layered-contracts (document snapshots, WASM bindings). Feature flags add complexity with no benefit when the feature is always enabled. Simpler code paths, no conditional compilation.
+
+**Benefit:** Removes cognitive overhead from reading code—every type is serializable by default.
+
+### 4. AmbiguityConfig validation uses debug_assert
+
+**Plan:** Runtime panic if `n_best == 0`
+**Implemented:** `debug_assert!(n_best > 0)` in construction path
+
+**Rationale:** Catches misuse during development/testing while avoiding runtime overhead in release builds. Invalid configs are logic bugs, not user input errors. Debug builds catch the issue during integration testing; release builds optimize away the check.
+
+**Pattern:** Aligns with Rust's debug_assert philosophy for internal invariants.
