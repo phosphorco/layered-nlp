@@ -1,0 +1,2202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semantic Contract Diff</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1rem;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.4;
+        }
+        h1 {
+            margin-bottom: 0.25rem;
+            color: #1a1a1a;
+            font-size: 1.25rem;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Compact status bar - replaces summary cards */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem 0.75rem;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+            font-size: 12px;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+        }
+        .status-bar .status-label {
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .status-bar .status-value {
+            font-weight: 600;
+            color: #111827;
+        }
+        .status-bar .status-divider {
+            color: #d1d5db;
+        }
+        .status-bar .stat-critical { color: #dc2626; }
+        .status-bar .stat-high { color: #ea580c; }
+        .status-bar .stat-medium { color: #ca8a04; }
+        .status-bar .stat-low { color: #16a34a; }
+        .status-bar .stat-clickable {
+            cursor: pointer;
+            padding: 0.125rem 0.375rem;
+            border-radius: 2px;
+            transition: background 0.1s;
+        }
+        .status-bar .stat-clickable:hover {
+            background: #e5e7eb;
+        }
+        .status-bar .search-container {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin-left: auto;
+            margin-right: 1rem;
+        }
+        .status-bar .search-input {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 3px;
+            font-size: 11px;
+            font-family: ui-monospace, monospace;
+            width: 140px;
+            background: white;
+        }
+        .status-bar .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        .status-bar .search-nav {
+            background: none;
+            border: 1px solid #d1d5db;
+            border-radius: 3px;
+            padding: 0.125rem 0.375rem;
+            font-size: 10px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        .status-bar .search-nav:hover {
+            background: #f3f4f6;
+        }
+        .status-bar .search-count {
+            font-size: 10px;
+            color: #6b7280;
+            min-width: 40px;
+        }
+        /* Search highlight styles */
+        .section-row.search-highlight {
+            background: #fef9c3;
+        }
+        .section-row.search-current {
+            background: #fde047;
+            box-shadow: inset 0 0 0 2px #ca8a04;
+        }
+
+        /* Two-column input layout */
+        .input-section {
+            margin-bottom: 2rem;
+        }
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .input-pane {
+            display: flex;
+            flex-direction: column;
+        }
+        .input-pane label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+        .char-counter {
+            font-size: 12px;
+            color: #666;
+            margin-top: 0.25rem;
+            text-align: right;
+        }
+        .char-counter.over-limit {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        textarea {
+            width: 100%;
+            height: 250px;
+            padding: 1rem;
+            font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+            font-size: 13px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #0969da;
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+        }
+
+        /* Buttons */
+        .button-row {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        button {
+            padding: 0.6rem 1.2rem;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        button.primary {
+            background: #0969da;
+            color: white;
+        }
+        button.primary:hover {
+            background: #0860c7;
+        }
+        button.secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        button.secondary:hover {
+            background: #e5e7eb;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Loading indicator */
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            color: #666;
+            font-size: 14px;
+        }
+        .loading.active {
+            display: flex;
+        }
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ddd;
+            border-top-color: #0969da;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Results section with sidebar */
+        .results-section {
+            margin-top: 0.5rem;
+        }
+        .results-layout {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 0.5rem;
+        }
+
+        /* Section outline sidebar - light theme */
+        .section-sidebar {
+            position: sticky;
+            top: 0.5rem;
+            max-height: calc(100vh - 1rem);
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+        }
+        .sidebar-header {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            padding: 0.375rem 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 11px;
+            color: #374151;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: background 0.1s, border-color 0.1s;
+        }
+        .sidebar-item:hover {
+            background: #f3f4f6;
+        }
+        .sidebar-item.active {
+            background: #eff6ff;
+            border-left-color: #3b82f6;
+            color: #1e40af;
+        }
+        .sidebar-item.filtered-out {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Filter controls in sidebar - light theme */
+        .sidebar-filters {
+            padding: 0.375rem 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+        .filter-group {
+            margin-bottom: 0;
+        }
+        .filter-group-label {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.125rem 0;
+            font-size: 10px;
+            cursor: pointer;
+            color: #374151;
+        }
+        .filter-option input[type="checkbox"] {
+            margin: 0;
+            width: 12px;
+            height: 12px;
+        }
+        .filter-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .filter-dot.critical { background: #dc2626; }
+        .filter-dot.high { background: #ea580c; }
+        .filter-dot.medium { background: #ca8a04; }
+        .filter-dot.low { background: #16a34a; }
+        .filter-dot.unchanged { background: #9ca3af; }
+        .risk-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .risk-dot.critical { background: #dc2626; }
+        .risk-dot.high { background: #ea580c; }
+        .risk-dot.medium { background: #ca8a04; }
+        .risk-dot.low { background: #16a34a; }
+        .risk-dot.unchanged { background: #9ca3af; }
+        .risk-dot.inserted { background: #2563eb; }
+        .risk-dot.deleted { background: #dc2626; }
+        .sidebar-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Main content area */
+        .main-content {
+            min-width: 0; /* Prevent grid blowout */
+        }
+        .panel {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 2px;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .panel h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 10px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+        }
+
+        /* Compact sidebar change items (merged with outline) */
+        .sidebar-change {
+            padding: 0.25rem 0.5rem;
+            border-left: 3px solid #e5e7eb;
+            margin-bottom: 0;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.1s;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .sidebar-change:hover {
+            background: #f3f4f6;
+        }
+        .sidebar-change.risk-critical { border-left-color: #dc2626; }
+        .sidebar-change.risk-high { border-left-color: #ea580c; }
+        .sidebar-change.risk-medium { border-left-color: #ca8a04; }
+        .sidebar-change.risk-low { border-left-color: #16a34a; }
+        .sidebar-change .change-type-icon {
+            font-size: 10px;
+            color: #6b7280;
+            margin-right: 0.25rem;
+        }
+        .sidebar-change .change-desc {
+            color: #374151;
+        }
+        .sidebar-change .risk-indicator {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 0.25rem;
+            padding: 0.0625rem 0.25rem;
+            border-radius: 2px;
+        }
+        .sidebar-change .risk-indicator.critical { background: #fee2e2; color: #dc2626; }
+        .sidebar-change .risk-indicator.high { background: #ffedd5; color: #ea580c; }
+        .sidebar-change .risk-indicator.medium { background: #fef9c3; color: #ca8a04; }
+        .sidebar-change .risk-indicator.low { background: #dcfce7; color: #16a34a; }
+
+        /* Legacy panel styles (hidden but kept for compatibility) */
+        .alignment-badges, .summary-grid { display: none; }
+
+        /* Changes list (now compact) */
+        .changes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .change-item {
+            padding: 0.375rem 0.5rem;
+            background: #fafafa;
+            border-radius: 2px;
+            border-left: 3px solid #d1d5db;
+            font-size: 12px;
+        }
+        .change-item.risk-critical { border-left-color: #dc2626; }
+        .change-item.risk-high { border-left-color: #f97316; }
+        .change-item.risk-medium { border-left-color: #eab308; }
+        .change-item.risk-low { border-left-color: #22c55e; }
+        .change-header {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            margin-bottom: 0.125rem;
+        }
+        .change-type {
+            font-weight: 600;
+            color: #374151;
+            font-size: 11px;
+        }
+        .risk-badge {
+            display: inline-block;
+            padding: 0.0625rem 0.25rem;
+            border-radius: 2px;
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+        }
+        .risk-badge.critical { background: #fee2e2; color: #dc2626; }
+        .risk-badge.high { background: #ffedd5; color: #ea580c; }
+        .risk-badge.medium { background: #fef9c3; color: #ca8a04; }
+        .risk-badge.low { background: #dcfce7; color: #16a34a; }
+        .change-explanation {
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        /* Warnings panel */
+        .warnings-panel {
+            background: #fffbeb;
+            border-color: #fcd34d;
+        }
+        .warnings-panel h3 {
+            color: #92400e;
+        }
+        .warning-item {
+            padding: 0.5rem;
+            background: #fef3c7;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #92400e;
+            margin-bottom: 0.5rem;
+        }
+        .warning-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Error message */
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .error-code {
+            font-family: ui-monospace, monospace;
+            font-size: 12px;
+            background: #fee2e2;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            margin-right: 0.5rem;
+        }
+
+        /* Empty state */
+        .empty-state {
+            color: #666;
+            font-style: italic;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        /* Hidden by default */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Section Comparison View - TUI-style compact layout */
+        .comparison-view {
+            margin-top: 0;
+        }
+        .comparison-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            position: sticky;
+            top: 0;
+            background: #e5e7eb;
+            z-index: 10;
+            border-radius: 4px 4px 0 0;
+        }
+        .comparison-header-cell {
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #374151;
+            padding: 0.375rem 0.75rem;
+            background: #f3f4f6;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+        }
+        .comparison-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border: 1px solid #d1d5db;
+            border-top: none;
+            background: #e5e7eb;
+        }
+
+        /* Section row - TUI-style with left border accent */
+        .section-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: white;
+            border-left: 4px solid #d1d5db;
+        }
+        .section-row.unified {
+            grid-template-columns: 1fr;
+        }
+
+        /* Section cell - minimal chrome */
+        .section-cell {
+            background: white;
+            overflow: hidden;
+        }
+        .section-cell.empty {
+            background: repeating-linear-gradient(
+                -45deg,
+                #fafafa,
+                #fafafa 8px,
+                #f3f4f6 8px,
+                #f3f4f6 16px
+            );
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 11px;
+            font-style: italic;
+            position: relative;
+        }
+        .section-cell.empty::after {
+            content: "Not in this version";
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.125rem 0.5rem;
+            border-radius: 3px;
+            font-family: ui-monospace, monospace;
+        }
+
+        /* Section header - compact inline */
+        .section-cell-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.25rem 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fafafa;
+        }
+        .section-title {
+            font-weight: 600;
+            font-size: 11px;
+            color: #6b7280;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+        }
+        .alignment-type-badge {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 0.125rem 0.25rem;
+            border-radius: 2px;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+        }
+
+        /* Section content - readable text */
+        .section-content {
+            padding: 0.5rem;
+            font-family: ui-monospace, "Cascadia Code", "Fira Code", Menlo, monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: normal;
+            word-break: break-word;
+            color: #374151;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        /* Alignment type styling - LEFT BORDER ACCENTS only */
+        .section-row.exact-match {
+            border-left-color: #d1d5db;
+        }
+        .section-row.exact-match .alignment-type-badge {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+
+        .section-row.modified {
+            border-left-color: #f59e0b;
+        }
+        .section-row.modified .alignment-type-badge {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .section-row.inserted {
+            border-left-color: #3b82f6;
+        }
+        .section-row.inserted .alignment-type-badge {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .section-row.deleted {
+            border-left-color: #ef4444;
+        }
+        .section-row.deleted .alignment-type-badge {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .section-row.renumbered {
+            border-left-color: #8b5cf6;
+        }
+        .section-row.renumbered .alignment-type-badge {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+
+        /* Collapsed state for ExactMatch */
+        .section-row.collapsed .section-content {
+            display: none;
+        }
+        .section-row.collapsed .section-cell {
+            opacity: 0.7;
+        }
+        .section-row.collapsed .section-cell-header {
+            cursor: pointer;
+        }
+        .section-row.collapsed .section-cell-header:hover {
+            opacity: 0.9;
+        }
+        .expand-indicator {
+            font-size: 10px;
+            color: #666;
+            margin-left: 0.5rem;
+        }
+
+        /* Collapsible input area */
+        .input-section.collapsed .input-grid,
+        .input-section.collapsed .button-row {
+            display: none;
+        }
+        .input-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .input-toggle h2 {
+            margin: 0;
+            font-size: 1rem;
+            color: #374151;
+        }
+        .toggle-btn {
+            background: none;
+            border: 1px solid #d1d5db;
+            padding: 0.3rem 0.6rem;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #666;
+        }
+        .toggle-btn:hover {
+            background: #f3f4f6;
+        }
+
+        /* Expand/Collapse All controls */
+        .comparison-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .comparison-controls button {
+            padding: 0.3rem 0.6rem;
+            font-size: 12px;
+        }
+
+        /* Clickable summary stats */
+        .summary-stat.clickable {
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .summary-stat.clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Highlight effect for scrolled-to section */
+        .section-row.highlight {
+            animation: highlight-pulse 1.5s ease-out;
+        }
+        @keyframes highlight-pulse {
+            0% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5); }
+            100% { box-shadow: none; }
+        }
+
+        /* Word-level diff highlighting */
+        .diff-del {
+            background: #fee2e2;
+            color: #991b1b;
+            text-decoration: line-through;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+        .diff-add {
+            background: #dcfce7;
+            color: #166534;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        /* Inline impact analysis panel - light compact */
+        .impact-panel {
+            background: #fffbeb;
+            border-top: 1px solid #fcd34d;
+            padding: 0.25rem 0.5rem;
+            font-size: 11px;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+            color: #92400e;
+        }
+        .impact-header {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-weight: 600;
+            margin-bottom: 0.125rem;
+        }
+        .impact-explanation {
+            color: #78350f;
+            margin-bottom: 0.125rem;
+        }
+        .party-impact {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.125rem;
+            font-size: 10px;
+            margin-right: 0.5rem;
+        }
+        .party-favorable { color: #16a34a; }
+        .party-unfavorable { color: #dc2626; }
+        .party-neutral { color: #6b7280; }
+
+        /* Hide unchanged toggle */
+        .view-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.5rem 0.75rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .view-controls label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .section-row.hidden-unchanged {
+            display: none !important;
+        }
+
+        /* Keyboard navigation focus ring */
+        .section-row.keyboard-focus {
+            outline: 3px solid #3b82f6;
+            outline-offset: 2px;
+        }
+    </style>
+    <!-- diff-match-patch library for word-level diffs (with fallback) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
+    <script>
+        // Fallback if CDN fails - create a no-op implementation
+        if (typeof diff_match_patch === 'undefined') {
+            console.warn('diff-match-patch CDN failed to load. Word-level diff disabled.');
+            window.diff_match_patch = function() {
+                this.diff_main = function(a, b) { return [[0, b]]; };
+                this.diff_cleanupSemantic = function() {};
+            };
+        }
+    </script>
+</head>
+<body>
+    <h1>Semantic Contract Diff</h1>
+    <p class="subtitle">Compare contract versions and identify legally significant changes</p>
+
+    <div class="input-section" id="input-section">
+        <div class="input-toggle">
+            <h2>Contract Inputs</h2>
+            <button class="toggle-btn" id="input-toggle-btn">Hide Inputs</button>
+        </div>
+        <div class="input-grid">
+            <div class="input-pane">
+                <label for="original-input">Original Contract</label>
+                <textarea id="original-input" placeholder="Paste original contract text here..."></textarea>
+                <div class="char-counter" id="original-counter">0 / 50,000</div>
+            </div>
+            <div class="input-pane">
+                <label for="revised-input">Revised Contract</label>
+                <textarea id="revised-input" placeholder="Paste revised contract text here..."></textarea>
+                <div class="char-counter" id="revised-counter">0 / 50,000</div>
+            </div>
+        </div>
+        <div class="button-row">
+            <button id="compare-btn" class="primary" disabled>Compare</button>
+            <button id="sample-btn" class="secondary">Load Sample NDA</button>
+            <button id="clear-btn" class="secondary">Clear</button>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>Analyzing contracts...</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="error-container"></div>
+
+    <div id="results-section" class="results-section hidden">
+        <!-- Compact status bar -->
+        <div class="status-bar" id="status-bar">
+            <span class="status-label">Status:</span>
+            <span id="status-total" class="status-value">Total: 0</span>
+            <span class="status-divider">|</span>
+            <span id="status-critical" class="stat-critical stat-clickable" onclick="scrollToRisk('critical')">Crit: 0</span>
+            <span class="status-divider">|</span>
+            <span id="status-high" class="stat-high stat-clickable" onclick="scrollToRisk('high')">High: 0</span>
+            <span class="status-divider">|</span>
+            <span id="status-medium" class="stat-medium stat-clickable" onclick="scrollToRisk('medium')">Med: 0</span>
+            <span class="status-divider">|</span>
+            <span id="status-low" class="stat-low stat-clickable" onclick="scrollToRisk('low')">Low: 0</span>
+            <div class="search-container">
+                <input type="text" class="search-input" id="search-input" placeholder="Search..." />
+                <button class="search-nav" id="search-prev" title="Previous (Shift+Enter)">↑</button>
+                <button class="search-nav" id="search-next" title="Next (Enter)">↓</button>
+                <span class="search-count" id="search-count"></span>
+            </div>
+            <span class="status-divider">|</span>
+            <span id="status-sections" class="status-value">Sections: 0</span>
+        </div>
+
+        <!-- Hidden legacy panels (kept for compatibility) -->
+        <div class="panel hidden" id="summary-panel">
+            <div class="summary-grid" id="summary-stats"></div>
+        </div>
+        <div class="panel hidden" id="alignment-panel">
+            <div class="alignment-badges" id="alignment-badges"></div>
+        </div>
+        <div class="panel warnings-panel hidden" id="warnings-panel">
+            <h3>⚠ Warnings</h3>
+            <div id="warnings-list"></div>
+        </div>
+
+        <!-- Grid layout: Sidebar + Main Content -->
+        <div class="results-layout">
+            <!-- Section Outline Sidebar with changes -->
+            <aside class="section-sidebar" id="section-sidebar">
+                <div class="sidebar-header">Outline</div>
+                <div class="sidebar-filters" id="sidebar-filters">
+                    <div class="filter-group">
+                        <div class="filter-group-label">Filter</div>
+                        <label class="filter-option">
+                            <input type="checkbox" id="filter-critical" checked>
+                            <span class="filter-dot critical"></span>
+                            Crit
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" id="filter-high" checked>
+                            <span class="filter-dot high"></span>
+                            High
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" id="filter-medium" checked>
+                            <span class="filter-dot medium"></span>
+                            Med
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" id="filter-low" checked>
+                            <span class="filter-dot low"></span>
+                            Low
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" id="filter-unchanged" checked>
+                            <span class="filter-dot unchanged"></span>
+                            Same
+                        </label>
+                    </div>
+                </div>
+                <!-- Changes list moved here -->
+                <div id="sidebar-changes" style="border-bottom: 1px solid #e5e7eb;"></div>
+                <div id="sidebar-items">
+                    <!-- Populated by JS -->
+                </div>
+            </aside>
+
+            <!-- Main Content Area - Section Comparison is the focus -->
+            <div class="main-content">
+                <!-- Hidden changes panel (data moved to sidebar) -->
+                <div class="hidden" id="changes-panel">
+                    <div class="changes-list" id="changes-list"></div>
+                </div>
+
+                <!-- Section Comparison View - THE MAIN WORKSPACE -->
+                <div id="comparison-panel" style="background: white; border: 1px solid #d1d5db; border-radius: 2px;">
+                    <div class="view-controls" style="padding: 0.25rem 0.5rem; background: #f5f5f5; border-bottom: 1px solid #d1d5db; display: flex; gap: 0.5rem; font-size: 11px;">
+                        <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer;">
+                            <input type="checkbox" id="hide-unchanged-toggle" style="margin: 0;">
+                            Hide Unchanged Sections
+                        </label>
+                        <button class="secondary" id="expand-all-btn">Expand All Unchanged</button>
+                        <button class="secondary" id="collapse-all-btn">Collapse All Unchanged</button>
+                    </div>
+                    <div class="comparison-view">
+                        <div class="comparison-header">
+                            <div class="comparison-header-cell">Original</div>
+                            <div class="comparison-header-cell">Revised</div>
+                        </div>
+                        <div class="comparison-rows" id="comparison-rows">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const MAX_INPUT_SIZE = 50000;
+        let wasmModule = null;
+        let currentResult = null; // Store result for filtering/navigation
+
+        // DOM elements
+        const originalInput = document.getElementById('original-input');
+        const revisedInput = document.getElementById('revised-input');
+        const originalCounter = document.getElementById('original-counter');
+        const revisedCounter = document.getElementById('revised-counter');
+        const compareBtn = document.getElementById('compare-btn');
+        const sampleBtn = document.getElementById('sample-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const loading = document.getElementById('loading');
+        const errorContainer = document.getElementById('error-container');
+        const resultsSection = document.getElementById('results-section');
+        const inputSection = document.getElementById('input-section');
+        const inputToggleBtn = document.getElementById('input-toggle-btn');
+        const expandAllBtn = document.getElementById('expand-all-btn');
+        const collapseAllBtn = document.getElementById('collapse-all-btn');
+        const hideUnchangedToggle = document.getElementById('hide-unchanged-toggle');
+        const sidebarItems = document.getElementById('sidebar-items');
+
+        // Filter checkboxes
+        const filterCritical = document.getElementById('filter-critical');
+        const filterHigh = document.getElementById('filter-high');
+        const filterMedium = document.getElementById('filter-medium');
+        const filterLow = document.getElementById('filter-low');
+        const filterUnchanged = document.getElementById('filter-unchanged');
+
+        // Initialize diff-match-patch
+        const dmp = new diff_match_patch();
+
+        // Sample contracts from spec
+        const SAMPLE_ORIGINAL = `ARTICLE I: DEFINITIONS
+
+Section 1.1 "Confidential Information" means any non-public information
+disclosed by either party to the other.
+
+Section 1.2 "Receiving Party" means the party receiving Confidential Information.
+
+ARTICLE II: OBLIGATIONS
+
+Section 2.1 The Receiving Party shall protect all Confidential Information
+using reasonable care.
+
+Section 2.2 The Receiving Party shall not disclose Confidential Information
+to any third party without prior written consent.
+
+ARTICLE III: TERM
+
+Section 3.1 This Agreement shall remain in effect for two (2) years from
+the Effective Date.`;
+
+        const SAMPLE_REVISED = `ARTICLE I: DEFINITIONS
+
+Section 1.1 "Confidential Information" means any non-public technical
+information disclosed by either party to the other.
+
+Section 1.2 "Receiving Party" means the party receiving Confidential Information.
+
+ARTICLE II: OBLIGATIONS
+
+Section 2.1 The Receiving Party may protect all Confidential Information
+using reasonable care.
+
+Section 2.2 The Receiving Party shall not disclose Confidential Information
+to any third party without prior written consent.
+
+Section 2.3 The Receiving Party shall return all materials within 30 days
+of termination.
+
+ARTICLE III: TERM
+
+Section 3.1 This Agreement shall remain in effect for three (3) years from
+the Effective Date.`;
+
+        // Load WASM module
+        async function loadWasm() {
+            try {
+                const module = await import('./pkg/layered_nlp_demo_wasm.js');
+                await module.default();
+                wasmModule = module;
+                console.log('WASM module loaded successfully');
+                compareBtn.disabled = false;
+                return true;
+            } catch (err) {
+                console.error('Failed to load WASM:', err);
+                showError('wasm_load_failed', `Failed to load WASM module: ${err.message}. Make sure the WASM files are in ./pkg/`);
+                return false;
+            }
+        }
+
+        // Update character counter
+        function updateCounter(input, counter) {
+            const len = input.value.length;
+            counter.textContent = `${len.toLocaleString()} / 50,000`;
+            if (len > MAX_INPUT_SIZE) {
+                counter.classList.add('over-limit');
+            } else {
+                counter.classList.remove('over-limit');
+            }
+        }
+
+        // Show error message
+        function showError(code, message, details = null) {
+            let html = `<div class="error-message">`;
+            if (code) {
+                html += `<span class="error-code">${code}</span>`;
+            }
+            html += message;
+            if (details) {
+                html += `<pre style="margin-top: 0.5rem; font-size: 12px;">${JSON.stringify(details, null, 2)}</pre>`;
+            }
+            html += `</div>`;
+            errorContainer.innerHTML = html;
+        }
+
+        // Clear error
+        function clearError() {
+            errorContainer.innerHTML = '';
+        }
+
+        // Format change type for display
+        function formatChangeType(changeType) {
+            if (typeof changeType === 'string') {
+                return changeType.replace(/([A-Z])/g, ' $1').trim();
+            }
+            // Handle object form (e.g., { ObligationModal: {...} })
+            const key = Object.keys(changeType)[0];
+            return key.replace(/([A-Z])/g, ' $1').trim();
+        }
+
+        // Render results
+        function renderResults(result) {
+            currentResult = result; // Store for filtering/navigation
+            resultsSection.classList.remove('hidden');
+
+            // Collapse input area after showing results
+            inputSection.classList.add('collapsed');
+            inputToggleBtn.textContent = 'Show Inputs';
+
+            // Access nested diff structure
+            const diff = result.diff;
+            const summary = diff.summary;
+
+            // Calculate the CORRECT total changes count:
+            // Total = Modified + Inserted + Deleted sections (NOT semantic changes count)
+            const correctedCounts = recalculateAlignmentCounts(result.aligned_pairs || []);
+            const totalChangedSections = correctedCounts.modified + correctedCounts.inserted + correctedCounts.deleted + correctedCounts.renumbered;
+            const totalSections = (result.aligned_pairs || []).length;
+
+            // Update status bar with correct counts
+            document.getElementById('status-total').textContent = `Total: ${totalChangedSections}`;
+            document.getElementById('status-critical').textContent = `Crit: ${summary.critical_changes}`;
+            document.getElementById('status-high').textContent = `High: ${summary.high_risk_changes}`;
+            document.getElementById('status-medium').textContent = `Med: ${summary.medium_risk_changes}`;
+            document.getElementById('status-low').textContent = `Low: ${summary.low_risk_changes}`;
+            document.getElementById('status-sections').textContent = `Sections: ${totalSections}`;
+
+            // Warnings panel (compact)
+            const warningsPanel = document.getElementById('warnings-panel');
+            const warningsList = document.getElementById('warnings-list');
+            if (diff.warnings && diff.warnings.length > 0) {
+                warningsPanel.classList.remove('hidden');
+                warningsList.innerHTML = diff.warnings.map(w =>
+                    `<div class="warning-item" style="font-size: 11px; padding: 0.25rem 0.5rem;">${w}</div>`
+                ).join('');
+            } else {
+                warningsPanel.classList.add('hidden');
+            }
+
+            // Populate sidebar with semantic changes
+            const sidebarChanges = document.getElementById('sidebar-changes');
+            if (diff.changes && diff.changes.length > 0) {
+                sidebarChanges.innerHTML = `
+                    <div class="sidebar-header" style="border-top: 1px solid #e5e7eb;">Changes</div>
+                    ${diff.changes.map((change, i) => {
+                        const riskClass = `risk-${change.risk_level.toLowerCase()}`;
+                        const changeTypeName = formatChangeType(change.change_type);
+                        const icon = change.change_type === 'SectionAdded' ? '(+)' :
+                                     change.change_type === 'SectionRemoved' ? '(-)' : '(Δ)';
+                        return `
+                            <div class="sidebar-change ${riskClass}" onclick="scrollToChangeInSection(${i})" title="${escapeHtml(change.explanation)}">
+                                <span class="change-type-icon">${icon}</span>
+                                <span class="change-desc">${changeTypeName}</span>
+                                <span class="risk-indicator ${change.risk_level.toLowerCase()}">${change.risk_level.charAt(0)}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                `;
+            } else {
+                sidebarChanges.innerHTML = '';
+            }
+
+            // Legacy changes list (hidden but populated for compatibility)
+            const changesList = document.getElementById('changes-list');
+            if (diff.changes && diff.changes.length > 0) {
+                changesList.innerHTML = diff.changes.map(change => {
+                    const riskClass = `risk-${change.risk_level.toLowerCase()}`;
+                    const changeTypeName = formatChangeType(change.change_type);
+                    return `
+                        <div class="change-item ${riskClass}">
+                            <div class="change-header">
+                                <span class="change-type">${changeTypeName}</span>
+                                <span class="risk-badge ${change.risk_level.toLowerCase()}">${change.risk_level}</span>
+                            </div>
+                            <div class="change-explanation">${change.explanation}</div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                changesList.innerHTML = '';
+            }
+
+            // Section comparison view
+            renderComparisonView(result.aligned_pairs || [], diff.changes || []);
+        }
+
+        // Convert alignment type to CSS class
+        function alignmentTypeToClass(type) {
+            const typeStr = typeof type === 'string' ? type : Object.keys(type)[0];
+            // Insert hyphen before capitals, then lowercase (order matters!)
+            return typeStr.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
+        }
+
+        // Get display label for alignment type
+        function alignmentTypeLabel(type) {
+            const typeStr = typeof type === 'string' ? type : Object.keys(type)[0];
+            return typeStr.replace(/([A-Z])/g, ' $1').trim();
+        }
+
+        // Get section title for display
+        function getSectionTitle(sections) {
+            if (!sections || sections.length === 0) return 'Unknown Section';
+            const first = sections[0];
+            if (first.title) return first.title;
+            return first.canonical_id || 'Section';
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Tokenize text into words and whitespace, preserving boundaries
+        // This mirrors how layered-nlp tokenizes text
+        function tokenize(text) {
+            const tokens = [];
+            // Match: words, numbers, punctuation, whitespace sequences
+            const regex = /(\s+|[a-zA-Z]+|[0-9]+(?:\.[0-9]+)?|[^\s\w])/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                tokens.push(match[0]);
+            }
+            return tokens;
+        }
+
+        // Compute token-level diff using diff_match_patch with word-mode technique
+        // This produces diffs at the word/token level, not character level
+        function computeTokenDiff(original, revised) {
+            const origTokens = tokenize(original);
+            const revTokens = tokenize(revised);
+
+            // Map unique tokens to unique characters for diffing
+            const tokenToChar = new Map();
+            const charToToken = new Map();
+            let nextChar = 0x100; // Start above ASCII
+
+            function getCharForToken(token) {
+                if (!tokenToChar.has(token)) {
+                    const char = String.fromCharCode(nextChar++);
+                    tokenToChar.set(token, char);
+                    charToToken.set(char, token);
+                }
+                return tokenToChar.get(token);
+            }
+
+            // Convert token arrays to character strings
+            const origChars = origTokens.map(getCharForToken).join('');
+            const revChars = revTokens.map(getCharForToken).join('');
+
+            // Diff at character level (each char = one token)
+            const diffs = dmp.diff_main(origChars, revChars);
+            // Note: Don't call diff_cleanupSemantic - it would merge tokens incorrectly
+
+            // Map back to tokens
+            const tokenDiffs = [];
+            for (const [op, chars] of diffs) {
+                const tokens = [...chars].map(c => charToToken.get(c));
+                tokenDiffs.push([op, tokens.join('')]);
+            }
+
+            // Post-process: Factor out common prefixes/suffixes from adjacent del/add pairs
+            // This handles cases like: DEL "information" + ADD "technical information"
+            // → ADD "technical " + EQUAL "information"
+            return optimizeDiffPairs(tokenDiffs);
+        }
+
+        // Optimize diff output to factor out common content from adjacent del/add pairs
+        function optimizeDiffPairs(diffs) {
+            const result = [];
+            let i = 0;
+
+            while (i < diffs.length) {
+                // Look for DEL followed by ADD (or ADD followed by DEL)
+                if (i + 1 < diffs.length) {
+                    const [op1, text1] = diffs[i];
+                    const [op2, text2] = diffs[i + 1];
+
+                    // Case: DEL then ADD
+                    if (op1 === -1 && op2 === 1) {
+                        const optimized = factorCommonContent(text1, text2);
+                        result.push(...optimized);
+                        i += 2;
+                        continue;
+                    }
+                    // Case: ADD then DEL
+                    if (op1 === 1 && op2 === -1) {
+                        const optimized = factorCommonContent(text2, text1, true);
+                        result.push(...optimized);
+                        i += 2;
+                        continue;
+                    }
+                }
+                result.push(diffs[i]);
+                i++;
+            }
+
+            // Merge adjacent same-op entries
+            return mergeAdjacentDiffs(result);
+        }
+
+        // Factor out common prefix/suffix from a deletion and addition
+        // Handles cases like: DEL "information" + ADD "technical information"
+        // → ADD "technical " + EQUAL "information"
+        function factorCommonContent(deleted, added, swapped = false) {
+            // Get non-whitespace tokens only for comparison
+            const getWords = (text) => text.split(/\s+/).filter(w => w.length > 0);
+            const delWords = getWords(deleted);
+            const addWords = getWords(added);
+
+            // Find common suffix words
+            let suffixCount = 0;
+            while (suffixCount < delWords.length && suffixCount < addWords.length) {
+                const delWord = delWords[delWords.length - 1 - suffixCount];
+                const addWord = addWords[addWords.length - 1 - suffixCount];
+                if (delWord === addWord) {
+                    suffixCount++;
+                } else {
+                    break;
+                }
+            }
+
+            // Find common prefix words
+            let prefixCount = 0;
+            const delRemaining = delWords.length - suffixCount;
+            const addRemaining = addWords.length - suffixCount;
+            while (prefixCount < delRemaining && prefixCount < addRemaining) {
+                if (delWords[prefixCount] === addWords[prefixCount]) {
+                    prefixCount++;
+                } else {
+                    break;
+                }
+            }
+
+            // If we found common content, reconstruct
+            if (prefixCount > 0 || suffixCount > 0) {
+                const result = [];
+
+                // Common prefix
+                if (prefixCount > 0) {
+                    result.push([0, addWords.slice(0, prefixCount).join(' ') + ' ']);
+                }
+
+                // Changed middle
+                const delMiddleWords = delWords.slice(prefixCount, delWords.length - suffixCount);
+                const addMiddleWords = addWords.slice(prefixCount, addWords.length - suffixCount);
+
+                if (swapped) {
+                    if (addMiddleWords.length > 0) {
+                        result.push([1, addMiddleWords.join(' ') + (suffixCount > 0 ? ' ' : '')]);
+                    }
+                    if (delMiddleWords.length > 0) {
+                        result.push([-1, delMiddleWords.join(' ') + (suffixCount > 0 ? ' ' : '')]);
+                    }
+                } else {
+                    if (delMiddleWords.length > 0) {
+                        result.push([-1, delMiddleWords.join(' ') + (suffixCount > 0 ? ' ' : '')]);
+                    }
+                    if (addMiddleWords.length > 0) {
+                        result.push([1, addMiddleWords.join(' ') + (suffixCount > 0 ? ' ' : '')]);
+                    }
+                }
+
+                // Common suffix
+                if (suffixCount > 0) {
+                    result.push([0, addWords.slice(addWords.length - suffixCount).join(' ')]);
+                }
+
+                return result.filter(([op, text]) => text.trim().length > 0);
+            }
+
+            // No common content found, return as-is
+            if (swapped) {
+                return [[1, added], [-1, deleted]].filter(([op, text]) => text.length > 0);
+            }
+            return [[-1, deleted], [1, added]].filter(([op, text]) => text.length > 0);
+        }
+
+        // Merge adjacent diff entries with the same operation
+        function mergeAdjacentDiffs(diffs) {
+            const result = [];
+            for (const [op, text] of diffs) {
+                if (result.length > 0 && result[result.length - 1][0] === op) {
+                    result[result.length - 1][1] += text;
+                } else {
+                    result.push([op, text]);
+                }
+            }
+            return result;
+        }
+
+        // Render token diffs provided by Rust (preferred when available)
+        // Format: [{text, status: "Unchanged"|"Added"|"Removed", tag, ...}]
+        function renderWordDiffFromRust(tokenDiffs) {
+            if (!tokenDiffs || tokenDiffs.length === 0) return '';
+
+            let html = '';
+            for (const token of tokenDiffs) {
+                const escaped = escapeHtml(token.text);
+                if (token.status === 'Removed') {
+                    html += `<span class="diff-del">${escaped}</span>`;
+                } else if (token.status === 'Added') {
+                    html += `<span class="diff-add">${escaped}</span>`;
+                } else {
+                    // Unchanged
+                    html += escaped;
+                }
+            }
+            return html;
+        }
+
+        // Compute token-level diff and render as HTML with highlighting
+        // If rustTokenDiffs is provided, uses those instead of computing JS diff
+        function renderWordDiff(original, revised, rustTokenDiffs = null) {
+            // Prefer Rust-provided diffs when available
+            if (rustTokenDiffs && rustTokenDiffs.length > 0) {
+                return renderWordDiffFromRust(rustTokenDiffs);
+            }
+
+            // Fallback to JavaScript diff computation
+            if (!original && !revised) return '';
+            if (!original) {
+                // All added
+                return `<span class="diff-add">${escapeHtml(revised)}</span>`;
+            }
+            if (!revised) {
+                // All deleted
+                return `<span class="diff-del">${escapeHtml(original)}</span>`;
+            }
+
+            // Normalize whitespace to focus on word changes, not formatting
+            // This prevents line break position from affecting the diff
+            const normalizeWhitespace = (text) => text.replace(/\s+/g, ' ').trim();
+            const normOrig = normalizeWhitespace(original);
+            const normRev = normalizeWhitespace(revised);
+
+            // Compute token-level diff on normalized text
+            const diffs = computeTokenDiff(normOrig, normRev);
+
+            // Render with highlighting
+            let html = '';
+            for (const [op, text] of diffs) {
+                const escaped = escapeHtml(text);
+                if (op === -1) {
+                    html += `<span class="diff-del">${escaped}</span>`;
+                } else if (op === 1) {
+                    html += `<span class="diff-add">${escaped}</span>`;
+                } else {
+                    html += escaped;
+                }
+            }
+            return html;
+        }
+
+        // Check if two texts are 100% identical
+        function textsAreIdentical(original, revised) {
+            return original === revised;
+        }
+
+        // Determine the true alignment type based on text comparison
+        function getTrueAlignmentType(pair) {
+            // If backend says ExactMatch, verify the texts are actually identical
+            if (pair.alignment_type === 'ExactMatch') {
+                const origText = (pair.original_texts || []).join('\n');
+                const revText = (pair.revised_texts || []).join('\n');
+                if (!textsAreIdentical(origText, revText)) {
+                    return 'Modified'; // Override to Modified if texts differ
+                }
+            }
+            return pair.alignment_type;
+        }
+
+        // Recalculate alignment counts using corrected labels
+        function recalculateAlignmentCounts(alignedPairs) {
+            const counts = {
+                unchanged: 0,
+                modified: 0,
+                inserted: 0,
+                deleted: 0,
+                renumbered: 0
+            };
+
+            for (const pair of alignedPairs) {
+                const trueType = getTrueAlignmentType(pair);
+                const typeClass = alignmentTypeToClass(trueType);
+
+                if (typeClass === 'exact-match') {
+                    counts.unchanged++;
+                } else if (typeClass === 'modified') {
+                    counts.modified++;
+                } else if (typeClass === 'inserted') {
+                    counts.inserted++;
+                } else if (typeClass === 'deleted') {
+                    counts.deleted++;
+                } else if (typeClass === 'renumbered') {
+                    counts.renumbered++;
+                }
+            }
+
+            return counts;
+        }
+
+        // Create impact analysis panel HTML
+        function createImpactPanel(changes) {
+            if (!changes || changes.length === 0) return '';
+
+            const panelsHtml = changes.map(change => {
+                const typeName = formatChangeType(change.change_type);
+                const riskClass = change.risk_level.toLowerCase();
+
+                // Format party impacts
+                let partyHtml = '';
+                if (change.party_impacts && change.party_impacts.length > 0) {
+                    partyHtml = change.party_impacts.map(pi => {
+                        const impact = pi.impact || 'Neutral';
+                        const impactClass = impact === 'Favorable' ? 'party-favorable' :
+                                            impact === 'Unfavorable' ? 'party-unfavorable' : 'party-neutral';
+                        const arrow = impact === 'Favorable' ? '↑' :
+                                      impact === 'Unfavorable' ? '↓' : '→';
+                        return `<span class="party-impact ${impactClass}">${arrow} ${escapeHtml(pi.party || 'Unknown')}: ${impact}</span>`;
+                    }).join('');
+                }
+
+                return `
+                    <div class="impact-panel">
+                        <div class="impact-header">
+                            <span>⚠️ ${typeName}</span>
+                            <span class="risk-indicator ${riskClass}">${change.risk_level}</span>
+                        </div>
+                        <div class="impact-explanation">${escapeHtml(change.explanation)}</div>
+                        ${partyHtml ? `<div class="party-impacts">${partyHtml}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            return panelsHtml;
+        }
+
+        // Find changes that affect a section (by matching section IDs in explanations)
+        function findChangesForSection(sectionIds, changes) {
+            if (!sectionIds || sectionIds.length === 0 || !changes) return [];
+            // Match changes by checking if explanation contains any section ID
+            // This works because structural changes include "Section {id}" in explanations
+            return changes.filter(c => {
+                const explanation = c.explanation || '';
+                return sectionIds.some(id => explanation.includes(id));
+            });
+        }
+
+        // Get the highest risk level for a section based on its changes
+        function getRiskLevelForSection(sectionChanges, alignmentType) {
+            const typeClass = alignmentTypeToClass(alignmentType);
+
+            // If there are semantic changes, use the highest risk level
+            if (sectionChanges && sectionChanges.length > 0) {
+                const riskOrder = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
+                let maxRisk = 'low';
+                for (const change of sectionChanges) {
+                    const level = change.risk_level.toLowerCase();
+                    if (riskOrder[level] > riskOrder[maxRisk]) {
+                        maxRisk = level;
+                    }
+                }
+                return maxRisk;
+            }
+
+            // No semantic changes - use alignment type
+            if (typeClass === 'exact-match') return 'unchanged';
+            if (typeClass === 'inserted') return 'inserted';
+            if (typeClass === 'deleted') return 'deleted';
+            return 'medium'; // Modified without detected changes
+        }
+
+        // Populate the section outline sidebar
+        function populateSidebar(alignedPairs, changes) {
+            if (!alignedPairs || alignedPairs.length === 0) {
+                sidebarItems.innerHTML = '<div class="empty-state" style="padding: 1rem; font-size: 12px;">No sections</div>';
+                return;
+            }
+
+            let html = '';
+            for (let i = 0; i < alignedPairs.length; i++) {
+                const pair = alignedPairs[i];
+                const trueType = getTrueAlignmentType(pair);
+                const title = getSectionTitle(pair.original.length > 0 ? pair.original : pair.revised);
+                const sectionChanges = findChangesForSection(pair.section_ids || [], changes);
+                const riskLevel = getRiskLevelForSection(sectionChanges, trueType);
+                const rowId = `section-row-${i}`;
+
+                html += `
+                    <div class="sidebar-item" data-target="${rowId}" data-index="${i}">
+                        <span class="risk-dot ${riskLevel}"></span>
+                        <span class="sidebar-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
+                    </div>
+                `;
+            }
+
+            sidebarItems.innerHTML = html;
+
+            // Add click handlers for sidebar items
+            sidebarItems.querySelectorAll('.sidebar-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const targetId = item.dataset.target;
+                    const target = document.getElementById(targetId);
+                    if (target) {
+                        // Remove previous highlights
+                        document.querySelectorAll('.section-row.highlight').forEach(el => {
+                            el.classList.remove('highlight');
+                        });
+                        // Expand if collapsed
+                        target.classList.remove('collapsed');
+                        // Scroll and highlight
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        target.classList.add('highlight');
+                        // Update active state in sidebar
+                        sidebarItems.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+                        item.classList.add('active');
+                    }
+                });
+            });
+        }
+
+        // Setup Intersection Observer for scroll-sync
+        let scrollSyncObserver = null;
+        function setupScrollSync() {
+            // Disconnect previous observer if exists
+            if (scrollSyncObserver) {
+                scrollSyncObserver.disconnect();
+            }
+
+            const sectionRows = document.querySelectorAll('.section-row');
+            if (sectionRows.length === 0) return;
+
+            scrollSyncObserver = new IntersectionObserver((entries) => {
+                // Find the most visible section
+                let mostVisible = null;
+                let maxRatio = 0;
+
+                for (const entry of entries) {
+                    if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+                        maxRatio = entry.intersectionRatio;
+                        mostVisible = entry.target;
+                    }
+                }
+
+                if (mostVisible) {
+                    const index = mostVisible.id.replace('section-row-', '');
+                    // Update sidebar active state
+                    sidebarItems.querySelectorAll('.sidebar-item').forEach(item => {
+                        if (item.dataset.index === index) {
+                            item.classList.add('active');
+                            // Scroll sidebar to keep active item visible
+                            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+                }
+            }, {
+                root: null, // viewport
+                rootMargin: '-10% 0px -70% 0px', // Trigger when section enters top 30% of viewport
+                threshold: [0, 0.25, 0.5, 0.75, 1]
+            });
+
+            // Observe all section rows
+            sectionRows.forEach(row => scrollSyncObserver.observe(row));
+        }
+
+        // Keyboard navigation state
+        let keyboardFocusIndex = -1;
+
+        // Get all visible changed section indices (skip ExactMatch and hidden)
+        function getVisibleChangedIndices() {
+            const indices = [];
+            document.querySelectorAll('.section-row').forEach((row, i) => {
+                if (!row.classList.contains('hidden-unchanged') &&
+                    !row.classList.contains('exact-match')) {
+                    indices.push(i);
+                }
+            });
+            return indices;
+        }
+
+        // Navigate to section by index
+        function navigateToSection(index) {
+            // Remove previous focus
+            document.querySelectorAll('.section-row.keyboard-focus').forEach(el => {
+                el.classList.remove('keyboard-focus');
+            });
+
+            const row = document.getElementById(`section-row-${index}`);
+            if (row) {
+                // Expand if collapsed
+                row.classList.remove('collapsed');
+                // Add focus ring
+                row.classList.add('keyboard-focus');
+                // Scroll into view
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Update URL hash
+                window.history.replaceState(null, '', `#section-${index}`);
+                // Update sidebar active state
+                sidebarItems.querySelectorAll('.sidebar-item').forEach(item => {
+                    if (item.dataset.index === String(index)) {
+                        item.classList.add('active');
+                        item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+        }
+
+        // Keyboard navigation handler
+        function handleKeyboardNavigation(e) {
+            // Only handle j/k when not in an input field
+            if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+                return;
+            }
+
+            const changedIndices = getVisibleChangedIndices();
+            if (changedIndices.length === 0) return;
+
+            if (e.key === 'j') {
+                // Next changed section
+                e.preventDefault();
+                if (keyboardFocusIndex === -1) {
+                    keyboardFocusIndex = changedIndices[0];
+                } else {
+                    const currentPos = changedIndices.indexOf(keyboardFocusIndex);
+                    if (currentPos < changedIndices.length - 1) {
+                        keyboardFocusIndex = changedIndices[currentPos + 1];
+                    } else {
+                        // Wrap to first
+                        keyboardFocusIndex = changedIndices[0];
+                    }
+                }
+                navigateToSection(keyboardFocusIndex);
+            } else if (e.key === 'k') {
+                // Previous changed section
+                e.preventDefault();
+                if (keyboardFocusIndex === -1) {
+                    keyboardFocusIndex = changedIndices[changedIndices.length - 1];
+                } else {
+                    const currentPos = changedIndices.indexOf(keyboardFocusIndex);
+                    if (currentPos > 0) {
+                        keyboardFocusIndex = changedIndices[currentPos - 1];
+                    } else {
+                        // Wrap to last
+                        keyboardFocusIndex = changedIndices[changedIndices.length - 1];
+                    }
+                }
+                navigateToSection(keyboardFocusIndex);
+            }
+        }
+
+        // Apply filters based on checkbox states
+        function applyFilters() {
+            const showCritical = filterCritical.checked;
+            const showHigh = filterHigh.checked;
+            const showMedium = filterMedium.checked;
+            const showLow = filterLow.checked;
+            const showUnchanged = filterUnchanged.checked;
+
+            // Map risk levels to filter state
+            const filterMap = {
+                'critical': showCritical,
+                'high': showHigh,
+                'medium': showMedium,
+                'low': showLow
+            };
+
+            // Filter section rows
+            document.querySelectorAll('.section-row').forEach(row => {
+                const risk = row.dataset.risk; // May be undefined
+                const typeClass = row.classList.contains('exact-match') ? 'exact-match' :
+                                  row.classList.contains('inserted') ? 'inserted' :
+                                  row.classList.contains('deleted') ? 'deleted' : 'modified';
+
+                // Determine if this row should be visible
+                let shouldShow;
+                if (typeClass === 'exact-match') {
+                    // Unchanged sections controlled by unchanged filter
+                    shouldShow = showUnchanged;
+                } else if (typeClass === 'inserted' || typeClass === 'deleted') {
+                    // Inserted/Deleted are always changes - show based on their risk level if set,
+                    // otherwise always show (they're structural changes)
+                    if (risk && filterMap[risk] !== undefined) {
+                        shouldShow = filterMap[risk];
+                    } else {
+                        shouldShow = true; // Always show if no specific risk
+                    }
+                } else {
+                    // Modified - use the risk level, default to showing if no risk
+                    if (risk && filterMap[risk] !== undefined) {
+                        shouldShow = filterMap[risk];
+                    } else {
+                        shouldShow = true; // Show modified without specific risk
+                    }
+                }
+
+                if (shouldShow) {
+                    row.classList.remove('hidden-unchanged');
+                } else {
+                    row.classList.add('hidden-unchanged');
+                }
+            });
+
+            // Update sidebar items to match
+            sidebarItems.querySelectorAll('.sidebar-item').forEach(item => {
+                const index = item.dataset.index;
+                const row = document.getElementById(`section-row-${index}`);
+                if (row && row.classList.contains('hidden-unchanged')) {
+                    item.classList.add('filtered-out');
+                } else {
+                    item.classList.remove('filtered-out');
+                }
+            });
+        }
+
+        // Render section comparison view
+        function renderComparisonView(alignedPairs, changes) {
+            const comparisonRows = document.getElementById('comparison-rows');
+
+            if (!alignedPairs || alignedPairs.length === 0) {
+                comparisonRows.innerHTML = '<div class="empty-state">No sections to compare</div>';
+                return;
+            }
+
+            let html = '';
+            let sectionIndex = 0;
+
+            for (const pair of alignedPairs) {
+                // Gate 3.4: Fix ExactMatch labeling - only 100% identical = ExactMatch
+                const trueAlignmentType = getTrueAlignmentType(pair);
+                const typeClass = alignmentTypeToClass(trueAlignmentType);
+                const typeLabel = alignmentTypeLabel(trueAlignmentType);
+                const isExactMatch = typeClass === 'exact-match';
+                const isInserted = typeClass === 'inserted';
+                const isDeleted = typeClass === 'deleted';
+
+                // Find changes affecting this pair's sections
+                const sectionChanges = findChangesForSection(
+                    pair.section_ids || [],
+                    changes
+                );
+                const rowId = `section-row-${sectionIndex}`;
+                const riskAttr = sectionChanges.length > 0
+                    ? `data-risk="${sectionChanges[0].risk_level.toLowerCase()}"`
+                    : '';
+
+                // Gate 3.5-3.6: Create impact panel with explanation and party_impacts
+                const impactHtml = createImpactPanel(sectionChanges);
+
+                // Determine row structure based on alignment type
+                if (isExactMatch) {
+                    // Unified row for TRUE ExactMatch (collapsed by default)
+                    const title = getSectionTitle(pair.original.length > 0 ? pair.original : pair.revised);
+                    const content = pair.original_texts.length > 0
+                        ? pair.original_texts.join('\n\n')
+                        : pair.revised_texts.join('\n\n');
+
+                    html += `
+                        <div class="section-row unified exact-match collapsed" id="${rowId}" ${riskAttr}>
+                            <div class="section-cell">
+                                <div class="section-cell-header" onclick="this.closest('.section-row').classList.toggle('collapsed')" style="cursor: pointer;">
+                                    <span class="section-title">
+                                        ${escapeHtml(title)}
+                                        <span class="expand-indicator">(click to expand)</span>
+                                    </span>
+                                    <span class="alignment-type-badge">Unchanged</span>
+                                </div>
+                                <div class="section-content">${escapeHtml(content)}</div>
+                            </div>
+                        </div>
+                    `;
+                } else if (isInserted) {
+                    // Right-only for Inserted - all text is "added"
+                    const title = getSectionTitle(pair.revised);
+                    const content = pair.revised_texts.join('\n\n');
+                    const diffHtml = renderWordDiff('', content);
+                    html += `
+                        <div class="section-row inserted" id="${rowId}" ${riskAttr}>
+                            <div class="section-cell empty"></div>
+                            <div class="section-cell">
+                                <div class="section-cell-header">
+                                    <span class="section-title">${escapeHtml(title)}</span>
+                                    <span class="alignment-type-badge">Added</span>
+                                </div>
+                                <div class="section-content">${diffHtml}</div>
+                                ${impactHtml}
+                            </div>
+                        </div>
+                    `;
+                } else if (isDeleted) {
+                    // Left-only for Deleted - all text is "removed"
+                    const title = getSectionTitle(pair.original);
+                    const content = pair.original_texts.join('\n\n');
+                    const diffHtml = renderWordDiff(content, '');
+                    html += `
+                        <div class="section-row deleted" id="${rowId}" ${riskAttr}>
+                            <div class="section-cell">
+                                <div class="section-cell-header">
+                                    <span class="section-title">${escapeHtml(title)}</span>
+                                    <span class="alignment-type-badge">Removed</span>
+                                </div>
+                                <div class="section-content">${diffHtml}</div>
+                                ${impactHtml}
+                            </div>
+                            <div class="section-cell empty"></div>
+                        </div>
+                    `;
+                } else {
+                    // Side-by-side for Modified, Renumbered, etc.
+                    // Gate 3.2-3.3: Show word-level diff highlighting
+                    const origTitle = getSectionTitle(pair.original);
+                    const revTitle = getSectionTitle(pair.revised);
+                    const origContent = pair.original_texts.join('\n\n');
+                    const revContent = pair.revised_texts.join('\n\n');
+
+                    // Prefer Rust-provided token diffs when available
+                    const diffHtml = renderWordDiff(origContent, revContent, pair.token_diffs);
+
+                    // TUI style: Compact header row, then content
+                    html += `
+                        <div class="section-row ${typeClass}" id="${rowId}" ${riskAttr}>
+                            <div class="section-cell">
+                                <div class="section-cell-header">
+                                    <span class="section-title">${escapeHtml(origTitle)}</span>
+                                </div>
+                                <div class="section-content">${escapeHtml(origContent)}</div>
+                            </div>
+                            <div class="section-cell">
+                                <div class="section-cell-header">
+                                    <span class="section-title">${escapeHtml(revTitle)}</span>
+                                    <span class="alignment-type-badge">${typeLabel}</span>
+                                </div>
+                                <div class="section-content">${diffHtml}</div>
+                                ${impactHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+                sectionIndex++;
+            }
+
+            comparisonRows.innerHTML = html;
+
+            // Reset filters to show all
+            hideUnchangedToggle.checked = false;
+            filterCritical.checked = true;
+            filterHigh.checked = true;
+            filterMedium.checked = true;
+            filterLow.checked = true;
+            filterUnchanged.checked = true;
+
+            // Reset keyboard navigation
+            keyboardFocusIndex = -1;
+
+            // Populate sidebar and setup scroll-sync
+            populateSidebar(alignedPairs, changes);
+            setupScrollSync();
+        }
+
+        // Compare contracts
+        async function compareContracts() {
+            clearError();
+            resultsSection.classList.add('hidden');
+            loading.classList.add('active');
+            compareBtn.disabled = true;
+
+            try {
+                // Small delay to allow UI to update
+                await new Promise(resolve => setTimeout(resolve, 10));
+
+                const original = originalInput.value;
+                const revised = revisedInput.value;
+
+                const result = wasmModule.compare_contracts(original, revised);
+
+                // Check for error response
+                if (result.error) {
+                    showError(result.error.code, result.error.message, result.error.details);
+                } else {
+                    renderResults(result);
+                }
+            } catch (err) {
+                console.error('Compare failed:', err);
+                showError('internal_error', `Comparison failed: ${err.message}`);
+            } finally {
+                loading.classList.remove('active');
+                compareBtn.disabled = false;
+            }
+        }
+
+        // Scroll to first section with given risk level (exposed globally for onclick)
+        window.scrollToRisk = function(riskLevel) {
+            const selector = `.section-row[data-risk="${riskLevel}"]`;
+            const target = document.querySelector(selector);
+            if (target) {
+                // Remove previous highlights
+                document.querySelectorAll('.section-row.highlight').forEach(el => {
+                    el.classList.remove('highlight');
+                });
+                // Expand if collapsed
+                target.classList.remove('collapsed');
+                // Scroll and highlight
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.classList.add('highlight');
+            }
+        }
+
+        // Scroll to section containing a specific change (exposed globally for onclick)
+        window.scrollToChangeInSection = function(changeIndex) {
+            if (!currentResult || !currentResult.diff || !currentResult.diff.changes) return;
+            const change = currentResult.diff.changes[changeIndex];
+            if (!change) return;
+
+            // Find the section that contains this change based on explanation text
+            const sections = document.querySelectorAll('.section-row');
+            for (const section of sections) {
+                const risk = section.dataset.risk;
+                if (risk === change.risk_level.toLowerCase()) {
+                    // Remove previous highlights
+                    document.querySelectorAll('.section-row.highlight').forEach(el => {
+                        el.classList.remove('highlight');
+                    });
+                    section.classList.remove('collapsed');
+                    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    section.classList.add('highlight');
+
+                    // Also highlight the corresponding outline item
+                    const sectionIndex = section.id.replace('section-row-', '');
+                    sidebarItems.querySelectorAll('.sidebar-item').forEach(item => {
+                        if (item.dataset.index === sectionIndex) {
+                            item.classList.add('active');
+                            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+                    return;
+                }
+            }
+        }
+
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        const searchPrev = document.getElementById('search-prev');
+        const searchNext = document.getElementById('search-next');
+        const searchCount = document.getElementById('search-count');
+        let searchMatches = [];
+        let currentSearchIndex = -1;
+
+        function clearSearchHighlights() {
+            document.querySelectorAll('.search-highlight').forEach(el => {
+                el.classList.remove('search-highlight', 'search-current');
+            });
+            searchMatches = [];
+            currentSearchIndex = -1;
+            searchCount.textContent = '';
+        }
+
+        function performSearch(query) {
+            clearSearchHighlights();
+            if (!query || query.length < 2) return;
+
+            const lowerQuery = query.toLowerCase();
+            const sections = document.querySelectorAll('.section-content');
+
+            sections.forEach(section => {
+                const text = section.textContent.toLowerCase();
+                if (text.includes(lowerQuery)) {
+                    // Mark the section row as a match
+                    const row = section.closest('.section-row');
+                    if (row && !row.classList.contains('hidden-unchanged')) {
+                        row.classList.add('search-highlight');
+                        searchMatches.push(row);
+                    }
+                }
+            });
+
+            if (searchMatches.length > 0) {
+                currentSearchIndex = 0;
+                highlightCurrentMatch();
+                searchCount.textContent = `1/${searchMatches.length}`;
+            } else {
+                searchCount.textContent = '0/0';
+            }
+        }
+
+        function highlightCurrentMatch() {
+            searchMatches.forEach((el, i) => {
+                el.classList.toggle('search-current', i === currentSearchIndex);
+            });
+            if (searchMatches[currentSearchIndex]) {
+                const match = searchMatches[currentSearchIndex];
+                match.classList.remove('collapsed');
+                match.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Update sidebar
+                const index = match.id.replace('section-row-', '');
+                sidebarItems.querySelectorAll('.sidebar-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.index === index);
+                });
+            }
+        }
+
+        function searchNavigate(direction) {
+            if (searchMatches.length === 0) return;
+            currentSearchIndex = (currentSearchIndex + direction + searchMatches.length) % searchMatches.length;
+            highlightCurrentMatch();
+            searchCount.textContent = `${currentSearchIndex + 1}/${searchMatches.length}`;
+        }
+
+        searchInput.addEventListener('input', (e) => performSearch(e.target.value));
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchNavigate(e.shiftKey ? -1 : 1);
+            } else if (e.key === 'Escape') {
+                searchInput.value = '';
+                clearSearchHighlights();
+            }
+        });
+        searchPrev.addEventListener('click', () => searchNavigate(-1));
+        searchNext.addEventListener('click', () => searchNavigate(1));
+
+        // Event listeners
+        originalInput.addEventListener('input', () => updateCounter(originalInput, originalCounter));
+        revisedInput.addEventListener('input', () => updateCounter(revisedInput, revisedCounter));
+
+        compareBtn.addEventListener('click', compareContracts);
+
+        sampleBtn.addEventListener('click', () => {
+            originalInput.value = SAMPLE_ORIGINAL;
+            revisedInput.value = SAMPLE_REVISED;
+            updateCounter(originalInput, originalCounter);
+            updateCounter(revisedInput, revisedCounter);
+        });
+
+        clearBtn.addEventListener('click', () => {
+            originalInput.value = '';
+            revisedInput.value = '';
+            updateCounter(originalInput, originalCounter);
+            updateCounter(revisedInput, revisedCounter);
+            clearError();
+            resultsSection.classList.add('hidden');
+            currentResult = null;
+            // Expand input area
+            inputSection.classList.remove('collapsed');
+            inputToggleBtn.textContent = 'Hide Inputs';
+        });
+
+        // Input toggle
+        inputToggleBtn.addEventListener('click', () => {
+            inputSection.classList.toggle('collapsed');
+            inputToggleBtn.textContent = inputSection.classList.contains('collapsed')
+                ? 'Show Inputs'
+                : 'Hide Inputs';
+        });
+
+        // Expand/Collapse all unchanged sections
+        expandAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('.section-row.exact-match.collapsed').forEach(row => {
+                row.classList.remove('collapsed');
+            });
+        });
+
+        collapseAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('.section-row.exact-match:not(.collapsed)').forEach(row => {
+                row.classList.add('collapsed');
+            });
+        });
+
+        // Gate 3.7: Hide Unchanged Sections toggle - syncs with filter checkbox
+        hideUnchangedToggle.addEventListener('change', () => {
+            filterUnchanged.checked = !hideUnchangedToggle.checked;
+            applyFilters();
+        });
+
+        // Filter checkbox event listeners
+        [filterCritical, filterHigh, filterMedium, filterLow, filterUnchanged].forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                applyFilters();
+                // Sync hideUnchangedToggle with filterUnchanged
+                hideUnchangedToggle.checked = !filterUnchanged.checked;
+            });
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', handleKeyboardNavigation);
+
+        // Handle URL hash on page load
+        function scrollToHashOnLoad() {
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#section-')) {
+                const index = parseInt(hash.replace('#section-', ''), 10);
+                if (!isNaN(index)) {
+                    // Wait for DOM to be ready
+                    setTimeout(() => {
+                        const row = document.getElementById(`section-row-${index}`);
+                        if (row) {
+                            keyboardFocusIndex = index;
+                            navigateToSection(index);
+                        }
+                    }, 100);
+                }
+            }
+        }
+
+        // Initialize
+        loadWasm();
+        scrollToHashOnLoad();
+    </script>
+</body>
+</html>
