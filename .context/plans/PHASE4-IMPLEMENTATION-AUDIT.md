@@ -1,6 +1,6 @@
 # Phase 4 Implementation Audit (FR-005, FR-006)
 
-Last updated: 2024-12-29
+Last updated: 2024-12-30
 
 ## Purpose
 
@@ -38,9 +38,9 @@ These foundational features are **complete and verified**. See FR-000-index.md f
 
 | Milestone | FR | Plan Doc | Code Modules (expected) | Test Modules | Status | Notes |
 |-----------|-----|----------|-------------------------|--------------|--------|-------|
-| **M1** | FR-006 | [M1-baseline-conflict-detector.md](M1-baseline-conflict-detector.md) | `conflict_detector.rs` | (inline) | ✓ Verified | 54 tests, all gates complete |
+| **M1** | FR-006 | [M1-baseline-conflict-detector.md](completed/M1-baseline-conflict-detector.md) | `conflict_detector.rs` | (inline) | ✓ Verified | 54 tests, all gates complete |
 | M2 | FR-005 | FR-005 §M2 | `clause_boundary_resolver.rs` | `tests/clause_boundary.rs` | 📋 Planned | |
-| M3 | FR-005 | FR-005 §M3 | `terms_of_art_resolver.rs` | `tests/terms_of_art.rs` | 📋 Planned | |
+| **M3** | FR-005 | [M3-terms-of-art-resolver.md](completed/M3-terms-of-art-resolver.md) | `terms_of_art.rs` | (inline) | ✓ Verified | 36 tests, all gates complete |
 | M4 | FR-006 | FR-006 §M4 | `precedence_resolution.rs` | `tests/precedence_conflicts.rs` | 📋 Planned | |
 | M5 | FR-006 | FR-006 §M5 | (metalinguistic + deictic) | TBD | 📋 Planned | |
 | M6 | FR-005 | FR-005 §M6 | (PP/relative attachment) | TBD | 📋 Planned | |

@@ -7,6 +7,7 @@ use crate::{
     ContractDocument, ContractKeywordResolver, DefinedTermResolver, ObligationPhraseResolver,
     ProcessError, PronounChainResolver, PronounResolver, SectionHeaderResolver,
     SectionReferenceResolver, TemporalExpressionResolver, TermReferenceResolver,
+    TermsOfArtResolver,
 };
 
 /// Pipeline preset for running contract analysis resolvers.
@@ -26,6 +27,7 @@ enum ResolverType {
     SectionHeader,
     SectionReference,
     ContractKeyword,
+    TermsOfArt,
     DefinedTerm,
     TermReference,
     Temporal,
@@ -59,18 +61,20 @@ impl Pipeline {
     /// 1. SectionHeader - section structure (no deps)
     /// 2. SectionReference - cross-references (needs headers)
     /// 3. ContractKeyword - modal verbs (no deps)
-    /// 4. DefinedTerm - term definitions (no deps)
-    /// 5. TermReference - term usage (needs DefinedTerm)
-    /// 6. Temporal - time expressions (no deps)
-    /// 7. Pronoun - pronoun resolution (needs DefinedTerm)
-    /// 8. PronounChain - pronoun chains (needs Pronoun, DefinedTerm)
-    /// 9. Obligation - obligation phrases (needs TermReference, PronounChain)
+    /// 4. TermsOfArt - multi-word expressions (no deps, prevents splitting)
+    /// 5. DefinedTerm - term definitions (no deps)
+    /// 6. TermReference - term usage (needs DefinedTerm)
+    /// 7. Temporal - time expressions (no deps)
+    /// 8. Pronoun - pronoun resolution (needs DefinedTerm)
+    /// 9. PronounChain - pronoun chains (needs Pronoun, DefinedTerm)
+    /// 10. Obligation - obligation phrases (needs TermReference, PronounChain)
     pub fn standard() -> Self {
         Self {
             resolvers: vec![
                 ResolverType::SectionHeader,
                 ResolverType::SectionReference,
                 ResolverType::ContractKeyword,
+                ResolverType::TermsOfArt,
                 ResolverType::DefinedTerm,
                 ResolverType::TermReference,
                 ResolverType::Temporal,
@@ -92,6 +96,7 @@ impl Pipeline {
                     doc.run_resolver(&SectionReferenceResolver::new())
                 }
                 ResolverType::ContractKeyword => doc.run_resolver(&ContractKeywordResolver::new()),
+                ResolverType::TermsOfArt => doc.run_resolver(&TermsOfArtResolver::new()),
                 ResolverType::DefinedTerm => doc.run_resolver(&DefinedTermResolver::new()),
                 ResolverType::TermReference => doc.run_resolver(&TermReferenceResolver::new()),
                 ResolverType::Temporal => doc.run_resolver(&TemporalExpressionResolver::new()),

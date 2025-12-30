@@ -1,0 +1,24 @@
+[package]
+name = "layered-nlp-document"
+version = "0.1.0"
+authors = [
+  "Cole Lawrence <cole@colelawrence.com>",
+]
+edition = "2018"
+description = "Document-level abstractions for layered-nlp with multi-line processing and scoring infrastructure"
+repository = "https://github.com/storyscript/layered-nlp"
+homepage = "https://github.com/storyscript/layered-nlp"
+license = "MIT OR Apache-2.0"
+categories = [
+    "text-processing",
+    "parsing",
+]
+keywords = ["layered-nlp", "nlp", "document", "scoring"]
+
+[dependencies]
+layered-nlp = { path = "..", version = "0.1", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+ron = "0.8"
+
+[dev-dependencies]
+insta = "1.7"

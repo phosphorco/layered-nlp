@@ -65,6 +65,7 @@ mod section_reference_linker;
 mod semantic_diff;
 mod temporal;
 mod term_reference;
+mod terms_of_art;
 mod token_diff;
 mod utils;
 mod verification;
@@ -99,6 +100,7 @@ pub use pronoun::{AntecedentCandidate, PronounReference, PronounResolver, Pronou
 pub use pronoun_chain::{ChainMention, MentionType, PronounChain, PronounChainResolver};
 pub use scored::{ScoreSource, Scored};
 pub use term_reference::{TermReference, TermReferenceResolver};
+pub use terms_of_art::{TermOfArt, TermOfArtCategory, TermsOfArtResolver};
 pub use verification::{
     apply_verification_action, VerificationAction, VerificationNote, VerificationTarget,
 };
