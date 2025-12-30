@@ -34,18 +34,24 @@ These foundational features are **complete and verified**. See FR-000-index.md f
 
 ---
 
-## Phase 4 Milestone Matrix (FR-005, FR-006)
+## Phase 4 Milestone Matrix (Revised 2024-12-30)
 
-| Milestone | FR | Plan Doc | Code Modules (expected) | Test Modules | Status | Notes |
-|-----------|-----|----------|-------------------------|--------------|--------|-------|
-| **M1** | FR-006 | [M1-baseline-conflict-detector.md](completed/M1-baseline-conflict-detector.md) | `conflict_detector.rs` | (inline) | ✓ Verified | 54 tests, all gates complete |
-| M2 | FR-005 | FR-005 §M2 | `clause_boundary_resolver.rs` | `tests/clause_boundary.rs` | 📋 Planned | |
-| **M3** | FR-005 | [M3-terms-of-art-resolver.md](completed/M3-terms-of-art-resolver.md) | `terms_of_art.rs` | (inline) | ✓ Verified | 36 tests, all gates complete |
-| M4 | FR-006 | FR-006 §M4 | `precedence_resolution.rs` | `tests/precedence_conflicts.rs` | 📋 Planned | |
-| M5 | FR-006 | FR-006 §M5 | (metalinguistic + deictic) | TBD | 📋 Planned | |
-| M6 | FR-005 | FR-005 §M6 | (PP/relative attachment) | TBD | 📋 Planned | |
-| M7 | FR-005 | FR-005 §M7 | (negation/quantifier scope) | TBD | 📋 Planned | |
-| M8 | FR-006 | FR-006 §M8 | (semantic roles + equivalence) | TBD | 📋 Planned | |
+> **Note:** Phase 4 has been restructured with a foundation-first approach.
+> See [PHASE4-REVISED-ROADMAP.md](PHASE4-REVISED-ROADMAP.md) for full details.
+
+| Milestone | FR | Plan Doc | Code Modules | Status | Notes |
+|-----------|-----|----------|--------------|--------|-------|
+| **M0** | Foundation | [M0-foundation-types.md](M0-foundation-types.md) | `span_link.rs`, `scope_operator.rs`, `ambiguity.rs` | 📋 Planned | NEW: Unifying abstractions |
+| **M1** | FR-006 | [M1-baseline-conflict-detector.md](completed/M1-baseline-conflict-detector.md) | `conflict_detector.rs` | ✓ Verified | 54 tests |
+| **M2** | FR-005 | PHASE4-REVISED-ROADMAP §M2 | `clause_boundary_resolver.rs` | 📋 Planned | Uses SpanLink<ClauseRole> |
+| **M3** | FR-005 | [M3-terms-of-art-resolver.md](completed/M3-terms-of-art-resolver.md) | `terms_of_art.rs` | ✓ Verified | 36 tests |
+| **M4** | FR-006 | PHASE4-REVISED-ROADMAP §M4 | `precedence_resolver.rs` | 📋 Planned | Uses ScopeOperator<PrecedenceOp> |
+| M5 | FR-006 | PHASE4-REVISED-ROADMAP §M5 | (metalinguistic + deictic) | 📋 Planned | Off critical path |
+| M6 | FR-005 | PHASE4-REVISED-ROADMAP §M6 | (PP/relative attachment) | 📋 Planned | Off critical path |
+| **M7** | FR-005 | PHASE4-REVISED-ROADMAP §M7 | `negation_scope.rs`, `quantifier_scope.rs` | 📋 Planned | Uses ScopeOperator |
+| **M8** | FR-006 | PHASE4-REVISED-ROADMAP §M8 | (semantic roles + equivalence) | 📋 Planned | 2-gate milestone |
+
+**Critical path:** M0 → M2 → M4 → M7 → M8
 
 ---
 
