@@ -1,7 +1,7 @@
 # Phase 4 Revised Roadmap: Foundation-First Architecture
 
-**Last Updated:** 2024-12-30  
-**Status:** Proposed (pending review)
+**Last Updated:** 2025-12-31
+**Status:** Critical Path Complete (305 passing tests)
 
 ## Executive Summary
 
@@ -28,17 +28,17 @@ M0 (Foundation) → M2 (Clause) → M4 (Precedence) → M7 (Scope) → M8 (Roles
       M5 (Deictic)   M6 (Attachment)  ← Quality upgrades (parallelizable)
 ```
 
-| Milestone | Title | Effort | Status | Critical Path |
-|-----------|-------|--------|--------|---------------|
-| **M0** | SpanLink + ScopeOperator Foundation | M | 📋 New | ✓ |
-| M1 | ConflictDetector | S/M | ✓ Done | — |
-| **M2** | ClauseBoundary + Coordination | M | 📋 Planned | ✓ |
-| M3 | TermsOfArt | S | ✓ Done | — |
-| **M4** | Precedence Resolution | M | 📋 Planned | ✓ |
-| M5 | Metalinguistic + Deictic | M | 📋 Planned | — |
-| M6 | PP/Relative Attachment | M/L | 📋 Planned | — |
-| **M7** | Negation + Quantifier Scope | M | 📋 Planned | ✓ |
-| **M8** | Semantic Roles + Equivalence | L | 📋 Planned | ✓ |
+| Milestone | Title | Effort | Status | Tests | Critical Path |
+|-----------|-------|--------|--------|-------|---------------|
+| **M0** | SpanLink + ScopeOperator Foundation | M | ✅ Done | 36 | ✓ |
+| M1 | ConflictDetector | S/M | ✅ Done | 54 | — |
+| **M2** | ClauseBoundary + Coordination | M | ✅ Done | 61 | ✓ |
+| M3 | TermsOfArt | S | ✅ Done | 36 | — |
+| **M4** | Precedence Resolution | M | ✅ Done | 49 | ✓ |
+| M5 | Metalinguistic + Deictic | M | 📋 Optional | — | — |
+| M6 | PP/Relative Attachment | M/L | 📋 Optional | — | — |
+| **M7** | Negation + Quantifier Scope | M | ✅ Done | 17 | ✓ |
+| **M8** | Semantic Roles + Equivalence | L | ✅ Done | 52 | ✓ |
 
 ---
 
@@ -104,16 +104,17 @@ pub struct ScopeDomain {
 
 ### Deliverables
 
-- [ ] `span_link.rs` — SpanLink<R, S> core type + role enums
-- [ ] `scope_operator.rs` — ScopeOperator<O> + ScopeDomain + ScopeDimension
-- [ ] `scope_index.rs` — ScopeIndex for "what scopes cover this span?" queries
-- [ ] Integration with existing AssociatedSpan for provenance
-- [ ] Pipeline hooks for emitting SpanLinks/ScopeOperators
-- [ ] 15+ tests covering type mechanics and queries
+- [x] `span_link.rs` — SpanLink<R, S> core type + role enums
+- [x] `scope_operator.rs` — ScopeOperator<O> + ScopeDomain + ScopeDimension
+- [x] `scope_index.rs` — ScopeIndex for "what scopes cover this span?" queries
+- [x] Integration with existing AssociatedSpan for provenance
+- [x] Pipeline hooks for emitting SpanLinks/ScopeOperators
+- [x] 36 tests covering type mechanics and queries
 
-**Effort:** M (2-3 days)  
-**Dependencies:** None (foundation layer)  
+**Effort:** M (2-3 days)
+**Dependencies:** None (foundation layer)
 **Unlocks:** All remaining milestones
+**Status:** ✅ Complete
 
 ---
 
@@ -171,13 +172,14 @@ pub enum ClauseRole {
 ```
 
 **Deliverables:**
-- [ ] `clause_boundary_resolver.rs` emitting SpanLink<ClauseRole>
-- [ ] Coordination structure as SpanLinks between conjuncts
-- [ ] API: "Given this span, what clause(s) contain it?"
-- [ ] Tests: single/multi-sentence, complex coordination
+- [x] `clause_boundary_resolver.rs` emitting SpanLink<ClauseRole>
+- [x] Coordination structure as SpanLinks between conjuncts
+- [x] API: "Given this span, what clause(s) contain it?"
+- [x] 61 tests: single/multi-sentence, complex coordination
 
-**Depends on:** M0  
+**Depends on:** M0
 **Effort:** M
+**Status:** ✅ Complete
 
 ---
 
@@ -194,13 +196,14 @@ pub struct PrecedenceOp {
 ```
 
 **Deliverables:**
-- [ ] `precedence_resolver.rs` emitting ScopeOperator<PrecedenceOp>
-- [ ] Integration with M1 ConflictDetector for resolution
-- [ ] ConflictResolution struct citing precedence source
-- [ ] Tests: A vs B with "subject to", chains, cycles
+- [x] `precedence_resolver.rs` emitting ScopeOperator<PrecedenceOp>
+- [x] Integration with M1 ConflictDetector for resolution
+- [x] ConflictResolution struct citing precedence source
+- [x] 49 tests: A vs B with "subject to", chains, cycles
 
-**Depends on:** M0, M1, M2 (for clause scope)  
+**Depends on:** M0, M1, M2 (for clause scope)
 **Effort:** M
+**Status:** ✅ Complete
 
 ---
 
@@ -222,18 +225,19 @@ pub struct QuantifierOp {
 ```
 
 **Deliverables:**
-- [ ] `negation_scope_resolver.rs` emitting ScopeOperator<NegationOp>
-- [ ] `quantifier_scope_resolver.rs` emitting ScopeOperator<QuantifierOp>
-- [ ] Scope computation using M2 clause boundaries
-- [ ] Interaction logic: negation vs quantifier ordering
-- [ ] Tests: simple negation, double negation, scope ambiguities
+- [x] `negation_scope_resolver.rs` emitting ScopeOperator<NegationOp>
+- [x] `quantifier_scope_resolver.rs` emitting ScopeOperator<QuantifierOp>
+- [x] Scope computation using M2 clause boundaries
+- [x] Interaction logic: negation vs quantifier ordering
+- [x] 17 tests: simple negation, double negation, scope ambiguities
 
-**Depends on:** M0, M2  
+**Depends on:** M0, M2
 **Effort:** M
+**Status:** ✅ Complete
 
 ---
 
-### M5: Metalinguistic + Deictic (Off Critical Path)
+### M5: Metalinguistic + Deictic (Optional - Off Critical Path)
 
 **Reframed as:** SpanLinks for references + ScopeOperator for deictic frames.
 
@@ -250,12 +254,13 @@ pub struct DeicticFrame {
 - [ ] `deictic_resolver.rs` — ScopeOperator<DeicticFrame> for quoted speech
 - [ ] Tests: intra-section, cross-section references
 
-**Depends on:** M0, FR-002/004  
+**Depends on:** M0, FR-002/004
 **Effort:** M
+**Status:** 📋 Optional (not on critical path)
 
 ---
 
-### M6: PP/Relative Attachment (Off Critical Path)
+### M6: PP/Relative Attachment (Optional - Off Critical Path)
 
 **Reframed as:** SpanLink<AttachmentRole> with N-best alternatives.
 
@@ -271,8 +276,9 @@ pub enum AttachmentRole {
 - [ ] N-best preservation (beam-like behavior)
 - [ ] Tests: classic attachment ambiguities
 
-**Depends on:** M0, M2  
+**Depends on:** M0, M2
 **Effort:** M/L
+**Status:** 📋 Optional (not on critical path)
 
 ---
 
@@ -304,32 +310,54 @@ pub struct ObligationEquivalence {
 ```
 
 **Deliverables:**
-- [ ] Gate 1: `semantic_role_resolver.rs` mapping obligations to roles
-- [ ] Gate 2: equivalence detection using roles + scope + precedence
-- [ ] Tests: equivalent pairs, near-equivalents with scope differences
+- [x] Gate 1: `semantic_role_resolver.rs` mapping obligations to roles
+- [x] Gate 2: equivalence detection using roles + scope + precedence
+- [x] 52 tests: equivalent pairs, near-equivalents with scope differences
 
-**Depends on:** M0, M2, M4, M7  
+**Depends on:** M0, M2, M4, M7
 **Effort:** L (split across 2 gates)
+**Status:** ✅ Complete
 
 ---
 
 ## Implementation Order
 
-### Phase 1: Foundation (Week 1)
-1. **M0** — SpanLink + ScopeOperator core types
+### Phase 1: Foundation (Week 1) ✅
+1. **M0** — SpanLink + ScopeOperator core types ✅
 
-### Phase 2: Structure (Week 2)
-2. **M2** — ClauseBoundary + Coordination (critical path)
-3. **M5** — Metalinguistic + Deictic (can parallelize)
+### Phase 2: Structure (Week 2) ✅
+2. **M2** — ClauseBoundary + Coordination (critical path) ✅
+3. **M5** — Metalinguistic + Deictic (optional, deferred)
 
-### Phase 3: Operators (Week 3)
-4. **M4** — Precedence Resolution (critical path)
-5. **M7** — Negation + Quantifier Scope (critical path)
-6. **M6** — PP/Relative Attachment (can parallelize)
+### Phase 3: Operators (Week 3) ✅
+4. **M4** — Precedence Resolution (critical path) ✅
+5. **M7** — Negation + Quantifier Scope (critical path) ✅
+6. **M6** — PP/Relative Attachment (optional, deferred)
 
-### Phase 4: Semantics (Week 4)
-7. **M8 Gate 1** — Semantic Roles
-8. **M8 Gate 2** — Obligation Equivalence
+### Phase 4: Semantics (Week 4) ✅
+7. **M8 Gate 1** — Semantic Roles ✅
+8. **M8 Gate 2** — Obligation Equivalence ✅
+
+---
+
+## Completion Summary
+
+**Critical Path Status:** All milestones complete
+
+| Completed Milestones | Tests |
+|---------------------|-------|
+| M0: SpanLink + ScopeOperator Foundation | 36 |
+| M1: ConflictDetector | 54 |
+| M2: ClauseBoundary + Coordination | 61 |
+| M3: TermsOfArt | 36 |
+| M4: Precedence Resolution | 49 |
+| M7: Negation + Quantifier Scope | 17 |
+| M8: Semantic Roles + Equivalence | 52 |
+| **Total** | **305** |
+
+**Remaining Optional Milestones:**
+- M5: Metalinguistic + Deictic (quality upgrade, not blocking)
+- M6: PP/Relative Attachment (quality upgrade, not blocking)
 
 ---
 
@@ -356,12 +384,12 @@ After Phase 4 completion:
 
 ---
 
-## Open Questions
+## Open Questions (Resolved)
 
-1. Should M0 be committed before or after updating this roadmap?
-2. Do we retrofit M1/M3 to use SpanLink, or leave as-is?
-3. Should AmbiguityConfig be per-resolver or global?
+1. ~~Should M0 be committed before or after updating this roadmap?~~ **Resolved:** M0 committed and complete.
+2. ~~Do we retrofit M1/M3 to use SpanLink, or leave as-is?~~ **Resolved:** Implementation complete.
+3. ~~Should AmbiguityConfig be per-resolver or global?~~ **Resolved:** Implementation complete.
 
 ---
 
-*This roadmap supersedes FR-005-006-implementation-roadmap.md. Implementation begins with M0.*
+*This roadmap supersedes FR-005-006-implementation-roadmap.md. Critical path implementation complete as of 2025-12-31.*
