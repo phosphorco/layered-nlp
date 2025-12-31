@@ -64,6 +64,11 @@ impl Resolver for ClauseResolver {
                                     Clause::LeadingEffect
                                 },
                             )),
+                            ClauseKeyword::Exception => {
+                                // Exception keywords introduce new clauses
+                                // The clause following the exception keyword is typically independent
+                                Some(trimmed_clause_selection.finish_with_attr(Clause::LeadingEffect))
+                            }
                         }
                     } else if condition_clause_found {
                         Some(trimmed_clause_selection.finish_with_attr(Clause::TrailingEffect))

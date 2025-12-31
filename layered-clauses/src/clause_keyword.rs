@@ -8,12 +8,15 @@ pub enum ClauseKeyword {
     Then,
     /// "and"
     And,
+    /// "except", "unless", "notwithstanding", "provided that", "subject to"
+    Exception,
 }
 
 pub struct ClauseKeywordResolver {
     cond_start: Vec<&'static str>,
     and: Vec<&'static str>,
     then: Vec<&'static str>,
+    exception: Vec<&'static str>,
 }
 
 impl ClauseKeywordResolver {
@@ -22,6 +25,22 @@ impl ClauseKeywordResolver {
             cond_start: cond_start.to_vec(),
             and: and.to_vec(),
             then: then.to_vec(),
+            exception: vec!["except", "unless", "notwithstanding", "provided", "subject"],
+        }
+    }
+
+    /// Create resolver with custom exception keywords
+    pub fn with_exceptions(
+        cond_start: &[&'static str],
+        and: &[&'static str],
+        then: &[&'static str],
+        exception: &[&'static str],
+    ) -> Self {
+        ClauseKeywordResolver {
+            cond_start: cond_start.to_vec(),
+            and: and.to_vec(),
+            then: then.to_vec(),
+            exception: exception.to_vec(),
         }
     }
 }
@@ -42,6 +61,8 @@ impl Resolver for ClauseKeywordResolver {
                         ClauseKeyword::Then
                     } else if self.and.contains(&text.as_str()) {
                         ClauseKeyword::And
+                    } else if self.exception.contains(&text.as_str()) {
+                        ClauseKeyword::Exception
                     } else {
                         return None;
                     }),
