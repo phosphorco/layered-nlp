@@ -55,12 +55,15 @@ mod deictic;
 mod document_aligner;
 mod document_structure;
 mod obligation;
+mod precedence;
 mod pronoun;
 mod pronoun_chain;
+mod scope_operators;
 mod section_header;
 mod section_reference;
 mod section_reference_linker;
 mod semantic_diff;
+mod semantic_roles;
 mod temporal;
 mod term_reference;
 mod terms_of_art;
@@ -119,6 +122,17 @@ pub use contract_keyword::{ContractKeyword, ContractKeywordResolver, Prohibition
 pub use defined_term::{DefinedTerm, DefinedTermResolver, DefinitionType};
 pub use obligation::{
     ConditionRef, ObligationPhrase, ObligationPhraseResolver, ObligationType, ObligorReference,
+};
+pub use precedence::{
+    ConflictResolution, PrecedenceDetector, PrecedenceResolver, PrecedenceRule, ResolutionBasis,
+    SectionClassifier, resolve_in_document,
+};
+pub use scope_operators::{
+    NegationDetector, QuantifierDetector, ScopeBoundaryDetector,
+};
+pub use semantic_roles::{
+    ArgumentRole, CanonicalModal, EnhancedNormalizedObligation, EnhancedObligationNormalizer,
+    EquivalenceResult, FrameArgument, ObligationFrame, SemanticRoleLabeler,
 };
 pub use pronoun::{AntecedentCandidate, PronounReference, PronounResolver, PronounType};
 pub use pronoun_chain::{ChainMention, MentionType, PronounChain, PronounChainResolver};
@@ -184,5 +198,6 @@ mod tests {
     mod pronoun;
     mod pronoun_chain;
     mod semantic_diff;
+    mod semantic_roles;
     mod term_reference;
 }

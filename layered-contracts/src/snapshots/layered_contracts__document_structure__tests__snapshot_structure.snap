@@ -1,6 +1,5 @@
 ---
 source: layered-contracts/src/document_structure.rs
-assertion_line: 381
 expression: result.value
 ---
 DocumentStructure {
@@ -33,7 +32,7 @@ DocumentStructure {
                 },
                 end: DocPosition {
                     line: 0,
-                    token: 6,
+                    token: 7,
                 },
             },
             children: [
@@ -67,7 +66,7 @@ DocumentStructure {
                         },
                         end: DocPosition {
                             line: 1,
-                            token: 6,
+                            token: 7,
                         },
                     },
                     children: [
@@ -95,7 +94,7 @@ DocumentStructure {
                                 },
                                 end: DocPosition {
                                     line: 2,
-                                    token: 6,
+                                    token: 7,
                                 },
                             },
                             children: [],
@@ -124,7 +123,7 @@ DocumentStructure {
                                 },
                                 end: DocPosition {
                                     line: 3,
-                                    token: 6,
+                                    token: 7,
                                 },
                             },
                             children: [],
@@ -161,7 +160,7 @@ DocumentStructure {
                         },
                         end: DocPosition {
                             line: 4,
-                            token: 6,
+                            token: 7,
                         },
                     },
                     children: [],
@@ -196,7 +195,7 @@ DocumentStructure {
                 },
                 end: DocPosition {
                     line: 5,
-                    token: 6,
+                    token: 7,
                 },
             },
             children: [],

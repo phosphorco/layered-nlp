@@ -130,12 +130,31 @@ impl DocumentStructureBuilder {
                 .map(|(next_line, _)| *next_line)
                 .or(Some(total_lines));
 
-            // Get the actual last token index for the end position
-            let end_line_idx = end_line.unwrap_or(total_lines).saturating_sub(1);
-            let last_token_idx = doc
-                .get_line(end_line_idx)
-                .map(|line| line.ll_tokens().len().saturating_sub(1))
-                .unwrap_or(0);
+            // Calculate the end position for the content span
+            // The section extends from its header line through all content
+            // up to (but not including) the next section header
+            let (content_end_line, content_end_token) = if let Some(next_line) = end_line {
+                if next_line > 0 {
+                    // End at the last token of the line before the next section
+                    let last_content_line = next_line - 1;
+                    let last_token = doc
+                        .get_line(last_content_line)
+                        .map(|line| line.ll_tokens().len())
+                        .unwrap_or(0);
+                    (last_content_line, last_token)
+                } else {
+                    // Next section is on line 0 (shouldn't happen, but handle it)
+                    (0, 0)
+                }
+            } else {
+                // No next section, extend to end of document
+                let last_line = total_lines.saturating_sub(1);
+                let last_token = doc
+                    .get_line(last_line)
+                    .map(|line| line.ll_tokens().len())
+                    .unwrap_or(0);
+                (last_line, last_token)
+            };
 
             let node = SectionNode {
                 header: header.clone(),
@@ -143,7 +162,7 @@ impl DocumentStructureBuilder {
                 end_line,
                 content_span: DocSpan::new(
                     DocPosition::new(*line_idx, 0),
-                    DocPosition::end_of_line(end_line_idx, last_token_idx),
+                    DocPosition::new(content_end_line, content_end_token),
                 ),
                 children: Vec::new(),
             };

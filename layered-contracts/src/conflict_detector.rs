@@ -23,6 +23,7 @@ use std::collections::HashMap;
 use crate::obligation::{ObligorReference, ObligationType};
 use crate::{DocPosition, DocSpan, Scored};
 use crate::temporal::{NormalizedTiming, TimeUnit};
+use layered_nlp_document::DocumentResolver;
 
 // ============================================================================
 // Gate 0: Core Types
@@ -978,6 +979,28 @@ impl ConflictDetector {
 }
 
 // ============================================================================
+// DocumentResolver Implementation
+// ============================================================================
+
+impl DocumentResolver for ConflictDetector {
+    type Attr = Scored<Conflict>;
+
+    /// Detect conflicts in a document and return them as document-level attributes.
+    ///
+    /// This enables chaining conflict detection in the document processing pipeline:
+    /// ```ignore
+    /// let doc = ContractDocument::from_text(text)
+    ///     .run_resolver(&ObligationPhraseResolver::new())
+    ///     .run_document_resolver(&ConflictDetector::new());
+    ///
+    /// let conflicts = doc.query_doc::<Scored<Conflict>>();
+    /// ```
+    fn resolve(&self, doc: &layered_nlp_document::LayeredDocument) -> Vec<Self::Attr> {
+        self.detect_in_document(doc)
+    }
+}
+
+// ============================================================================
 // Tests
 // ============================================================================
 
@@ -1914,6 +1937,58 @@ ABC Corp (the "Company") may deliver goods."#;
             conflicts.is_empty(),
             "High confidence threshold should filter out all conflicts. Found: {:?}",
             conflicts.len()
+        );
+    }
+
+    // ========================================================================
+    // DocumentResolver Integration Tests
+    // ========================================================================
+
+    #[test]
+    fn test_conflict_detector_as_document_resolver() {
+        let text = r#"
+Section 1. Delivery
+ABC Corp (the "Company") shall deliver goods within 30 days.
+
+Section 2. Exceptions
+ABC Corp (the "Company") may deliver goods within 60 days.
+"#;
+
+        let doc = run_full_pipeline(text)
+            .run_document_resolver(&ConflictDetector::new());
+
+        let conflicts = doc.query_doc::<Scored<Conflict>>();
+        // Should detect modal conflict (shall vs may) for same party/action
+        assert!(
+            !conflicts.is_empty(),
+            "Should detect at least one conflict via DocumentResolver. \
+             Found {} conflicts.",
+            conflicts.len()
+        );
+
+        // Verify the conflict type
+        assert!(
+            conflicts.iter().any(|c| c.value.conflict_type == ConflictType::ModalConflict),
+            "Should detect a modal conflict (shall vs may)"
+        );
+    }
+
+    #[test]
+    fn test_document_resolver_chaining() {
+        // Verify that run_document_resolver can be chained
+        let text = r#"ABC Corp (the "Company") shall deliver products.
+XYZ Inc (the "Vendor") shall deliver products."#;
+
+        let doc = run_full_pipeline(text)
+            .run_document_resolver(&ConflictDetector::new());
+
+        let conflicts = doc.query_doc::<Scored<Conflict>>();
+
+        // Should detect party conflict (same action assigned to different parties)
+        assert!(
+            conflicts.iter().any(|c| c.value.conflict_type == ConflictType::ContradictoryParties),
+            "Should detect a party conflict via DocumentResolver. Found: {:?}",
+            conflicts.iter().map(|c| &c.value.conflict_type).collect::<Vec<_>>()
         );
     }
 }
