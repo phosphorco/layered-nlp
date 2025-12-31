@@ -33,6 +33,7 @@ mod scope_index;
 pub use document::{
     DocPosition,
     DocSpan,
+    DocumentResolver,
     LayeredDocument,
     ProcessError,
     ProcessResult,
