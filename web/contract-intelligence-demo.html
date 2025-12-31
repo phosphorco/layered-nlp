@@ -1,0 +1,3402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Intelligence Demo</title>
+    <style>
+        :root {
+            /* Existing span colors */
+            --defined-term-bg: #fef3c7;
+            --defined-term-border: #f59e0b;
+            --defined-term-text: #92400e;
+
+            --term-ref-bg: #fef3c7;
+            --term-ref-border: #f59e0b;
+            --term-ref-text: #92400e;
+
+            --obligation-bg: #dbeafe;
+            --obligation-border: #3b82f6;
+            --obligation-text: #1e40af;
+
+            --prohibition-bg: #fee2e2;
+            --prohibition-border: #ef4444;
+            --prohibition-text: #991b1b;
+
+            --permission-bg: #d1fae5;
+            --permission-border: #10b981;
+            --permission-text: #065f46;
+
+            /* New span colors for Contract Intelligence */
+            --scope-operator-bg: #fef2f2;
+            --scope-operator-border: #dc2626;
+            --scope-operator-text: #7f1d1d;
+
+            --quantifier-bg: #dbeafe;
+            --quantifier-border: #2563eb;
+            --quantifier-text: #1e3a8a;
+
+            --precedence-bg: #fef3c7;
+            --precedence-border: #d97706;
+            --precedence-text: #78350f;
+
+            --conflict-bg: #fed7aa;
+            --conflict-border: #f97316;
+            --conflict-text: #7c2d12;
+
+            --semantic-frame-bg: #f3e8ff;
+            --semantic-frame-border: #9333ea;
+            --semantic-frame-text: #581c87;
+
+            --clause-bg: #f3e8ff;
+            --clause-border: #8b5cf6;
+            --clause-text: #6b21a8;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        h1 {
+            margin-bottom: 0.25rem;
+            color: #0f172a;
+            font-size: 1.75rem;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+            overflow-x: auto;
+        }
+
+        .tab-button {
+            padding: 1rem 1.5rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-button:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .tab-button.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+            background: white;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 1.5rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Input Section */
+        .input-section {
+            margin-bottom: 1.5rem;
+        }
+
+        textarea {
+            width: 100%;
+            height: 140px;
+            padding: 1rem;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+            font-size: 13px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            resize: vertical;
+            background: #f8fafc;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: white;
+        }
+
+        .button-row {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.6rem 1.25rem;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        button.primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        button.primary:hover {
+            background: #2563eb;
+        }
+
+        button.secondary {
+            background: white;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        button.secondary:hover {
+            background: #f1f5f9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Results Panel */
+        .results-panel {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: none;
+        }
+
+        .results-panel.visible {
+            display: block;
+        }
+
+        .panel-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        /* Text Display */
+        .text-display {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 15px;
+            line-height: 2;
+            margin-bottom: 1.5rem;
+        }
+
+        .text-display .word {
+            display: inline;
+            padding: 2px 0;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .text-display .word.has-span:hover {
+            filter: brightness(0.95);
+        }
+
+        /* Span styling */
+        .text-display .word.ScopeOperator {
+            background: var(--scope-operator-bg);
+            border-bottom: 2px solid var(--scope-operator-border);
+            font-weight: 600;
+        }
+
+        .text-display .word.ScopeOperator.negation {
+            background: #fee2e2;
+            border-bottom-color: #dc2626;
+        }
+
+        .text-display .word.ScopeOperator.quantifier {
+            background: #dbeafe;
+            border-bottom-color: #2563eb;
+        }
+
+        .text-display .word.Precedence {
+            background: var(--precedence-bg);
+            border-bottom: 2px solid var(--precedence-border);
+            font-weight: 600;
+        }
+
+        .text-display .word.Conflict {
+            background: var(--conflict-bg);
+            border-bottom: 3px double var(--conflict-border);
+            font-weight: 600;
+        }
+
+        .text-display .word.SemanticFrame {
+            background: var(--semantic-frame-bg);
+            border-bottom: 2px solid var(--semantic-frame-border);
+        }
+
+        .text-display .word.ObligationPhrase {
+            background: var(--obligation-bg);
+            border-bottom: 2px solid var(--obligation-border);
+        }
+
+        .text-display .word.ContractClause {
+            background: var(--clause-bg);
+            border-bottom: 2px solid var(--clause-border);
+        }
+
+        /* Visualization containers */
+        .visualization {
+            margin-top: 1.5rem;
+        }
+
+        .tree-view {
+            font-family: ui-monospace, monospace;
+            font-size: 13px;
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            overflow-x: auto;
+        }
+
+        .tree-node {
+            margin-left: 1.5rem;
+            padding: 0.25rem 0;
+        }
+
+        .tree-node.root {
+            margin-left: 0;
+        }
+
+        .tree-connector {
+            color: #94a3b8;
+            margin-right: 0.5rem;
+        }
+
+        .semantic-role-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .semantic-role-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .role-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .role-value {
+            font-family: Georgia, serif;
+            font-size: 14px;
+            color: #0f172a;
+        }
+
+        .conflict-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .conflict-item {
+            background: #fef2f2;
+            border: 2px solid #fca5a5;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .conflict-type {
+            font-size: 11px;
+            font-weight: 600;
+            color: #dc2626;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .conflict-description {
+            font-size: 14px;
+            color: #7f1d1d;
+            margin-bottom: 0.5rem;
+        }
+
+        .conflict-spans {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .conflict-span-ref {
+            font-family: Georgia, serif;
+            font-size: 12px;
+            background: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #fca5a5;
+        }
+
+        .scope-visualization {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .scope-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .scope-type {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .scope-type.negation {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .scope-type.quantifier {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .scope-type.precedence {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .scope-text {
+            font-family: Georgia, serif;
+            font-size: 14px;
+            color: #0f172a;
+        }
+
+        .scope-range {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+
+        .equivalence-group {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .equivalence-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+        }
+
+        .equivalence-items {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .equivalence-item {
+            font-family: Georgia, serif;
+            font-size: 14px;
+            background: white;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .similarity-score {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        /* Error message */
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 0.75rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Sample text display */
+        .sample-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .sample-button {
+            padding: 0.5rem 1rem;
+            font-size: 13px;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .sample-button:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 12px;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 12px;
+            border-radius: 3px;
+            border: 2px solid;
+        }
+
+        .legend-box.negation {
+            background: #fee2e2;
+            border-color: #dc2626;
+        }
+
+        .legend-box.quantifier {
+            background: #dbeafe;
+            border-color: #2563eb;
+        }
+
+        .legend-box.precedence {
+            background: #fef3c7;
+            border-color: #d97706;
+        }
+
+        .legend-box.conflict {
+            background: #fed7aa;
+            border-color: #f97316;
+        }
+
+        .legend-box.semantic-frame {
+            background: #f3e8ff;
+            border-color: #9333ea;
+        }
+
+        .legend-box.obligation {
+            background: #dbeafe;
+            border-color: #3b82f6;
+        }
+
+        .legend-box.clause {
+            background: #f3e8ff;
+            border-color: #8b5cf6;
+        }
+
+        /* Scope Operator Visualization */
+        .scope-text-display {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 15px;
+            line-height: 2.5;
+            margin-bottom: 1.5rem;
+        }
+
+        .scope-text-display .line {
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .scope-domain {
+            position: relative;
+            display: inline;
+            border-radius: 3px;
+            padding: 2px 0;
+        }
+
+        .scope-domain.negation {
+            background-color: rgba(239, 68, 68, 0.15);
+            border-left: 2px solid #ef4444;
+            padding-left: 4px;
+        }
+
+        .scope-domain.quantifier-universal {
+            background-color: rgba(59, 130, 246, 0.15);
+            border-left: 2px solid #3b82f6;
+            padding-left: 4px;
+        }
+
+        .scope-domain.quantifier-existential {
+            background-color: rgba(16, 185, 129, 0.15);
+            border-left: 2px solid #10b981;
+            padding-left: 4px;
+        }
+
+        .scope-domain.quantifier-negative {
+            background-color: rgba(168, 85, 247, 0.15);
+            border-left: 2px solid #a855f7;
+            padding-left: 4px;
+        }
+
+        .scope-trigger {
+            font-weight: bold;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .scope-trigger.negation {
+            color: #ef4444;
+        }
+
+        .scope-trigger.quantifier-universal {
+            color: #3b82f6;
+        }
+
+        .scope-trigger.quantifier-existential {
+            color: #10b981;
+        }
+
+        .scope-trigger.quantifier-negative {
+            color: #a855f7;
+        }
+
+        .scope-legend {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .scope-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 13px;
+        }
+
+        .scope-legend-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border-left: 3px solid;
+        }
+
+        .scope-legend-box.negation {
+            background-color: rgba(239, 68, 68, 0.15);
+            border-left-color: #ef4444;
+        }
+
+        .scope-legend-box.quantifier-universal {
+            background-color: rgba(59, 130, 246, 0.15);
+            border-left-color: #3b82f6;
+        }
+
+        .scope-legend-box.quantifier-existential {
+            background-color: rgba(16, 185, 129, 0.15);
+            border-left-color: #10b981;
+        }
+
+        .scope-legend-box.quantifier-negative {
+            background-color: rgba(168, 85, 247, 0.15);
+            border-left-color: #a855f7;
+        }
+
+        .scope-summary {
+            display: grid;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .scope-summary-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .scope-summary-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .scope-summary-badge.negation {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .scope-summary-badge.quantifier-universal {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .scope-summary-badge.quantifier-existential {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .scope-summary-badge.quantifier-negative {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+
+        .scope-summary-text {
+            font-family: Georgia, serif;
+            font-size: 14px;
+            color: #0f172a;
+        }
+
+        .scope-summary-confidence {
+            font-size: 11px;
+            color: #64748b;
+            margin-left: auto;
+        }
+
+        /* Span Link Legend */
+        .span-link-legend {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .span-link-legend h4 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0 0 0.75rem 0;
+        }
+
+        .span-link-legend > div {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 13px;
+            color: #475569;
+            margin-bottom: 0.4rem;
+        }
+
+        .span-link-legend > div:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-arrow {
+            display: inline-block;
+            width: 24px;
+            height: 3px;
+            border-radius: 1px;
+            position: relative;
+        }
+
+        .legend-arrow::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid currentColor;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+
+        .legend-arrow.parent {
+            background: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .legend-arrow.child {
+            background: #10b981;
+            color: #10b981;
+        }
+
+        .legend-arrow.conjunct {
+            background: #8b5cf6;
+            color: #8b5cf6;
+        }
+
+        .legend-arrow.exception {
+            background: #f59e0b;
+            color: #f59e0b;
+        }
+
+        /* Text display for hierarchy with spans */
+        .hierarchy-text-display {
+            position: relative;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 15px;
+            line-height: 2.5;
+            padding: 1rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .hierarchy-text-display .line {
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .hierarchy-text-display .token {
+            display: inline;
+            padding: 2px 0;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .hierarchy-text-display .token.clause-start {
+            background: #eff6ff;
+            border-left: 3px solid #3b82f6;
+            padding-left: 4px;
+        }
+
+        .hierarchy-text-display .token.clause-end {
+            background: #eff6ff;
+            border-right: 3px solid #3b82f6;
+            padding-right: 4px;
+        }
+
+        .hierarchy-text-display .token.link-anchor {
+            background: #dbeafe;
+            border-bottom: 2px solid #3b82f6;
+        }
+
+        .hierarchy-text-display .token.link-target {
+            background: #d1fae5;
+            border-bottom: 2px solid #10b981;
+        }
+
+        .hierarchy-text-display .token:hover {
+            background: #fef3c7;
+        }
+
+        /* SVG arrow overlay */
+        .span-link-arrows {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: visible;
+            z-index: 10;
+        }
+
+        /* Info box */
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-box-title {
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box-content {
+            font-size: 14px;
+            color: #1e40af;
+            line-height: 1.5;
+        }
+
+        /* Conflict Detection UI Styles */
+        .conflict-card {
+            border: 1px solid #f97316;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            background-color: #fff7ed;
+        }
+
+        .conflict-type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .conflict-type-badge.modal { background-color: #fef3c7; color: #92400e; }
+        .conflict-type-badge.temporal { background-color: #dbeafe; color: #1e40af; }
+        .conflict-type-badge.party { background-color: #fce7f3; color: #9d174d; }
+        .conflict-type-badge.scope { background-color: #f3e8ff; color: #7c3aed; }
+
+        .conflict-span {
+            padding: 8px;
+            margin: 8px 0;
+            background-color: #fafafa;
+            border-left: 3px solid #f97316;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .risk-indicator {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .risk-indicator.critical { background-color: #ef4444; color: white; }
+        .risk-indicator.high { background-color: #f97316; color: white; }
+        .risk-indicator.medium { background-color: #eab308; color: black; }
+        .risk-indicator.low { background-color: #22c55e; color: white; }
+
+        .conflict-explanation {
+            font-size: 14px;
+            color: #7c2d12;
+            margin: 8px 0;
+        }
+
+        .conflict-confidence {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        .conflict-legend {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .conflict-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 13px;
+        }
+
+        .conflict-summary {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .conflict-summary-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 0.75rem;
+        }
+
+        .conflict-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .conflict-summary-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .conflict-summary-count {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .conflict-summary-label {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* Interactive exploration styles */
+        .export-btn {
+            background-color: #6366f1;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: auto;
+        }
+        .export-btn:hover { background-color: #4f46e5; }
+        .export-btn:disabled {
+            background-color: #a5b4fc;
+            cursor: not-allowed;
+        }
+
+        .span-tooltip {
+            position: fixed;
+            background: #1f2937;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            pointer-events: none;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .span-tooltip .tooltip-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #f3f4f6;
+        }
+
+        .span-tooltip .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 2px;
+        }
+
+        .span-tooltip .tooltip-label {
+            color: #9ca3af;
+        }
+
+        .span-tooltip .tooltip-value {
+            color: #e5e7eb;
+            font-family: ui-monospace, monospace;
+        }
+
+        .clickable-span {
+            cursor: pointer;
+            transition: background-color 0.2s, outline 0.2s;
+        }
+        .clickable-span:hover {
+            background-color: rgba(99, 102, 241, 0.2);
+        }
+        .clickable-span.selected {
+            outline: 2px solid #6366f1;
+            outline-offset: 1px;
+        }
+
+        .details-panel {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .details-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .details-panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .details-panel-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #64748b;
+            font-size: 18px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .details-panel-close:hover {
+            background: #e5e7eb;
+            color: #0f172a;
+        }
+
+        .details-panel-content {
+            display: grid;
+            gap: 8px;
+        }
+
+        .details-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .details-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            min-width: 100px;
+        }
+
+        .details-value {
+            font-size: 13px;
+            color: #0f172a;
+        }
+
+        .panel-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .panel-header-row .panel-header {
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+
+        /* Header Section */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .header-links {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .header-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            text-decoration: none;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+
+        .header-link:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #0f172a;
+        }
+
+        .help-btn {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1e40af;
+        }
+
+        .help-btn:hover {
+            background: #dbeafe;
+            border-color: #93c5fd;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            background: white;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.25rem;
+            line-height: 1;
+            border-radius: 4px;
+        }
+
+        .modal-close:hover {
+            color: #0f172a;
+            background: #f1f5f9;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 0.75rem;
+        }
+
+        .modal-section p {
+            font-size: 14px;
+            color: #475569;
+            line-height: 1.6;
+            margin: 0 0 0.75rem 0;
+        }
+
+        .modal-section p:last-child {
+            margin-bottom: 0;
+        }
+
+        .color-key {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .color-key-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 13px;
+        }
+
+        .color-key-swatch {
+            width: 24px;
+            height: 16px;
+            border-radius: 3px;
+            border: 2px solid;
+            flex-shrink: 0;
+        }
+
+        .color-key-swatch.negation {
+            background: #fee2e2;
+            border-color: #dc2626;
+        }
+
+        .color-key-swatch.universal {
+            background: #dbeafe;
+            border-color: #2563eb;
+        }
+
+        .color-key-swatch.existential {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+
+        .color-key-swatch.negative-q {
+            background: #f3e8ff;
+            border-color: #a855f7;
+        }
+
+        .color-key-swatch.conflict {
+            background: #fed7aa;
+            border-color: #f97316;
+        }
+
+        .color-key-swatch.obligation {
+            background: #dbeafe;
+            border-color: #3b82f6;
+        }
+
+        .color-key-swatch.clause {
+            background: #f3e8ff;
+            border-color: #8b5cf6;
+        }
+
+        .tab-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .tab-description {
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: 6px;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .tab-description strong {
+            color: #0f172a;
+        }
+
+        .tab-description span {
+            display: block;
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        /* WASM Loading Overlay */
+        .wasm-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(248, 250, 252, 0.95);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .wasm-loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .wasm-loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .wasm-loading-text {
+            font-size: 16px;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .wasm-loading-subtext {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .wasm-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .wasm-error-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .wasm-error-message {
+            font-size: 14px;
+            margin-bottom: 0.75rem;
+        }
+
+        .wasm-retry-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .wasm-retry-btn:hover {
+            background: #b91c1c;
+        }
+
+        /* Enhanced Error Message */
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .error-icon {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+        }
+
+        .error-content {
+            flex: 1;
+        }
+
+        .error-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .error-suggestion {
+            font-size: 13px;
+            color: #7f1d1d;
+            margin-top: 0.5rem;
+        }
+
+        /* Footer */
+        .page-footer {
+            margin-top: 3rem;
+            padding: 1.5rem 0;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .footer-link {
+            font-size: 13px;
+            color: #64748b;
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        .footer-link:hover {
+            color: #3b82f6;
+        }
+
+        .footer-meta {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .footer-credits {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+        }
+
+        /* Button disabled state enhancement */
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        button.wasm-not-ready::after {
+            content: 'Loading...';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            color: white;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+        }
+
+        button.wasm-not-ready:hover::after {
+            opacity: 1;
+        }
+
+        /* Smooth transitions */
+        .results-panel {
+            transition: opacity 0.2s ease-out;
+        }
+
+        .tab-content {
+            transition: opacity 0.15s ease-in-out;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header-links {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .tab-buttons {
+                gap: 0;
+            }
+
+            .tab-button {
+                padding: 0.75rem 1rem;
+                font-size: 13px;
+            }
+
+            .modal {
+                max-height: 90vh;
+                margin: 1rem;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .conflict-summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .scope-legend,
+            .conflict-legend {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .subtitle {
+                font-size: 0.875rem;
+            }
+
+            .tab-button {
+                padding: 0.6rem 0.75rem;
+                font-size: 12px;
+            }
+
+            textarea {
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- SVG Arrow Marker Definitions -->
+    <svg style="display: none;">
+      <defs>
+        <marker id="arrow-parent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6"/>
+        </marker>
+        <marker id="arrow-child" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/>
+        </marker>
+        <marker id="arrow-conjunct" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#8b5cf6"/>
+        </marker>
+        <marker id="arrow-exception" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b"/>
+        </marker>
+      </defs>
+    </svg>
+
+    <!-- WASM Loading Overlay -->
+    <div id="wasm-loading-overlay" class="wasm-loading-overlay">
+        <div class="wasm-loading-spinner"></div>
+        <div class="wasm-loading-text">Loading Contract Intelligence Engine</div>
+        <div class="wasm-loading-subtext">Initializing WASM module...</div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal-overlay" onclick="if(event.target === this) closeHelpModal()">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">How to Use Contract Intelligence</div>
+                <button class="modal-close" onclick="closeHelpModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <div class="modal-section-title">What is Contract Intelligence?</div>
+                    <p>
+                        This demo showcases semantic analysis capabilities for legal contracts.
+                        It uses WebAssembly-powered NLP to extract structured information from
+                        unstructured contract text, helping identify obligations, conflicts,
+                        and relationships between clauses.
+                    </p>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">Available Analysis Types</div>
+                    <div class="tab-list">
+                        <div class="tab-description">
+                            <strong>Obligation Analysis</strong>
+                            <span>Extract semantic roles: who must act (obligor), what action is required, who benefits (beneficiary), and when (temporal constraints).</span>
+                        </div>
+                        <div class="tab-description">
+                            <strong>Conflict Detection</strong>
+                            <span>Identify contradictions: modal conflicts (shall vs may), temporal inconsistencies (different deadlines), and party mismatches.</span>
+                        </div>
+                        <div class="tab-description">
+                            <strong>Scope Operators</strong>
+                            <span>Visualize how negation ("not", "never") and quantifiers ("all", "each", "none") modify the meaning of obligations.</span>
+                        </div>
+                        <div class="tab-description">
+                            <strong>Clause Hierarchy</strong>
+                            <span>Map relationships between clauses: conditionals (if/then), coordinations (and/or), and exceptions (unless/except).</span>
+                        </div>
+                        <div class="tab-description">
+                            <strong>Equivalence Detection</strong>
+                            <span>Find duplicate or semantically similar obligations that may indicate redundancy or inconsistency.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">Color Key</div>
+                    <div class="color-key">
+                        <div class="color-key-item">
+                            <div class="color-key-swatch negation"></div>
+                            <span><strong>Negation</strong> - Words like "not", "never", "no" that negate obligations</span>
+                        </div>
+                        <div class="color-key-item">
+                            <div class="color-key-swatch universal"></div>
+                            <span><strong>Universal Quantifier</strong> - Words like "all", "each", "every" that apply to all items</span>
+                        </div>
+                        <div class="color-key-item">
+                            <div class="color-key-swatch existential"></div>
+                            <span><strong>Existential Quantifier</strong> - Words like "any", "some" indicating at least one</span>
+                        </div>
+                        <div class="color-key-item">
+                            <div class="color-key-swatch negative-q"></div>
+                            <span><strong>Negative Quantifier</strong> - Words like "no", "none" indicating zero items</span>
+                        </div>
+                        <div class="color-key-item">
+                            <div class="color-key-swatch conflict"></div>
+                            <span><strong>Conflict</strong> - Highlighted spans that are in conflict with each other</span>
+                        </div>
+                        <div class="color-key-item">
+                            <div class="color-key-swatch obligation"></div>
+                            <span><strong>Obligation</strong> - Identified obligation phrases (shall, must, will)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">How to Use</div>
+                    <p>1. Select a tab for the type of analysis you want to perform.</p>
+                    <p>2. Enter contract text in the text area, or click "Load Sample Text" for an example.</p>
+                    <p>3. Click the analysis button to process the text.</p>
+                    <p>4. Click on any highlighted result to see detailed information in the details panel.</p>
+                    <p>5. Use "Export JSON" to download the analysis results for further processing.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Contract Intelligence Demo</h1>
+            <p class="subtitle">Extract obligations, detect conflicts, and analyze clause relationships using semantic NLP</p>
+        </div>
+        <div class="header-links">
+            <button class="header-link help-btn" onclick="openHelpModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Help
+            </button>
+            <a href="https://github.com/layered-nlp/layered-nlp" target="_blank" rel="noopener" class="header-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                Repository
+            </a>
+        </div>
+    </div>
+
+    <!-- Sample contract texts (hidden) -->
+    <div style="display: none;">
+        <div id="sample-obligation">SECTION 5. PERFORMANCE OBLIGATIONS
+
+5.1 Primary Deliverables
+The Contractor shall deliver the completed software system to the Client within ninety (90) calendar days following the Effective Date. The Contractor must provide all source code, documentation, and training materials as specified in Exhibit A.
+
+5.2 Payment Terms
+The Company shall pay the Contractor the sum of $150,000 in three equal installments. Each payment must be made within fifteen (15) business days of receipt of the corresponding invoice. Late payments will accrue interest at 1.5% per month.
+
+5.3 Ongoing Obligations
+The Provider will maintain confidentiality of all proprietary information for a period of five (5) years following termination. Either party may terminate this agreement with sixty (60) days prior written notice to the other party.
+
+5.4 Support Services
+The Vendor shall provide technical support during normal business hours. The Service Provider must respond to critical issues within four (4) hours of notification.</div>
+
+        <div id="sample-conflict">ARTICLE 3. DELIVERY TERMS
+
+Section 3.1 Standard Delivery
+ABC Corp (the "Company") shall deliver all goods within 30 days of the order date. Delivery shall be made to the address specified by the Buyer.
+
+Section 3.2 Delivery Exceptions
+The Company may deliver goods within 60 days if supply chain disruptions occur. Extended delivery timelines require written approval from the Buyer.
+
+Section 3.3 Expedited Orders
+XYZ Inc (the "Vendor") shall deliver all goods within 15 days for expedited orders. Rush delivery fees apply as specified in Schedule B.
+
+ARTICLE 7. PAYMENT
+
+Section 7.1 Payment Terms
+The Buyer must pay all invoices within 45 days of the invoice date.
+
+Section 7.2 Early Payment
+The Buyer shall pay all invoices within 30 days to receive the early payment discount.
+
+ARTICLE 10. GENERAL PROVISIONS
+
+Section 10.1 Precedence
+Notwithstanding anything to the contrary in this Agreement, Section 3.1 shall govern all delivery timelines unless otherwise specified in a Change Order.
+
+Section 10.2 Conflict Resolution
+In the event of a conflict between any provisions of this Agreement, the more specific provision shall control.</div>
+
+        <div id="sample-scope">ARTICLE 8. CONFIDENTIALITY AND RESTRICTIONS
+
+8.1 Non-Disclosure
+No employee shall disclose any confidential information to third parties without prior written consent. The receiving party shall not use proprietary data for any purpose other than performing under this Agreement.
+
+8.2 Universal Obligations
+Each party must notify the other within ten (10) business days of any material change in circumstances. All employees are required to complete security training before accessing sensitive systems. Every subcontractor shall be bound by these confidentiality provisions.
+
+8.3 Absolute Prohibitions
+The Company shall never share trade secrets without the express written consent of the disclosing party. Under no circumstances may either party assign this Agreement without prior approval.
+
+8.4 Scope Limitations
+All rights are reserved, except as expressly granted herein. None of these provisions shall limit liability for fraud, gross negligence, or willful misconduct. No waiver of any breach shall constitute a waiver of any subsequent breach.</div>
+
+        <div id="sample-hierarchy">ARTICLE 4. CONDITIONS AND CONSEQUENCES
+
+4.1 Termination for Cause
+When the Contractor fails to deliver on time, then the Company may terminate this agreement immediately. If the Contractor breaches any material term, then the Company shall have the right to seek damages.
+
+4.2 Compound Obligations
+The Tenant shall pay rent and maintain the premises in good condition. The Licensee must comply with all applicable laws and obtain all necessary permits.
+
+4.3 Exception Clauses
+All rights are reserved, except as expressly granted herein. The warranty shall apply to all products, unless the damage results from misuse or unauthorized modification.
+
+4.4 Force Majeure
+If performance becomes impossible due to circumstances beyond the parties' control, then the parties shall negotiate in good faith to modify the terms. When a force majeure event occurs, then the affected party must provide notice within 48 hours.
+
+4.5 Nested Conditions
+If the project is delayed and the delay exceeds 30 days, then either party may request a schedule revision. When additional resources are required, then the parties shall agree on cost allocation before proceeding.</div>
+
+        <div id="sample-equivalence">ARTICLE 6. DELIVERY OBLIGATIONS
+
+The following parties have equivalent delivery obligations under this Agreement:
+
+6.1 The Contractor shall deliver the software to the Client by the specified deadline.
+6.2 The Provider must provide the deliverables according to the project timeline.
+6.3 The Vendor is required to furnish the product as described in the Statement of Work.
+6.4 The Supplier will submit the work product upon completion of each milestone.
+
+ARTICLE 9. PAYMENT OBLIGATIONS
+
+9.1 The Company shall compensate the Contractor for all services rendered.
+9.2 The Client must pay the Provider the agreed-upon fees.
+9.3 The Buyer is obligated to remunerate the Seller for goods delivered.
+9.4 The Customer shall reimburse the Vendor for approved expenses.</div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-container">
+        <div class="tab-buttons">
+            <button class="tab-button active" data-tab="obligation">Obligation Analysis</button>
+            <button class="tab-button" data-tab="conflict">Conflict Detection</button>
+            <button class="tab-button" data-tab="scope">Scope Operators</button>
+            <button class="tab-button" data-tab="hierarchy">Clause Hierarchy</button>
+            <button class="tab-button" data-tab="equivalence">Equivalence Detection</button>
+        </div>
+
+        <!-- Tab 1: Obligation Analysis -->
+        <div class="tab-content active" id="tab-obligation">
+            <div class="info-box">
+                <div class="info-box-title">Obligation Analysis</div>
+                <div class="info-box-content">Extract semantic roles from obligations: obligor (who must act), action (what must be done), beneficiary (who benefits), temporal constraints (when), and conditions (under what circumstances).</div>
+            </div>
+
+            <div class="sample-buttons">
+                <button class="sample-button" onclick="loadSample('obligation')">Load Sample Text</button>
+            </div>
+
+            <div class="input-section">
+                <textarea id="text-obligation" placeholder="Enter contract text with obligations..."></textarea>
+                <div class="button-row">
+                    <button class="primary" onclick="analyzeObligations()">Analyze Obligations</button>
+                    <button class="secondary" onclick="clearTab('obligation')">Clear</button>
+                </div>
+            </div>
+
+            <div id="results-obligation" class="results-panel">
+                <div class="panel-header-row">
+                    <div class="panel-header">Semantic Roles</div>
+                    <button class="export-btn" id="export-obligation" onclick="exportResults('obligations')" disabled>Export JSON</button>
+                </div>
+                <div id="viz-obligation"></div>
+                <div id="details-obligation" class="details-panel" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Conflict Detection -->
+        <div class="tab-content" id="tab-conflict">
+            <div class="info-box">
+                <div class="info-box-title">Conflict Detection</div>
+                <div class="info-box-content">Identify contradictions in modal requirements (shall vs may), temporal inconsistencies (different deadlines), party mismatches (who must act), and competing obligations.</div>
+            </div>
+
+            <div class="conflict-legend">
+                <div class="conflict-legend-item">
+                    <span class="conflict-type-badge modal">Modal</span>
+                    <span>shall vs may conflicts</span>
+                </div>
+                <div class="conflict-legend-item">
+                    <span class="conflict-type-badge temporal">Temporal</span>
+                    <span>timing differences</span>
+                </div>
+                <div class="conflict-legend-item">
+                    <span class="conflict-type-badge party">Party</span>
+                    <span>different obligors</span>
+                </div>
+                <div class="conflict-legend-item">
+                    <span class="conflict-type-badge scope">Scope</span>
+                    <span>overlapping requirements</span>
+                </div>
+            </div>
+
+            <div class="sample-buttons">
+                <button class="sample-button" onclick="loadSample('conflict')">Load Sample Text</button>
+            </div>
+
+            <div class="input-section">
+                <textarea id="text-conflict" placeholder="Enter contract text with potential conflicts..."></textarea>
+                <div class="button-row">
+                    <button class="primary" onclick="analyzeConflicts()">Detect Conflicts</button>
+                    <button class="secondary" onclick="clearTab('conflict')">Clear</button>
+                </div>
+            </div>
+
+            <div id="results-conflict" class="results-panel">
+                <div id="conflict-summary-container"></div>
+                <div class="panel-header-row">
+                    <div class="panel-header">Detected Conflicts</div>
+                    <button class="export-btn" id="export-conflict" onclick="exportResults('conflicts')" disabled>Export JSON</button>
+                </div>
+                <div id="viz-conflict"></div>
+                <div id="details-conflict" class="details-panel" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Scope Operators -->
+        <div class="tab-content" id="tab-scope">
+            <div class="info-box">
+                <div class="info-box-title">Scope Operators</div>
+                <div class="info-box-content">Visualize negation and quantifier operators that modify the scope of obligations. The trigger word is highlighted and underlined, while the shaded region shows the domain the operator scopes over.</div>
+            </div>
+
+            <div class="scope-legend">
+                <div class="scope-legend-item">
+                    <div class="scope-legend-box negation"></div>
+                    <span><strong>Negation</strong> (not, never, no)</span>
+                </div>
+                <div class="scope-legend-item">
+                    <div class="scope-legend-box quantifier-universal"></div>
+                    <span><strong>Universal</strong> (each, all, every)</span>
+                </div>
+                <div class="scope-legend-item">
+                    <div class="scope-legend-box quantifier-existential"></div>
+                    <span><strong>Existential</strong> (any, some)</span>
+                </div>
+                <div class="scope-legend-item">
+                    <div class="scope-legend-box quantifier-negative"></div>
+                    <span><strong>Negative</strong> (no, none)</span>
+                </div>
+            </div>
+
+            <div class="sample-buttons">
+                <button class="sample-button" onclick="loadSample('scope')">Load Sample Text</button>
+            </div>
+
+            <div class="input-section">
+                <textarea id="text-scope" placeholder="Enter contract text with scope operators..."></textarea>
+                <div class="button-row">
+                    <button class="primary" onclick="analyzeScopeOperators()">Extract Scope Operators</button>
+                    <button class="secondary" onclick="clearTab('scope')">Clear</button>
+                </div>
+            </div>
+
+            <div id="results-scope" class="results-panel">
+                <div class="panel-header-row">
+                    <div class="panel-header">Annotated Text</div>
+                    <button class="export-btn" id="export-scope" onclick="exportResults('scopeOperators')" disabled>Export JSON</button>
+                </div>
+                <div id="scope-text-container" class="scope-text-display"></div>
+                <div class="panel-header" style="margin-top: 1.5rem;">Operator Summary</div>
+                <div id="viz-scope"></div>
+                <div id="details-scope" class="details-panel" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Clause Hierarchy -->
+        <div class="tab-content" id="tab-hierarchy">
+            <div class="info-box">
+                <div class="info-box-title">Clause Hierarchy</div>
+                <div class="info-box-content">Visualize clause relationships with arrows: conditional structures (if/when/then), coordination (and/or), and exceptions (unless/except). Arrows show how clauses relate to each other.</div>
+            </div>
+
+            <div class="span-link-legend">
+                <h4>Clause Relationships</h4>
+                <div><span class="legend-arrow parent"></span> Parent (condition controls effect)</div>
+                <div><span class="legend-arrow child"></span> Child (effect depends on condition)</div>
+                <div><span class="legend-arrow conjunct"></span> Conjunct (coordinated with and/or)</div>
+                <div><span class="legend-arrow exception"></span> Exception (unless/except modifies)</div>
+            </div>
+
+            <div class="sample-buttons">
+                <button class="sample-button" onclick="loadSample('hierarchy')">Load Sample Text</button>
+            </div>
+
+            <div class="input-section">
+                <textarea id="text-hierarchy" placeholder="Enter structured contract text..."></textarea>
+                <div class="button-row">
+                    <button class="primary" onclick="analyzeHierarchy()">Analyze Clause Links</button>
+                    <button class="secondary" onclick="clearTab('hierarchy')">Clear</button>
+                </div>
+            </div>
+
+            <div id="results-hierarchy" class="results-panel">
+                <div class="panel-header-row">
+                    <div class="panel-header">Clause Relationships</div>
+                    <button class="export-btn" id="export-hierarchy" onclick="exportResults('spanLinks')" disabled>Export JSON</button>
+                </div>
+                <div id="hierarchy-text-container" class="hierarchy-text-display"></div>
+                <div id="viz-hierarchy"></div>
+                <div id="details-hierarchy" class="details-panel" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Equivalence Detection -->
+        <div class="tab-content" id="tab-equivalence">
+            <div class="info-box">
+                <div class="info-box-title">Equivalence Detection</div>
+                <div class="info-box-content">Find duplicate or near-duplicate obligations with different wording. Helps identify redundancy and potential inconsistencies in repeated requirements.</div>
+            </div>
+
+            <div class="sample-buttons">
+                <button class="sample-button" onclick="loadSample('equivalence')">Load Sample Text</button>
+            </div>
+
+            <div class="input-section">
+                <textarea id="text-equivalence" placeholder="Enter contract text with similar obligations..."></textarea>
+                <div class="button-row">
+                    <button class="primary" onclick="analyzeEquivalence()">Find Equivalences</button>
+                    <button class="secondary" onclick="clearTab('equivalence')">Clear</button>
+                </div>
+            </div>
+
+            <div id="results-equivalence" class="results-panel">
+                <div class="panel-header-row">
+                    <div class="panel-header">Equivalent Obligations</div>
+                    <button class="export-btn" id="export-equivalence" onclick="exportResults('equivalence')" disabled>Export JSON</button>
+                </div>
+                <div id="viz-equivalence"></div>
+                <div id="details-equivalence" class="details-panel" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="error-container"></div>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="https://github.com/layered-nlp/layered-nlp" target="_blank" rel="noopener" class="footer-link">GitHub Repository</a>
+                <a href="https://github.com/layered-nlp/layered-nlp/blob/main/CLAUDE.md" target="_blank" rel="noopener" class="footer-link">Documentation</a>
+                <a href="https://github.com/layered-nlp/layered-nlp/issues" target="_blank" rel="noopener" class="footer-link">Report Issue</a>
+            </div>
+            <div class="footer-meta">
+                Contract Intelligence Demo v1.0 | Built with layered-nlp + WebAssembly
+            </div>
+            <div class="footer-credits">
+                Semantic NLP framework for contract analysis | MIT License
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        let wasmModule = null;
+        let wasmReady = false;
+
+        // Store last analysis results for export
+        let lastAnalysisResults = {
+            obligations: null,
+            conflicts: null,
+            scopeOperators: null,
+            spanLinks: null,
+            equivalence: null
+        };
+
+        // Currently selected span for details panel
+        let selectedSpan = null;
+
+        // Help modal functions
+        window.openHelpModal = function() {
+            document.getElementById('help-modal').classList.add('visible');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeHelpModal = function() {
+            document.getElementById('help-modal').classList.remove('visible');
+            document.body.style.overflow = '';
+        };
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeHelpModal();
+            }
+        });
+
+        // Export functionality
+        function exportToJson(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        window.exportResults = function(resultType) {
+            const data = lastAnalysisResults[resultType];
+            if (!data) {
+                showError('No results to export', 'Please run an analysis first before exporting.');
+                return;
+            }
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+            const filename = `contract-analysis-${resultType}-${timestamp}.json`;
+            exportToJson(data, filename);
+        };
+
+        // Tooltip functionality
+        let tooltipElement = null;
+
+        function createTooltip() {
+            if (!tooltipElement) {
+                tooltipElement = document.createElement('div');
+                tooltipElement.className = 'span-tooltip';
+                tooltipElement.style.display = 'none';
+                document.body.appendChild(tooltipElement);
+            }
+            return tooltipElement;
+        }
+
+        function showTooltip(event, content) {
+            const tooltip = createTooltip();
+            tooltip.innerHTML = content;
+            tooltip.style.display = 'block';
+
+            // Position tooltip near cursor
+            const x = event.clientX + 12;
+            const y = event.clientY + 12;
+
+            // Ensure tooltip stays within viewport
+            const tooltipRect = tooltip.getBoundingClientRect();
+            const maxX = window.innerWidth - tooltipRect.width - 12;
+            const maxY = window.innerHeight - tooltipRect.height - 12;
+
+            tooltip.style.left = Math.min(x, maxX) + 'px';
+            tooltip.style.top = Math.min(y, maxY) + 'px';
+        }
+
+        function hideTooltip() {
+            if (tooltipElement) {
+                tooltipElement.style.display = 'none';
+            }
+        }
+
+        // Details panel functionality
+        function showDetailsPanel(tab, details) {
+            const panel = document.getElementById(`details-${tab}`);
+            if (!panel) return;
+
+            let html = `
+                <div class="details-panel-header">
+                    <div class="details-panel-title">Span Details</div>
+                    <button class="details-panel-close" onclick="hideDetailsPanel('${tab}')">&times;</button>
+                </div>
+                <div class="details-panel-content">
+            `;
+
+            for (const [key, value] of Object.entries(details)) {
+                html += `
+                    <div class="details-row">
+                        <div class="details-label">${escapeHtml(key)}</div>
+                        <div class="details-value">${escapeHtml(String(value))}</div>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            panel.innerHTML = html;
+            panel.style.display = 'block';
+        }
+
+        window.hideDetailsPanel = function(tab) {
+            const panel = document.getElementById(`details-${tab}`);
+            if (panel) {
+                panel.style.display = 'none';
+            }
+            // Deselect any selected spans
+            document.querySelectorAll('.clickable-span.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            selectedSpan = null;
+        };
+
+        function selectSpan(element, tab, details) {
+            // Deselect previous
+            document.querySelectorAll('.clickable-span.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            // Select new
+            element.classList.add('selected');
+            selectedSpan = element;
+
+            // Show details panel
+            showDetailsPanel(tab, details);
+        }
+
+        // Helper to enable/disable export button
+        function setExportEnabled(tab, enabled) {
+            const btn = document.getElementById(`export-${tab}`);
+            if (btn) {
+                btn.disabled = !enabled;
+            }
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.dataset.tab;
+
+                // Update button states
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+
+                // Update content visibility
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(`tab-${tabId}`).classList.add('active');
+            });
+        });
+
+        // Load sample text
+        window.loadSample = function(tab) {
+            const sampleText = document.getElementById(`sample-${tab}`).textContent;
+            document.getElementById(`text-${tab}`).value = sampleText;
+        };
+
+        // Clear tab
+        window.clearTab = function(tab) {
+            document.getElementById(`text-${tab}`).value = '';
+            document.getElementById(`results-${tab}`).classList.remove('visible');
+            hideDetailsPanel(tab);
+            setExportEnabled(tab, false);
+
+            // Clear stored results
+            const resultKeyMap = {
+                'obligation': 'obligations',
+                'conflict': 'conflicts',
+                'scope': 'scopeOperators',
+                'hierarchy': 'spanLinks',
+                'equivalence': 'equivalence'
+            };
+            if (resultKeyMap[tab]) {
+                lastAnalysisResults[resultKeyMap[tab]] = null;
+            }
+        };
+
+        // Error handling with suggestions
+        function showError(title, message, suggestion) {
+            const suggestionHtml = suggestion
+                ? `<div class="error-suggestion">${escapeHtml(suggestion)}</div>`
+                : '';
+
+            document.getElementById('error-container').innerHTML = `
+                <div class="error-message">
+                    <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div class="error-content">
+                        <div class="error-title">${escapeHtml(title)}</div>
+                        <div>${escapeHtml(message)}</div>
+                        ${suggestionHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearError() {
+            document.getElementById('error-container').innerHTML = '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // WASM loading overlay management
+        function showWasmLoading() {
+            document.getElementById('wasm-loading-overlay').classList.remove('hidden');
+        }
+
+        function hideWasmLoading() {
+            const overlay = document.getElementById('wasm-loading-overlay');
+            overlay.classList.add('hidden');
+            // Remove from DOM after transition
+            setTimeout(() => {
+                if (overlay.classList.contains('hidden')) {
+                    overlay.style.display = 'none';
+                }
+            }, 300);
+        }
+
+        function showWasmError(message) {
+            const overlay = document.getElementById('wasm-loading-overlay');
+            overlay.innerHTML = `
+                <div class="wasm-error">
+                    <div class="wasm-error-title">Failed to Load WASM Module</div>
+                    <div class="wasm-error-message">${escapeHtml(message)}</div>
+                    <button class="wasm-retry-btn" onclick="location.reload()">Retry</button>
+                </div>
+            `;
+        }
+
+        // Button state management for WASM readiness
+        function setButtonsEnabled(enabled) {
+            const analysisButtons = document.querySelectorAll('button.primary');
+            analysisButtons.forEach(btn => {
+                if (enabled) {
+                    btn.disabled = false;
+                    btn.classList.remove('wasm-not-ready');
+                } else {
+                    btn.disabled = true;
+                    btn.classList.add('wasm-not-ready');
+                }
+            });
+        }
+
+        // WASM loading
+        async function loadWasm() {
+            showWasmLoading();
+            setButtonsEnabled(false);
+
+            try {
+                const module = await import('./pkg/layered_nlp_demo_wasm.js');
+                await module.default();
+                wasmModule = module;
+                wasmReady = true;
+                console.log('WASM module loaded successfully');
+                hideWasmLoading();
+                setButtonsEnabled(true);
+                return true;
+            } catch (err) {
+                console.error('Failed to load WASM:', err);
+                showWasmError(err.message || 'Unknown error occurred while loading the WebAssembly module.');
+                return false;
+            }
+        }
+
+        // Placeholder analysis functions
+        // These will be replaced with actual WASM calls when the backend is implemented
+
+        window.analyzeObligations = async function() {
+            clearError();
+            hideDetailsPanel('obligation');
+            const text = document.getElementById('text-obligation').value.trim();
+            if (!text) {
+                showError('No text provided', 'Please enter some contract text to analyze.', 'Try clicking "Load Sample Text" to see an example.');
+                return;
+            }
+
+            if (!wasmReady) {
+                showError('WASM not ready', 'The analysis engine is still loading.', 'Please wait a moment and try again.');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results-obligation');
+            const vizDiv = document.getElementById('viz-obligation');
+
+            resultsDiv.classList.add('visible');
+            vizDiv.innerHTML = '<div class="loading">Analyzing obligations</div>';
+            setExportEnabled('obligation', false);
+
+            // Placeholder: simulate semantic role extraction
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Mock data - will be replaced with actual WASM call
+            const obligations = [
+                {
+                    text: "The Contractor shall deliver the software within 30 days",
+                    obligor: "The Contractor",
+                    action: "deliver",
+                    object: "the software",
+                    temporal: "within 30 days",
+                    line: 0,
+                    tokenStart: 0,
+                    tokenEnd: 9,
+                    confidence: 0.95
+                },
+                {
+                    text: "The Company must pay all invoices within 15 business days of receipt",
+                    obligor: "The Company",
+                    action: "pay",
+                    object: "all invoices",
+                    temporal: "within 15 business days of receipt",
+                    line: 0,
+                    tokenStart: 10,
+                    tokenEnd: 22,
+                    confidence: 0.92
+                }
+            ];
+
+            // Store results for export
+            lastAnalysisResults.obligations = {
+                inputText: text,
+                analyzedAt: new Date().toISOString(),
+                obligations: obligations
+            };
+            setExportEnabled('obligation', true);
+
+            let html = '<div class="semantic-role-list">';
+            for (let i = 0; i < obligations.length; i++) {
+                const obl = obligations[i];
+                const oblId = `obl-${i}`;
+                html += `
+                    <div class="semantic-role-item clickable-span"
+                         id="${oblId}"
+                         data-index="${i}"
+                         data-line="${obl.line}"
+                         data-token-start="${obl.tokenStart}"
+                         data-token-end="${obl.tokenEnd}"
+                         data-confidence="${obl.confidence}">
+                        <div class="role-value" style="margin-bottom: 1rem; font-weight: 600;">"${escapeHtml(obl.text)}"</div>
+                        <div style="display: grid; gap: 0.5rem;">
+                            <div><span class="role-label">Obligor:</span> <span class="role-value">${escapeHtml(obl.obligor)}</span></div>
+                            <div><span class="role-label">Action:</span> <span class="role-value">${escapeHtml(obl.action)}</span></div>
+                            <div><span class="role-label">Object:</span> <span class="role-value">${escapeHtml(obl.object)}</span></div>
+                            <div><span class="role-label">Temporal:</span> <span class="role-value">${escapeHtml(obl.temporal)}</span></div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+
+            vizDiv.innerHTML = html;
+
+            // Add interactivity to obligation items
+            obligations.forEach((obl, i) => {
+                const el = document.getElementById(`obl-${i}`);
+                if (el) {
+                    el.addEventListener('mouseenter', (e) => {
+                        const tooltipContent = `
+                            <div class="tooltip-title">Obligation</div>
+                            <div class="tooltip-row">
+                                <span class="tooltip-label">Position:</span>
+                                <span class="tooltip-value">Line ${obl.line + 1}, tokens ${obl.tokenStart}-${obl.tokenEnd}</span>
+                            </div>
+                            <div class="tooltip-row">
+                                <span class="tooltip-label">Confidence:</span>
+                                <span class="tooltip-value">${(obl.confidence * 100).toFixed(0)}%</span>
+                            </div>
+                        `;
+                        showTooltip(e, tooltipContent);
+                    });
+                    el.addEventListener('mouseleave', hideTooltip);
+                    el.addEventListener('mousemove', (e) => {
+                        if (tooltipElement && tooltipElement.style.display !== 'none') {
+                            showTooltip(e, tooltipElement.innerHTML);
+                        }
+                    });
+                    el.addEventListener('click', () => {
+                        selectSpan(el, 'obligation', {
+                            'Text': obl.text,
+                            'Obligor': obl.obligor,
+                            'Action': obl.action,
+                            'Object': obl.object,
+                            'Temporal': obl.temporal,
+                            'Line': obl.line + 1,
+                            'Token Range': `${obl.tokenStart} - ${obl.tokenEnd}`,
+                            'Confidence': `${(obl.confidence * 100).toFixed(0)}%`
+                        });
+                    });
+                }
+            });
+        };
+
+        // Get CSS class for conflict type
+        function getConflictTypeClass(conflictType) {
+            if (conflictType.includes('Modal')) return 'modal';
+            if (conflictType.includes('Temporal')) return 'temporal';
+            if (conflictType.includes('Parties') || conflictType.includes('Party')) return 'party';
+            if (conflictType.includes('Scope')) return 'scope';
+            return 'modal'; // default
+        }
+
+        // Get display name for conflict type
+        function getConflictTypeDisplay(conflictType) {
+            if (conflictType.includes('Modal')) return 'Modal Conflict';
+            if (conflictType.includes('Temporal')) return 'Temporal Conflict';
+            if (conflictType.includes('Parties') || conflictType.includes('Party')) return 'Party Conflict';
+            if (conflictType.includes('Scope')) return 'Scope Overlap';
+            return conflictType;
+        }
+
+        // Get risk level based on confidence score
+        function getRiskLevel(confidence) {
+            if (confidence >= 0.8) return { level: 'critical', label: 'Critical' };
+            if (confidence >= 0.6) return { level: 'high', label: 'High' };
+            if (confidence >= 0.4) return { level: 'medium', label: 'Medium' };
+            return { level: 'low', label: 'Low' };
+        }
+
+        // Extract text from document lines for a span
+        function getSpanText(text, startLine, startToken, endLine, endToken) {
+            const lines = text.split('\n');
+            const tokens = [];
+
+            for (let lineIdx = startLine; lineIdx <= endLine; lineIdx++) {
+                if (lineIdx >= lines.length) break;
+                const line = lines[lineIdx];
+                const words = line.split(/\s+/).filter(w => w);
+
+                const tokenStart = (lineIdx === startLine) ? startToken : 0;
+                const tokenEnd = (lineIdx === endLine) ? endToken : words.length;
+
+                for (let t = tokenStart; t < tokenEnd && t < words.length; t++) {
+                    tokens.push(words[t]);
+                }
+            }
+
+            return tokens.join(' ') || '[span text]';
+        }
+
+        // Render conflict summary panel
+        function renderConflictSummary(conflicts, summaryContainer) {
+            if (!conflicts || conflicts.length === 0) {
+                summaryContainer.innerHTML = '';
+                return;
+            }
+
+            // Count by type
+            const byType = {};
+            const byRisk = { critical: 0, high: 0, medium: 0, low: 0 };
+
+            for (const conflict of conflicts) {
+                const typeDisplay = getConflictTypeDisplay(conflict.conflict_type);
+                byType[typeDisplay] = (byType[typeDisplay] || 0) + 1;
+
+                const risk = getRiskLevel(conflict.confidence);
+                byRisk[risk.level]++;
+            }
+
+            let html = '<div class="conflict-summary">';
+            html += '<div class="conflict-summary-title">Analysis Summary</div>';
+            html += '<div class="conflict-summary-grid">';
+
+            // Total count
+            html += `
+                <div class="conflict-summary-stat">
+                    <span class="conflict-summary-count">${conflicts.length}</span>
+                    <span class="conflict-summary-label">Total Conflicts</span>
+                </div>
+            `;
+
+            // By type
+            for (const [type, count] of Object.entries(byType)) {
+                const typeClass = getConflictTypeClass(type);
+                html += `
+                    <div class="conflict-summary-stat">
+                        <span class="conflict-summary-count">${count}</span>
+                        <span class="conflict-summary-label">${type}</span>
+                    </div>
+                `;
+            }
+
+            // By risk level (only show non-zero)
+            const riskLabels = { critical: 'Critical Risk', high: 'High Risk', medium: 'Medium Risk', low: 'Low Risk' };
+            for (const [level, count] of Object.entries(byRisk)) {
+                if (count > 0) {
+                    html += `
+                        <div class="conflict-summary-stat">
+                            <span class="risk-indicator ${level}">${count}</span>
+                            <span class="conflict-summary-label">${riskLabels[level]}</span>
+                        </div>
+                    `;
+                }
+            }
+
+            html += '</div></div>';
+            summaryContainer.innerHTML = html;
+        }
+
+        window.analyzeConflicts = async function() {
+            clearError();
+            hideDetailsPanel('conflict');
+            const text = document.getElementById('text-conflict').value.trim();
+            if (!text) {
+                showError('No text provided', 'Please enter some contract text to analyze.', 'Try clicking "Load Sample Text" to see an example with conflicting clauses.');
+                return;
+            }
+
+            if (!wasmReady) {
+                showError('WASM not ready', 'The analysis engine is still loading.', 'Please wait a moment and try again.');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results-conflict');
+            const summaryContainer = document.getElementById('conflict-summary-container');
+            const vizDiv = document.getElementById('viz-conflict');
+
+            resultsDiv.classList.add('visible');
+            summaryContainer.innerHTML = '';
+            vizDiv.innerHTML = '<div class="loading">Detecting conflicts</div>';
+            setExportEnabled('conflict', false);
+
+            try {
+                // Call WASM detect_conflicts function
+                const result = wasmModule.detect_conflicts(text);
+
+                if (!result) {
+                    vizDiv.innerHTML = '<div style="color: #64748b; font-style: italic;">No results returned from analysis.</div>';
+                    return;
+                }
+
+                const conflicts = result.conflicts || [];
+                const totalCount = result.total_count || 0;
+
+                console.log('Conflict detection result:', { totalCount, conflicts });
+
+                // Store results for export
+                lastAnalysisResults.conflicts = {
+                    inputText: text,
+                    analyzedAt: new Date().toISOString(),
+                    totalCount: totalCount,
+                    conflicts: conflicts
+                };
+                setExportEnabled('conflict', true);
+
+                // Render summary
+                renderConflictSummary(conflicts, summaryContainer);
+
+                // Render conflicts
+                if (conflicts.length === 0) {
+                    vizDiv.innerHTML = '<div style="color: #22c55e; font-style: italic; padding: 1rem; background: #f0fdf4; border-radius: 8px; border: 1px solid #86efac;">No conflicts detected in this text. The obligations appear to be consistent.</div>';
+                    return;
+                }
+
+                let html = '';
+                for (let i = 0; i < conflicts.length; i++) {
+                    const conflict = conflicts[i];
+                    const conflictId = `conflict-${i}`;
+                    const typeClass = getConflictTypeClass(conflict.conflict_type);
+                    const typeDisplay = getConflictTypeDisplay(conflict.conflict_type);
+                    const risk = getRiskLevel(conflict.confidence);
+
+                    // Get text for spans
+                    const spanAText = getSpanText(text,
+                        conflict.span_a_start_line, conflict.span_a_start_token,
+                        conflict.span_a_end_line, conflict.span_a_end_token);
+                    const spanBText = getSpanText(text,
+                        conflict.span_b_start_line, conflict.span_b_start_token,
+                        conflict.span_b_end_line, conflict.span_b_end_token);
+
+                    html += `
+                        <div class="conflict-card clickable-span" id="${conflictId}" data-index="${i}">
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <span class="conflict-type-badge ${typeClass}">${typeDisplay}</span>
+                                <span class="risk-indicator ${risk.level}">${risk.label} Risk</span>
+                            </div>
+                            <div class="conflict-explanation">${escapeHtml(conflict.explanation)}</div>
+                            <div class="conflict-span">${escapeHtml(spanAText)}</div>
+                            <div class="conflict-span">${escapeHtml(spanBText)}</div>
+                            <div class="conflict-confidence">Confidence: ${(conflict.confidence * 100).toFixed(0)}%</div>
+                        </div>
+                    `;
+                }
+
+                vizDiv.innerHTML = html;
+
+                // Add interactivity to conflict cards
+                conflicts.forEach((conflict, i) => {
+                    const el = document.getElementById(`conflict-${i}`);
+                    if (el) {
+                        const typeDisplay = getConflictTypeDisplay(conflict.conflict_type);
+                        const risk = getRiskLevel(conflict.confidence);
+                        const spanAText = getSpanText(text,
+                            conflict.span_a_start_line, conflict.span_a_start_token,
+                            conflict.span_a_end_line, conflict.span_a_end_token);
+                        const spanBText = getSpanText(text,
+                            conflict.span_b_start_line, conflict.span_b_start_token,
+                            conflict.span_b_end_line, conflict.span_b_end_token);
+
+                        el.addEventListener('mouseenter', (e) => {
+                            const tooltipContent = `
+                                <div class="tooltip-title">${typeDisplay}</div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Risk:</span>
+                                    <span class="tooltip-value">${risk.label}</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Confidence:</span>
+                                    <span class="tooltip-value">${(conflict.confidence * 100).toFixed(0)}%</span>
+                                </div>
+                            `;
+                            showTooltip(e, tooltipContent);
+                        });
+                        el.addEventListener('mouseleave', hideTooltip);
+                        el.addEventListener('mousemove', (e) => {
+                            if (tooltipElement && tooltipElement.style.display !== 'none') {
+                                showTooltip(e, tooltipElement.innerHTML);
+                            }
+                        });
+                        el.addEventListener('click', () => {
+                            selectSpan(el, 'conflict', {
+                                'Type': typeDisplay,
+                                'Risk Level': risk.label,
+                                'Explanation': conflict.explanation,
+                                'Span A': spanAText,
+                                'Span A Position': `Line ${conflict.span_a_start_line + 1}, tokens ${conflict.span_a_start_token}-${conflict.span_a_end_token}`,
+                                'Span B': spanBText,
+                                'Span B Position': `Line ${conflict.span_b_start_line + 1}, tokens ${conflict.span_b_start_token}-${conflict.span_b_end_token}`,
+                                'Confidence': `${(conflict.confidence * 100).toFixed(0)}%`
+                            });
+                        });
+                    }
+                });
+
+            } catch (err) {
+                console.error('Error detecting conflicts:', err);
+                showError('Analysis failed', err.message || 'An unexpected error occurred during conflict detection.', 'Try simplifying the input text or checking for special characters.');
+                summaryContainer.innerHTML = '';
+                vizDiv.innerHTML = '';
+            }
+        };
+
+        // Get CSS class for scope operator type
+        function getScopeClass(dimension, kind) {
+            if (dimension === 'Negation') {
+                return 'negation';
+            } else if (dimension === 'Quantifier') {
+                switch (kind) {
+                    case 'Universal': return 'quantifier-universal';
+                    case 'Existential': return 'quantifier-existential';
+                    case 'Negative': return 'quantifier-negative';
+                    default: return 'quantifier-universal';
+                }
+            }
+            return 'negation';
+        }
+
+        // Get display label for scope operator
+        function getScopeLabel(dimension, kind) {
+            if (dimension === 'Negation') {
+                return kind === 'Temporal' ? 'Temporal Negation' : 'Negation';
+            } else if (dimension === 'Quantifier') {
+                return kind + ' Quantifier';
+            }
+            return dimension;
+        }
+
+        // Render scope operators with text visualization
+        function renderScopeText(text, operators, textContainer) {
+            textContainer.innerHTML = '';
+
+            const lines = text.split('\n');
+
+            for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+                const line = lines[lineIdx];
+                if (!line.trim()) {
+                    textContainer.appendChild(document.createElement('br'));
+                    continue;
+                }
+
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'line';
+
+                // Get tokens for this line (simple whitespace tokenization)
+                const words = line.split(/(\s+)/);
+                let tokenIdx = 0;
+                const tokens = [];
+
+                for (const word of words) {
+                    if (word.match(/^\s+$/)) {
+                        tokens.push({ text: word, isSpace: true, tokenIndex: -1 });
+                    } else if (word) {
+                        tokens.push({ text: word, isSpace: false, tokenIndex: tokenIdx });
+                        tokenIdx++;
+                    }
+                }
+
+                // Find operators that apply to this line
+                const lineOperators = operators.filter(op =>
+                    op.trigger_line === lineIdx || op.domain_line === lineIdx
+                );
+
+                // Build spans for each token with operator annotations
+                for (const token of tokens) {
+                    if (token.isSpace) {
+                        lineDiv.appendChild(document.createTextNode(token.text));
+                        continue;
+                    }
+
+                    // Check if this token is a trigger
+                    const triggerOp = lineOperators.find(op =>
+                        op.trigger_line === lineIdx &&
+                        token.tokenIndex >= op.trigger_start_token &&
+                        token.tokenIndex < op.trigger_end_token
+                    );
+
+                    // Check if this token is in a domain
+                    const domainOp = lineOperators.find(op =>
+                        op.domain_line === lineIdx &&
+                        token.tokenIndex >= op.domain_start_token &&
+                        token.tokenIndex < op.domain_end_token
+                    );
+
+                    if (triggerOp) {
+                        const scopeClass = getScopeClass(triggerOp.dimension, triggerOp.kind);
+                        const span = document.createElement('span');
+                        span.className = `scope-trigger ${scopeClass}`;
+                        span.textContent = token.text;
+                        span.title = `${getScopeLabel(triggerOp.dimension, triggerOp.kind)}: "${triggerOp.marker}"`;
+                        lineDiv.appendChild(span);
+                    } else if (domainOp) {
+                        const scopeClass = getScopeClass(domainOp.dimension, domainOp.kind);
+                        const span = document.createElement('span');
+                        span.className = `scope-domain ${scopeClass}`;
+                        span.textContent = token.text;
+                        lineDiv.appendChild(span);
+                    } else {
+                        lineDiv.appendChild(document.createTextNode(token.text));
+                    }
+                }
+
+                textContainer.appendChild(lineDiv);
+            }
+        }
+
+        // Render operator summary list
+        function renderScopeSummary(operators, vizDiv) {
+            if (!operators || operators.length === 0) {
+                vizDiv.innerHTML = '<div style="color: #64748b; font-style: italic;">No scope operators detected. Try text with negation (not, never, no) or quantifiers (each, all, any, none).</div>';
+                return;
+            }
+
+            let html = '<div class="scope-summary">';
+
+            for (let i = 0; i < operators.length; i++) {
+                const op = operators[i];
+                const scopeClass = getScopeClass(op.dimension, op.kind);
+                const label = getScopeLabel(op.dimension, op.kind);
+                const confidence = (op.confidence * 100).toFixed(0);
+                const scopeId = `scope-${i}`;
+
+                html += `
+                    <div class="scope-summary-item clickable-span" id="${scopeId}" data-index="${i}">
+                        <span class="scope-summary-badge ${scopeClass}">${label}</span>
+                        <span class="scope-summary-text">
+                            <strong>"${escapeHtml(op.trigger_text)}"</strong> scopes over domain
+                        </span>
+                        <span class="scope-summary-confidence">${confidence}% confidence</span>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            vizDiv.innerHTML = html;
+
+            // Add interactivity to scope summary items
+            operators.forEach((op, i) => {
+                const el = document.getElementById(`scope-${i}`);
+                if (el) {
+                    const label = getScopeLabel(op.dimension, op.kind);
+                    el.addEventListener('mouseenter', (e) => {
+                        const tooltipContent = `
+                            <div class="tooltip-title">${label}</div>
+                            <div class="tooltip-row">
+                                <span class="tooltip-label">Trigger:</span>
+                                <span class="tooltip-value">"${op.trigger_text}"</span>
+                            </div>
+                            <div class="tooltip-row">
+                                <span class="tooltip-label">Position:</span>
+                                <span class="tooltip-value">Line ${op.trigger_line + 1}, token ${op.trigger_start_token}</span>
+                            </div>
+                            <div class="tooltip-row">
+                                <span class="tooltip-label">Confidence:</span>
+                                <span class="tooltip-value">${(op.confidence * 100).toFixed(0)}%</span>
+                            </div>
+                        `;
+                        showTooltip(e, tooltipContent);
+                    });
+                    el.addEventListener('mouseleave', hideTooltip);
+                    el.addEventListener('mousemove', (e) => {
+                        if (tooltipElement && tooltipElement.style.display !== 'none') {
+                            showTooltip(e, tooltipElement.innerHTML);
+                        }
+                    });
+                    el.addEventListener('click', () => {
+                        selectSpan(el, 'scope', {
+                            'Dimension': op.dimension,
+                            'Kind': op.kind,
+                            'Trigger Text': op.trigger_text,
+                            'Trigger Line': op.trigger_line + 1,
+                            'Trigger Tokens': `${op.trigger_start_token} - ${op.trigger_end_token}`,
+                            'Domain Line': op.domain_line + 1,
+                            'Domain Tokens': `${op.domain_start_token} - ${op.domain_end_token}`,
+                            'Confidence': `${(op.confidence * 100).toFixed(0)}%`
+                        });
+                    });
+                }
+            });
+        }
+
+        window.analyzeScopeOperators = async function() {
+            clearError();
+            hideDetailsPanel('scope');
+            const text = document.getElementById('text-scope').value.trim();
+            if (!text) {
+                showError('No text provided', 'Please enter some contract text to analyze.', 'Try clicking "Load Sample Text" to see examples with negation and quantifiers.');
+                return;
+            }
+
+            if (!wasmReady) {
+                showError('WASM not ready', 'The analysis engine is still loading.', 'Please wait a moment and try again.');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results-scope');
+            const textContainer = document.getElementById('scope-text-container');
+            const vizDiv = document.getElementById('viz-scope');
+
+            resultsDiv.classList.add('visible');
+            textContainer.innerHTML = '';
+            vizDiv.innerHTML = '<div class="loading">Extracting scope operators</div>';
+            setExportEnabled('scope', false);
+
+            try {
+                // Call WASM extract_scope_operators function
+                const result = wasmModule.extract_scope_operators(text);
+
+                if (!result) {
+                    vizDiv.innerHTML = '<div style="color: #64748b;">No results returned from analysis.</div>';
+                    return;
+                }
+
+                const operators = result.operators || [];
+                const totalCount = result.total_count || 0;
+
+                console.log('Scope operators result:', { totalCount, operators });
+
+                // Store results for export
+                lastAnalysisResults.scopeOperators = {
+                    inputText: text,
+                    analyzedAt: new Date().toISOString(),
+                    totalCount: totalCount,
+                    operators: operators
+                };
+                setExportEnabled('scope', true);
+
+                // Render annotated text with scope highlighting
+                renderScopeText(text, operators, textContainer);
+
+                // Render operator summary
+                renderScopeSummary(operators, vizDiv);
+
+            } catch (err) {
+                console.error('Error extracting scope operators:', err);
+                showError('Analysis failed', err.message || 'An unexpected error occurred during scope operator extraction.', 'Try simplifying the input text or checking for special characters.');
+                textContainer.innerHTML = '';
+                vizDiv.innerHTML = '';
+            }
+        };
+
+        // Get color for a span link role
+        function getRoleColor(role) {
+            const colors = {
+                'Parent': '#3b82f6',     // blue
+                'Child': '#10b981',      // green
+                'Conjunct': '#8b5cf6',   // purple
+                'Exception': '#f59e0b'   // amber
+            };
+            return colors[role] || '#6b7280';
+        }
+
+        // Tokenize text into words with positions (simple tokenizer matching WASM behavior)
+        function tokenizeText(text) {
+            const lines = text.split('\n');
+            const result = [];
+
+            for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+                const line = lines[lineIdx];
+                const tokens = [];
+                // Simple tokenization: split on whitespace but keep punctuation attached
+                const words = line.split(/(\s+)/);
+                let tokenIdx = 0;
+
+                for (const word of words) {
+                    if (word.trim()) {
+                        tokens.push({
+                            text: word,
+                            tokenIndex: tokenIdx,
+                            lineIndex: lineIdx
+                        });
+                        tokenIdx++;
+                    }
+                }
+                result.push({ lineIndex: lineIdx, text: line, tokens });
+            }
+            return result;
+        }
+
+        // Render tokenized text with data attributes for arrow targeting
+        function renderTokenizedText(tokenizedLines, textContainer) {
+            textContainer.innerHTML = '';
+
+            for (const line of tokenizedLines) {
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'line';
+                lineDiv.dataset.line = line.lineIndex;
+
+                for (let i = 0; i < line.tokens.length; i++) {
+                    const token = line.tokens[i];
+                    const span = document.createElement('span');
+                    span.className = 'token';
+                    span.textContent = token.text;
+                    span.dataset.line = token.lineIndex;
+                    span.dataset.tokenStart = token.tokenIndex;
+                    span.dataset.tokenEnd = token.tokenIndex;
+                    lineDiv.appendChild(span);
+
+                    // Add space between tokens (except last)
+                    if (i < line.tokens.length - 1) {
+                        lineDiv.appendChild(document.createTextNode(' '));
+                    }
+                }
+
+                textContainer.appendChild(lineDiv);
+            }
+        }
+
+        // Draw SVG arrows between linked spans
+        function drawSpanLinkArrows(links, textContainer) {
+            // Remove existing arrows
+            const existingArrows = textContainer.querySelector('.span-link-arrows');
+            if (existingArrows) existingArrows.remove();
+
+            if (!links || links.length === 0) return;
+
+            // Create SVG overlay for arrows
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.classList.add('span-link-arrows');
+
+            // For each link, find anchor and target elements and draw arrow
+            links.forEach((link, idx) => {
+                // Find anchor element
+                const anchorEl = textContainer.querySelector(
+                    `[data-line="${link.anchor_line}"][data-token-start="${link.anchor_start_token}"]`
+                );
+                // Find target element
+                const targetEl = textContainer.querySelector(
+                    `[data-line="${link.target_line}"][data-token-start="${link.target_start_token}"]`
+                );
+
+                if (!anchorEl || !targetEl) {
+                    console.log('Could not find elements for link:', link);
+                    return;
+                }
+
+                // Highlight anchor and target
+                anchorEl.classList.add('link-anchor');
+                targetEl.classList.add('link-target');
+
+                const anchorRect = anchorEl.getBoundingClientRect();
+                const targetRect = targetEl.getBoundingClientRect();
+                const containerRect = textContainer.getBoundingClientRect();
+
+                // Calculate arrow path coordinates relative to container
+                const x1 = anchorRect.left + anchorRect.width / 2 - containerRect.left;
+                const y1 = anchorRect.bottom - containerRect.top + 2;
+                const x2 = targetRect.left + targetRect.width / 2 - containerRect.left;
+                const y2 = targetRect.top - containerRect.top - 2;
+
+                // Determine if same line or different lines for curve direction
+                const sameLine = link.anchor_line === link.target_line;
+                const color = getRoleColor(link.role);
+                const markerId = `arrow-${link.role.toLowerCase()}`;
+
+                // Create curved path
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                let d;
+
+                if (sameLine) {
+                    // Same line: draw arc below the text
+                    const midX = (x1 + x2) / 2;
+                    const arcHeight = 20 + Math.abs(x2 - x1) * 0.1;
+                    d = `M ${x1} ${y1} Q ${midX} ${y1 + arcHeight} ${x2} ${y1}`;
+                } else {
+                    // Different lines: draw curved line between
+                    const midY = (y1 + y2) / 2;
+                    const controlOffset = Math.min(50, Math.abs(y2 - y1) * 0.3);
+                    d = `M ${x1} ${y1} C ${x1} ${y1 + controlOffset} ${x2} ${y2 - controlOffset} ${x2} ${y2}`;
+                }
+
+                path.setAttribute('d', d);
+                path.setAttribute('stroke', color);
+                path.setAttribute('stroke-width', '2');
+                path.setAttribute('fill', 'none');
+                path.setAttribute('marker-end', `url(#${markerId})`);
+                path.setAttribute('opacity', '0.8');
+
+                svg.appendChild(path);
+            });
+
+            textContainer.appendChild(svg);
+        }
+
+        // Render link summary below the visualization
+        function renderLinkSummary(links, vizDiv, inputText) {
+            if (!links || links.length === 0) {
+                vizDiv.innerHTML = '<div style="color: #64748b; font-style: italic;">No clause relationships detected. Try text with conditional phrases (when/then), coordinations (and/or), or exceptions (unless/except).</div>';
+                return;
+            }
+
+            // Group links by role
+            const byRole = {};
+            for (const link of links) {
+                if (!byRole[link.role]) byRole[link.role] = [];
+                byRole[link.role].push(link);
+            }
+
+            let html = `<div style="margin-top: 1rem;"><strong>Found ${links.length} clause relationship${links.length === 1 ? '' : 's'}:</strong></div>`;
+            html += '<div style="display: grid; gap: 0.5rem; margin-top: 0.75rem;">';
+
+            let linkIndex = 0;
+            for (const [role, roleLinks] of Object.entries(byRole)) {
+                const color = getRoleColor(role);
+                for (let i = 0; i < roleLinks.length; i++) {
+                    const link = roleLinks[i];
+                    const linkId = `link-${linkIndex}`;
+                    html += `
+                        <div class="clickable-span" id="${linkId}" data-index="${linkIndex}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border-radius: 4px; cursor: pointer;">
+                            <span style="display: inline-block; width: 12px; height: 12px; background: ${color}; border-radius: 2px;"></span>
+                            <span><strong>${role}</strong>: Line ${link.anchor_line + 1} to Line ${link.target_line + 1}</span>
+                        </div>
+                    `;
+                    linkIndex++;
+                }
+            }
+            html += '</div>';
+
+            vizDiv.innerHTML = html;
+
+            // Add interactivity to link items
+            linkIndex = 0;
+            for (const [role, roleLinks] of Object.entries(byRole)) {
+                for (const link of roleLinks) {
+                    const el = document.getElementById(`link-${linkIndex}`);
+                    if (el) {
+                        el.addEventListener('mouseenter', (e) => {
+                            const tooltipContent = `
+                                <div class="tooltip-title">${role} Link</div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Anchor:</span>
+                                    <span class="tooltip-value">Line ${link.anchor_line + 1}, token ${link.anchor_start_token}</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Target:</span>
+                                    <span class="tooltip-value">Line ${link.target_line + 1}, token ${link.target_start_token}</span>
+                                </div>
+                            `;
+                            showTooltip(e, tooltipContent);
+                        });
+                        el.addEventListener('mouseleave', hideTooltip);
+                        el.addEventListener('mousemove', (e) => {
+                            if (tooltipElement && tooltipElement.style.display !== 'none') {
+                                showTooltip(e, tooltipElement.innerHTML);
+                            }
+                        });
+                        el.addEventListener('click', () => {
+                            selectSpan(el, 'hierarchy', {
+                                'Role': role,
+                                'Anchor Line': link.anchor_line + 1,
+                                'Anchor Token Range': `${link.anchor_start_token} - ${link.anchor_end_token}`,
+                                'Target Line': link.target_line + 1,
+                                'Target Token Range': `${link.target_start_token} - ${link.target_end_token}`
+                            });
+                        });
+                    }
+                    linkIndex++;
+                }
+            }
+        }
+
+        window.analyzeHierarchy = async function() {
+            clearError();
+            hideDetailsPanel('hierarchy');
+            const text = document.getElementById('text-hierarchy').value.trim();
+            if (!text) {
+                showError('No text provided', 'Please enter some contract text to analyze.', 'Try clicking "Load Sample Text" to see examples with conditions and coordinations.');
+                return;
+            }
+
+            if (!wasmReady) {
+                showError('WASM not ready', 'The analysis engine is still loading.', 'Please wait a moment and try again.');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results-hierarchy');
+            const textContainer = document.getElementById('hierarchy-text-container');
+            const vizDiv = document.getElementById('viz-hierarchy');
+
+            resultsDiv.classList.add('visible');
+            textContainer.innerHTML = '';
+            vizDiv.innerHTML = '<div class="loading">Analyzing clause relationships</div>';
+            setExportEnabled('hierarchy', false);
+
+            // Tokenize and render the text first
+            const tokenizedLines = tokenizeText(text);
+            renderTokenizedText(tokenizedLines, textContainer);
+
+            try {
+                // Call WASM get_span_links function
+                const result = wasmModule.get_span_links(text);
+
+                if (!result) {
+                    vizDiv.innerHTML = '<div style="color: #64748b;">No results returned from analysis.</div>';
+                    return;
+                }
+
+                const links = result.links || [];
+                const totalCount = result.total_count || 0;
+
+                console.log('Span links result:', { totalCount, links });
+
+                // Store results for export
+                lastAnalysisResults.spanLinks = {
+                    inputText: text,
+                    analyzedAt: new Date().toISOString(),
+                    totalCount: totalCount,
+                    links: links
+                };
+                setExportEnabled('hierarchy', true);
+
+                // Draw arrows after a brief delay to ensure layout is complete
+                await new Promise(resolve => setTimeout(resolve, 50));
+                drawSpanLinkArrows(links, textContainer);
+
+                // Render summary with interactivity
+                renderLinkSummary(links, vizDiv, text);
+
+            } catch (err) {
+                console.error('Error analyzing hierarchy:', err);
+                showError('Analysis failed', err.message || 'An unexpected error occurred during clause hierarchy analysis.', 'Try simplifying the input text or checking for special characters.');
+                vizDiv.innerHTML = '';
+            }
+        };
+
+        window.analyzeEquivalence = async function() {
+            clearError();
+            hideDetailsPanel('equivalence');
+            const text = document.getElementById('text-equivalence').value.trim();
+            if (!text) {
+                showError('No text provided', 'Please enter some contract text to analyze.', 'Try clicking "Load Sample Text" to see examples with similar obligations.');
+                return;
+            }
+
+            if (!wasmReady) {
+                showError('WASM not ready', 'The analysis engine is still loading.', 'Please wait a moment and try again.');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results-equivalence');
+            const vizDiv = document.getElementById('viz-equivalence');
+
+            resultsDiv.classList.add('visible');
+            vizDiv.innerHTML = '<div class="loading">Finding equivalent obligations</div>';
+            setExportEnabled('equivalence', false);
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Mock data
+            const groups = [
+                {
+                    items: [
+                        { text: "The Contractor shall deliver the software", similarity: 1.0, line: 0, tokenStart: 0, tokenEnd: 6 },
+                        { text: "The Provider must provide the deliverables", similarity: 0.87, line: 0, tokenStart: 7, tokenEnd: 13 },
+                        { text: "The Vendor is required to furnish the product", similarity: 0.82, line: 0, tokenStart: 14, tokenEnd: 22 },
+                        { text: "The Supplier will submit the work product", similarity: 0.79, line: 0, tokenStart: 23, tokenEnd: 30 }
+                    ]
+                },
+                {
+                    items: [
+                        { text: "The Company shall compensate the Contractor", similarity: 1.0, line: 0, tokenStart: 31, tokenEnd: 37 },
+                        { text: "The Client must pay the Provider", similarity: 0.91, line: 0, tokenStart: 38, tokenEnd: 44 }
+                    ]
+                }
+            ];
+
+            // Store results for export
+            lastAnalysisResults.equivalence = {
+                inputText: text,
+                analyzedAt: new Date().toISOString(),
+                groups: groups
+            };
+            setExportEnabled('equivalence', true);
+
+            let html = '';
+            let itemIndex = 0;
+            for (let i = 0; i < groups.length; i++) {
+                const group = groups[i];
+                html += `
+                    <div class="equivalence-group">
+                        <div class="equivalence-header">Equivalence Group ${i + 1}</div>
+                        <div class="equivalence-items">
+                            ${group.items.map((item, j) => {
+                                const itemId = `equiv-${itemIndex++}`;
+                                return `
+                                    <div class="equivalence-item clickable-span" id="${itemId}"
+                                         data-group="${i}" data-index="${j}"
+                                         data-line="${item.line}" data-token-start="${item.tokenStart}" data-token-end="${item.tokenEnd}"
+                                         data-similarity="${item.similarity}">
+                                        ${escapeHtml(item.text)}
+                                        <div class="similarity-score">Similarity: ${(item.similarity * 100).toFixed(0)}%</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            vizDiv.innerHTML = html;
+
+            // Add interactivity to equivalence items
+            itemIndex = 0;
+            for (let i = 0; i < groups.length; i++) {
+                const group = groups[i];
+                for (let j = 0; j < group.items.length; j++) {
+                    const item = group.items[j];
+                    const el = document.getElementById(`equiv-${itemIndex}`);
+                    if (el) {
+                        el.addEventListener('mouseenter', (e) => {
+                            const tooltipContent = `
+                                <div class="tooltip-title">Equivalence Group ${i + 1}</div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Position:</span>
+                                    <span class="tooltip-value">Line ${item.line + 1}, tokens ${item.tokenStart}-${item.tokenEnd}</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Similarity:</span>
+                                    <span class="tooltip-value">${(item.similarity * 100).toFixed(0)}%</span>
+                                </div>
+                            `;
+                            showTooltip(e, tooltipContent);
+                        });
+                        el.addEventListener('mouseleave', hideTooltip);
+                        el.addEventListener('mousemove', (e) => {
+                            if (tooltipElement && tooltipElement.style.display !== 'none') {
+                                showTooltip(e, tooltipElement.innerHTML);
+                            }
+                        });
+                        el.addEventListener('click', () => {
+                            selectSpan(el, 'equivalence', {
+                                'Text': item.text,
+                                'Group': `Equivalence Group ${i + 1}`,
+                                'Line': item.line + 1,
+                                'Token Range': `${item.tokenStart} - ${item.tokenEnd}`,
+                                'Similarity': `${(item.similarity * 100).toFixed(0)}%`,
+                                'Group Members': group.items.length
+                            });
+                        });
+                    }
+                    itemIndex++;
+                }
+            }
+        };
+
+        // Load WASM on page load
+        loadWasm();
+    </script>
+</body>
+</html>

@@ -41,11 +41,32 @@
             margin: 8px 0 0 0;
             color: #666;
         }
+        .demo-list .featured {
+            border: 2px solid #007acc;
+            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+        }
+        .demo-list .featured-badge {
+            display: inline-block;
+            background: #007acc;
+            color: white;
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 10px;
+            vertical-align: middle;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <h1>layered-nlp Demos</h1>
     <ul class="demo-list">
+        <li class="featured">
+            <a href="contract-intelligence-demo.html">Contract Intelligence Demo</a>
+            <span class="featured-badge">Featured</span>
+            <p>Interactive demo showcasing conflict detection, scope operators, clause relationships, and semantic analysis.</p>
+        </li>
         <li>
             <a href="contract-viewer.html">Contract Viewer</a>
             <p>Analyze contracts with keyword highlighting, defined terms, and obligation detection.</p>
