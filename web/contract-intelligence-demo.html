@@ -6,6 +6,43 @@
     <title>Contract Intelligence Demo</title>
     <style>
         :root {
+            /* === Core UI Variables === */
+
+            /* Primary */
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+
+            /* Text */
+            --text-primary: #0f172a;
+            --text-body: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #475569;
+            --text-light: #94a3b8;
+
+            /* Backgrounds */
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+
+            /* Borders */
+            --border-default: #e2e8f0;
+            --border-subtle: #cbd5e1;
+
+            /* Risk levels */
+            --risk-critical: #dc2626;
+            --risk-critical-bg: #fee2e2;
+            --risk-high: #ea580c;
+            --risk-high-bg: #ffedd5;
+            --risk-medium: #ca8a04;
+            --risk-medium-bg: #fef3c7;
+            --risk-low: #16a34a;
+            --risk-low-bg: #dcfce7;
+
+            /* Overlay */
+            --overlay-bg: rgba(31, 41, 55, 0.5);
+
+            /* === Semantic Span Variables === */
+
             /* Existing span colors */
             --defined-term-bg: #fef3c7;
             --defined-term-border: #f59e0b;
@@ -51,6 +88,176 @@
             --clause-bg: #f3e8ff;
             --clause-border: #8b5cf6;
             --clause-text: #6b21a8;
+
+            /* Span Link Colors */
+            --span-link-parent: #3b82f6;
+            --span-link-child: #10b981;
+            --span-link-conjunct: #8b5cf6;
+            --span-link-exception: #f59e0b;
+
+            /* Scope Colors */
+            --scope-negation: #ef4444;
+            --scope-negation-bg: #fee2e2;
+            --scope-quantifier: #3b82f6;
+            --scope-quantifier-bg: #dbeafe;
+        }
+
+        /* === Layout Grid (Gate 1) === */
+        body.layout-grid {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            grid-template-columns: 1fr;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            max-width: none;
+        }
+
+        .status-bar {
+            grid-column: 1 / -1;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 0.5rem 1.5rem;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-default);
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-size: 0.875rem;
+        }
+
+        .status-bar .status-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-bar .status-counts {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .status-bar .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+
+        .status-bar .status-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .status-bar .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-bar .status-dot.conflicts { background: var(--risk-critical); }
+        .status-bar .status-dot.scopes { background: var(--scope-quantifier); }
+        .status-bar .status-dot.links { background: var(--span-link-child); }
+        .status-bar .status-dot.roles { background: var(--semantic-frame-border); }
+        .status-bar .status-dot.equiv { background: var(--precedence-border); }
+
+        .status-bar .status-count {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            min-height: 0;
+        }
+
+        .sidebar {
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-default);
+            padding: 1rem 0;
+            overflow-y: auto;
+            position: sticky;
+            top: 44px;
+            height: calc(100vh - 44px);
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-section {
+            padding: 0.5rem 1rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem 0.5rem 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--bg-hover);
+            color: var(--primary);
+            border-left-color: var(--primary);
+            font-weight: 500;
+        }
+
+        .nav-item .nav-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .nav-item .nav-count {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+
+        .main-content {
+            overflow-y: auto;
+            height: calc(100vh - 44px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content > .page-header,
+        .main-content > .tabs-container,
+        .main-content > .page-footer {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        /* Responsive: hide sidebar on mobile */
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none;
+            }
         }
 
         * { box-sizing: border-box; }
@@ -60,27 +267,27 @@
             max-width: 1400px;
             margin: 0 auto;
             padding: 2rem;
-            background: #f8fafc;
-            color: #1e293b;
+            background: var(--bg-page);
+            color: var(--text-body);
             line-height: 1.6;
         }
 
         h1 {
             margin-bottom: 0.25rem;
-            color: #0f172a;
+            color: var(--text-primary);
             font-size: 1.75rem;
         }
 
         .subtitle {
-            color: #64748b;
+            color: var(--text-secondary);
             margin-bottom: 1.5rem;
             font-size: 0.95rem;
         }
 
         /* Tabs */
         .tabs-container {
-            background: white;
-            border: 1px solid #e2e8f0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
             border-radius: 12px;
             padding: 0;
             margin-bottom: 1.5rem;
@@ -90,8 +297,8 @@
 
         .tab-buttons {
             display: flex;
-            border-bottom: 1px solid #e2e8f0;
-            background: #f8fafc;
+            border-bottom: 1px solid var(--border-default);
+            background: var(--bg-page);
             overflow-x: auto;
         }
 
@@ -102,21 +309,21 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
-            color: #64748b;
+            color: var(--text-secondary);
             border-bottom: 3px solid transparent;
             transition: all 0.2s;
             white-space: nowrap;
         }
 
         .tab-button:hover {
-            background: #f1f5f9;
-            color: #0f172a;
+            background: var(--bg-hover);
+            color: var(--text-primary);
         }
 
         .tab-button.active {
-            color: #3b82f6;
-            border-bottom-color: #3b82f6;
-            background: white;
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: var(--bg-card);
         }
 
         .tab-content {
@@ -139,17 +346,17 @@
             padding: 1rem;
             font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
             font-size: 13px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border-default);
             border-radius: 8px;
             resize: vertical;
-            background: #f8fafc;
+            background: var(--bg-page);
         }
 
         textarea:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            background: white;
+            background: var(--bg-card);
         }
 
         .button-row {
@@ -170,22 +377,22 @@
         }
 
         button.primary {
-            background: #3b82f6;
+            background: var(--primary);
             color: white;
         }
 
         button.primary:hover {
-            background: #2563eb;
+            background: var(--primary-hover);
         }
 
         button.secondary {
-            background: white;
-            color: #475569;
-            border: 1px solid #e2e8f0;
+            background: var(--bg-card);
+            color: var(--text-muted);
+            border: 1px solid var(--border-default);
         }
 
         button.secondary:hover {
-            background: #f1f5f9;
+            background: var(--bg-hover);
         }
 
         button:disabled {
@@ -193,14 +400,13 @@
             cursor: not-allowed;
         }
 
-        /* Results Panel */
+        /* Results Panel - TUI-style with left border accent */
         .results-panel {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
+            background: var(--bg-card);
+            border: none;
+            border-left: 4px solid var(--primary);
             padding: 1.5rem;
             margin-top: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             display: none;
         }
 
@@ -209,21 +415,23 @@
         }
 
         .panel-header {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             font-size: 12px;
             font-weight: 600;
-            color: #64748b;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 1rem;
             padding-bottom: 0.75rem;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-default);
         }
 
         /* Text Display */
-        .text-display {
+        .text-display,
+        .contract-text {
             font-family: Georgia, "Times New Roman", serif;
             font-size: 15px;
-            line-height: 2;
+            line-height: 1.7;
             margin-bottom: 1.5rem;
         }
 
@@ -247,13 +455,13 @@
         }
 
         .text-display .word.ScopeOperator.negation {
-            background: #fee2e2;
-            border-bottom-color: #dc2626;
+            background: var(--scope-negation-bg);
+            border-bottom-color: var(--scope-negation);
         }
 
         .text-display .word.ScopeOperator.quantifier {
-            background: #dbeafe;
-            border-bottom-color: #2563eb;
+            background: var(--scope-quantifier-bg);
+            border-bottom-color: var(--scope-quantifier);
         }
 
         .text-display .word.Precedence {
@@ -291,10 +499,10 @@
         .tree-view {
             font-family: ui-monospace, monospace;
             font-size: 13px;
-            background: #f8fafc;
+            background: var(--bg-page);
             padding: 1rem;
             border-radius: 8px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border-default);
             overflow-x: auto;
         }
 
@@ -308,7 +516,7 @@
         }
 
         .tree-connector {
-            color: #94a3b8;
+            color: var(--text-light);
             margin-right: 0.5rem;
         }
 
@@ -318,8 +526,8 @@
         }
 
         .semantic-role-item {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: var(--bg-page);
+            border: 1px solid var(--border-default);
             border-radius: 8px;
             padding: 1rem;
         }
@@ -327,7 +535,7 @@
         .role-label {
             font-size: 11px;
             font-weight: 600;
-            color: #64748b;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
@@ -336,7 +544,7 @@
         .role-value {
             font-family: Georgia, serif;
             font-size: 14px;
-            color: #0f172a;
+            color: var(--text-primary);
         }
 
         .conflict-list {
@@ -345,16 +553,17 @@
         }
 
         .conflict-item {
-            background: #fef2f2;
-            border: 2px solid #fca5a5;
-            border-radius: 8px;
-            padding: 1rem;
+            background: var(--risk-critical-bg);
+            border: none;
+            border-left: 4px solid var(--risk-critical);
+            padding: 0.75rem 1rem;
+            border-radius: 0 4px 4px 0;
         }
 
         .conflict-type {
             font-size: 11px;
             font-weight: 600;
-            color: #dc2626;
+            color: var(--risk-critical);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
@@ -362,7 +571,7 @@
 
         .conflict-description {
             font-size: 14px;
-            color: #7f1d1d;
+            color: var(--scope-operator-text);
             margin-bottom: 0.5rem;
         }
 
@@ -375,10 +584,10 @@
         .conflict-span-ref {
             font-family: Georgia, serif;
             font-size: 12px;
-            background: white;
+            background: var(--bg-card);
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
-            border: 1px solid #fca5a5;
+            border: 1px solid var(--risk-critical);
         }
 
         .scope-visualization {
@@ -387,10 +596,11 @@
         }
 
         .scope-item {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1rem;
+            background: var(--bg-page);
+            border: none;
+            border-left: 4px solid var(--scope-negation);
+            padding: 0.75rem 1rem;
+            border-radius: 0 4px 4px 0;
         }
 
         .scope-type {
@@ -403,36 +613,36 @@
         }
 
         .scope-type.negation {
-            background: #fee2e2;
-            color: #dc2626;
+            background: var(--risk-critical-bg);
+            color: var(--risk-critical);
         }
 
         .scope-type.quantifier {
-            background: #dbeafe;
-            color: #2563eb;
+            background: var(--scope-quantifier-bg);
+            color: var(--scope-quantifier);
         }
 
         .scope-type.precedence {
-            background: #fef3c7;
-            color: #d97706;
+            background: var(--precedence-bg);
+            color: var(--precedence-border);
         }
 
         .scope-text {
             font-family: Georgia, serif;
             font-size: 14px;
-            color: #0f172a;
+            color: var(--text-primary);
         }
 
         .scope-range {
             font-size: 12px;
-            color: #64748b;
+            color: var(--text-secondary);
             margin-top: 0.5rem;
         }
 
         .equivalence-group {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
+            background: var(--bg-page);
+            border: none;
+            border-left: 4px solid var(--primary);
             padding: 1rem;
             margin-bottom: 1rem;
         }
@@ -440,7 +650,7 @@
         .equivalence-header {
             font-size: 12px;
             font-weight: 600;
-            color: #64748b;
+            color: var(--text-secondary);
             margin-bottom: 0.75rem;
         }
 
@@ -452,25 +662,25 @@
         .equivalence-item {
             font-family: Georgia, serif;
             font-size: 14px;
-            background: white;
+            background: var(--bg-card);
             padding: 0.75rem;
             border-radius: 6px;
-            border-left: 3px solid #3b82f6;
+            border-left: 3px solid var(--primary);
         }
 
         .similarity-score {
             font-size: 11px;
-            color: #64748b;
+            color: var(--text-secondary);
             margin-top: 0.25rem;
         }
 
-        /* Error message */
+        /* Error message - TUI-style with left border accent */
         .error-message {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #dc2626;
+            background: var(--risk-critical-bg);
+            border: none;
+            border-left: 4px solid var(--risk-critical);
+            color: var(--risk-critical);
             padding: 1rem;
-            border-radius: 8px;
             margin-bottom: 1rem;
         }
 
@@ -480,15 +690,15 @@
             align-items: center;
             justify-content: center;
             padding: 3rem;
-            color: #64748b;
+            color: var(--text-secondary);
         }
 
         .loading::after {
             content: '';
             width: 20px;
             height: 20px;
-            border: 2px solid #e2e8f0;
-            border-top-color: #3b82f6;
+            border: 2px solid var(--border-default);
+            border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             margin-left: 0.75rem;
@@ -509,17 +719,17 @@
         .sample-button {
             padding: 0.5rem 1rem;
             font-size: 13px;
-            background: #f1f5f9;
-            color: #475569;
-            border: 1px solid #cbd5e1;
+            background: var(--bg-hover);
+            color: var(--text-muted);
+            border: 1px solid var(--border-subtle);
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.15s;
         }
 
         .sample-button:hover {
-            background: #e2e8f0;
-            border-color: #94a3b8;
+            background: var(--border-default);
+            border-color: var(--text-light);
         }
 
         /* Legend */
@@ -528,7 +738,7 @@
             gap: 1.5rem;
             flex-wrap: wrap;
             padding: 1rem;
-            background: #f8fafc;
+            background: var(--bg-page);
             border-radius: 8px;
             margin-bottom: 1rem;
         }
@@ -548,38 +758,38 @@
         }
 
         .legend-box.negation {
-            background: #fee2e2;
-            border-color: #dc2626;
+            background: var(--risk-critical-bg);
+            border-color: var(--risk-critical);
         }
 
         .legend-box.quantifier {
-            background: #dbeafe;
-            border-color: #2563eb;
+            background: var(--scope-quantifier-bg);
+            border-color: var(--scope-quantifier);
         }
 
         .legend-box.precedence {
-            background: #fef3c7;
-            border-color: #d97706;
+            background: var(--precedence-bg);
+            border-color: var(--precedence-border);
         }
 
         .legend-box.conflict {
-            background: #fed7aa;
-            border-color: #f97316;
+            background: var(--conflict-bg);
+            border-color: var(--conflict-border);
         }
 
         .legend-box.semantic-frame {
-            background: #f3e8ff;
-            border-color: #9333ea;
+            background: var(--semantic-frame-bg);
+            border-color: var(--semantic-frame-border);
         }
 
         .legend-box.obligation {
-            background: #dbeafe;
-            border-color: #3b82f6;
+            background: var(--obligation-bg);
+            border-color: var(--obligation-border);
         }
 
         .legend-box.clause {
-            background: #f3e8ff;
-            border-color: #8b5cf6;
+            background: var(--clause-bg);
+            border-color: var(--clause-border);
         }
 
         /* Scope Operator Visualization */
@@ -653,10 +863,10 @@
             gap: 1.5rem;
             flex-wrap: wrap;
             padding: 1rem;
-            background: #f8fafc;
+            background: var(--bg-page);
             border-radius: 8px;
             margin-bottom: 1rem;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border-default);
         }
 
         .scope-legend-item {
@@ -675,22 +885,22 @@
 
         .scope-legend-box.negation {
             background-color: rgba(239, 68, 68, 0.15);
-            border-left-color: #ef4444;
+            border-left-color: var(--scope-negation);
         }
 
         .scope-legend-box.quantifier-universal {
             background-color: rgba(59, 130, 246, 0.15);
-            border-left-color: #3b82f6;
+            border-left-color: var(--span-link-parent);
         }
 
         .scope-legend-box.quantifier-existential {
             background-color: rgba(16, 185, 129, 0.15);
-            border-left-color: #10b981;
+            border-left-color: var(--span-link-child);
         }
 
         .scope-legend-box.quantifier-negative {
             background-color: rgba(168, 85, 247, 0.15);
-            border-left-color: #a855f7;
+            border-left-color: var(--span-link-conjunct);
         }
 
         .scope-summary {
@@ -700,8 +910,8 @@
         }
 
         .scope-summary-item {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: var(--bg-page);
+            border: 1px solid var(--border-default);
             border-radius: 8px;
             padding: 0.75rem 1rem;
             display: flex;
@@ -718,8 +928,8 @@
         }
 
         .scope-summary-badge.negation {
-            background: #fee2e2;
-            color: #dc2626;
+            background: var(--risk-critical-bg);
+            color: var(--risk-critical);
         }
 
         .scope-summary-badge.quantifier-universal {
@@ -740,19 +950,19 @@
         .scope-summary-text {
             font-family: Georgia, serif;
             font-size: 14px;
-            color: #0f172a;
+            color: var(--text-primary);
         }
 
         .scope-summary-confidence {
             font-size: 11px;
-            color: #64748b;
+            color: var(--text-secondary);
             margin-left: auto;
         }
 
         /* Span Link Legend */
         .span-link-legend {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: var(--bg-page);
+            border: 1px solid var(--border-default);
             border-radius: 8px;
             padding: 1rem;
             margin-bottom: 1rem;
@@ -761,7 +971,7 @@
         .span-link-legend h4 {
             font-size: 12px;
             font-weight: 600;
-            color: #64748b;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin: 0 0 0.75rem 0;
@@ -772,7 +982,7 @@
             align-items: center;
             gap: 0.5rem;
             font-size: 13px;
-            color: #475569;
+            color: var(--text-muted);
             margin-bottom: 0.4rem;
         }
 
@@ -802,23 +1012,23 @@
         }
 
         .legend-arrow.parent {
-            background: #3b82f6;
-            color: #3b82f6;
+            background: var(--span-link-parent);
+            color: var(--span-link-parent);
         }
 
         .legend-arrow.child {
-            background: #10b981;
-            color: #10b981;
+            background: var(--span-link-child);
+            color: var(--span-link-child);
         }
 
         .legend-arrow.conjunct {
-            background: #8b5cf6;
-            color: #8b5cf6;
+            background: var(--span-link-conjunct);
+            color: var(--span-link-conjunct);
         }
 
         .legend-arrow.exception {
-            background: #f59e0b;
-            color: #f59e0b;
+            background: var(--span-link-exception);
+            color: var(--span-link-exception);
         }
 
         /* Text display for hierarchy with spans */
@@ -828,8 +1038,8 @@
             font-size: 15px;
             line-height: 2.5;
             padding: 1rem;
-            background: white;
-            border: 1px solid #e2e8f0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
             border-radius: 8px;
             margin-bottom: 1rem;
         }
@@ -848,28 +1058,28 @@
 
         .hierarchy-text-display .token.clause-start {
             background: #eff6ff;
-            border-left: 3px solid #3b82f6;
+            border-left: 3px solid var(--primary);
             padding-left: 4px;
         }
 
         .hierarchy-text-display .token.clause-end {
             background: #eff6ff;
-            border-right: 3px solid #3b82f6;
+            border-right: 3px solid var(--primary);
             padding-right: 4px;
         }
 
         .hierarchy-text-display .token.link-anchor {
             background: #dbeafe;
-            border-bottom: 2px solid #3b82f6;
+            border-bottom: 2px solid var(--primary);
         }
 
         .hierarchy-text-display .token.link-target {
-            background: #d1fae5;
-            border-bottom: 2px solid #10b981;
+            background: var(--risk-low-bg);
+            border-bottom: 2px solid var(--risk-low);
         }
 
         .hierarchy-text-display .token:hover {
-            background: #fef3c7;
+            background: var(--risk-medium-bg);
         }
 
         /* SVG arrow overlay */
@@ -884,11 +1094,11 @@
             z-index: 10;
         }
 
-        /* Info box */
+        /* Info box - TUI-style with left border accent */
         .info-box {
             background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 8px;
+            border: none;
+            border-left: 4px solid #3b82f6;
             padding: 1rem;
             margin-bottom: 1.5rem;
         }
@@ -907,8 +1117,8 @@
 
         /* Conflict Detection UI Styles */
         .conflict-card {
-            border: 1px solid #f97316;
-            border-radius: 8px;
+            border: none;
+            border-left: 4px solid #f97316;
             padding: 16px;
             margin-bottom: 12px;
             background-color: #fff7ed;
@@ -945,10 +1155,10 @@
             margin-left: 8px;
         }
 
-        .risk-indicator.critical { background-color: #ef4444; color: white; }
-        .risk-indicator.high { background-color: #f97316; color: white; }
-        .risk-indicator.medium { background-color: #eab308; color: black; }
-        .risk-indicator.low { background-color: #22c55e; color: white; }
+        .risk-indicator.critical { background-color: var(--risk-critical); color: white; }
+        .risk-indicator.high { background-color: var(--risk-high); color: white; }
+        .risk-indicator.medium { background-color: var(--risk-medium); color: black; }
+        .risk-indicator.low { background-color: var(--risk-low); color: white; }
 
         .conflict-explanation {
             font-size: 14px;
@@ -958,7 +1168,7 @@
 
         .conflict-confidence {
             font-size: 12px;
-            color: #64748b;
+            color: var(--text-secondary);
             margin-top: 8px;
         }
 
@@ -967,10 +1177,10 @@
             gap: 1.5rem;
             flex-wrap: wrap;
             padding: 1rem;
-            background: #f8fafc;
-            border-radius: 8px;
+            background: var(--bg-page);
             margin-bottom: 1rem;
-            border: 1px solid #e2e8f0;
+            border: none;
+            border-left: 4px solid var(--border-default);
         }
 
         .conflict-legend-item {
@@ -981,8 +1191,8 @@
         }
 
         .conflict-summary {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: var(--bg-page);
+            border: 1px solid var(--border-default);
             border-radius: 8px;
             padding: 1rem;
             margin-bottom: 1.5rem;
@@ -991,7 +1201,7 @@
         .conflict-summary-title {
             font-size: 14px;
             font-weight: 600;
-            color: #0f172a;
+            color: var(--text-primary);
             margin-bottom: 0.75rem;
         }
 
@@ -1010,12 +1220,12 @@
         .conflict-summary-count {
             font-size: 20px;
             font-weight: 700;
-            color: #0f172a;
+            color: var(--text-primary);
         }
 
         .conflict-summary-label {
             font-size: 12px;
-            color: #64748b;
+            color: var(--text-secondary);
         }
 
         /* Interactive exploration styles */
@@ -1083,11 +1293,15 @@
         }
 
         .details-panel {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 16px;
+            position: sticky;
+            top: 60px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            background: var(--bg-card);
+            border: none;
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            margin-top: 1rem;
         }
 
         .details-panel-header {
@@ -1100,22 +1314,22 @@
         .details-panel-title {
             font-size: 14px;
             font-weight: 600;
-            color: #0f172a;
+            color: var(--text-primary);
         }
 
         .details-panel-close {
             background: none;
             border: none;
             cursor: pointer;
-            color: #64748b;
+            color: var(--text-secondary);
             font-size: 18px;
             padding: 4px 8px;
             border-radius: 4px;
         }
 
         .details-panel-close:hover {
-            background: #e5e7eb;
-            color: #0f172a;
+            background: var(--border-default);
+            color: var(--text-primary);
         }
 
         .details-panel-content {
@@ -1128,10 +1342,13 @@
             gap: 12px;
         }
 
-        .details-label {
+        .details-label,
+        .legend-label,
+        .section-label {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             font-size: 12px;
             font-weight: 600;
-            color: #64748b;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             min-width: 100px;
@@ -1139,7 +1356,75 @@
 
         .details-value {
             font-size: 13px;
-            color: #0f172a;
+            color: var(--text-primary);
+        }
+
+        /* Technical metadata uses monospace */
+        .position-info,
+        .span-position,
+        .metadata {
+            font-family: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+            font-size: 11px;
+        }
+
+        .copy-btn {
+            background: var(--bg-hover);
+            border: 1px solid var(--border-default);
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 11px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .copy-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .details-text-content {
+            background: var(--bg-page);
+            border: 1px solid var(--border-default);
+            border-radius: 4px;
+            padding: 0.75rem;
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin-top: 0.5rem;
+        }
+
+        .details-section {
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-default);
+        }
+
+        .details-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .details-type-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .details-header-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
         }
 
         .panel-header-row {
@@ -1148,7 +1433,7 @@
             align-items: center;
             margin-bottom: 1rem;
             padding-bottom: 0.75rem;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-default);
         }
 
         .panel-header-row .panel-header {
@@ -1182,18 +1467,18 @@
             padding: 0.5rem 1rem;
             font-size: 13px;
             font-weight: 500;
-            color: #475569;
+            color: var(--text-muted);
             text-decoration: none;
-            background: white;
-            border: 1px solid #e2e8f0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
             border-radius: 6px;
             transition: all 0.15s;
         }
 
         .header-link:hover {
-            background: #f1f5f9;
-            border-color: #cbd5e1;
-            color: #0f172a;
+            background: var(--bg-hover);
+            border-color: var(--border-subtle);
+            color: var(--text-primary);
         }
 
         .help-btn {
@@ -1215,7 +1500,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: var(--overlay-bg);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -1227,7 +1512,7 @@
         }
 
         .modal {
-            background: white;
+            background: var(--bg-card);
             border-radius: 12px;
             max-width: 700px;
             width: 100%;
@@ -1241,23 +1526,23 @@
             justify-content: space-between;
             align-items: center;
             padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-default);
             position: sticky;
             top: 0;
-            background: white;
+            background: var(--bg-card);
         }
 
         .modal-title {
             font-size: 1.25rem;
             font-weight: 600;
-            color: #0f172a;
+            color: var(--text-primary);
         }
 
         .modal-close {
             background: none;
             border: none;
             font-size: 24px;
-            color: #64748b;
+            color: var(--text-secondary);
             cursor: pointer;
             padding: 0.25rem;
             line-height: 1;
@@ -1265,8 +1550,8 @@
         }
 
         .modal-close:hover {
-            color: #0f172a;
-            background: #f1f5f9;
+            color: var(--text-primary);
+            background: var(--bg-hover);
         }
 
         .modal-body {
@@ -1284,13 +1569,13 @@
         .modal-section-title {
             font-size: 14px;
             font-weight: 600;
-            color: #0f172a;
+            color: var(--text-primary);
             margin-bottom: 0.75rem;
         }
 
         .modal-section p {
             font-size: 14px;
-            color: #475569;
+            color: var(--text-muted);
             line-height: 1.6;
             margin: 0 0 0.75rem 0;
         }
@@ -1320,8 +1605,8 @@
         }
 
         .color-key-swatch.negation {
-            background: #fee2e2;
-            border-color: #dc2626;
+            background: var(--risk-critical-bg);
+            border-color: var(--risk-critical);
         }
 
         .color-key-swatch.universal {
@@ -1361,19 +1646,19 @@
 
         .tab-description {
             padding: 0.75rem;
-            background: #f8fafc;
+            background: var(--bg-page);
             border-radius: 6px;
-            border-left: 3px solid #3b82f6;
+            border-left: 3px solid var(--primary);
         }
 
         .tab-description strong {
-            color: #0f172a;
+            color: var(--text-primary);
         }
 
         .tab-description span {
             display: block;
             font-size: 13px;
-            color: #64748b;
+            color: var(--text-secondary);
             margin-top: 0.25rem;
         }
 
@@ -1384,7 +1669,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(248, 250, 252, 0.95);
+            background: rgba(248, 250, 252, 0.95);  /* Uses --bg-page color with opacity */
             z-index: 2000;
             display: flex;
             flex-direction: column;
@@ -1402,31 +1687,32 @@
         .wasm-loading-spinner {
             width: 48px;
             height: 48px;
-            border: 4px solid #e2e8f0;
-            border-top-color: #3b82f6;
+            border: 4px solid var(--border-default);
+            border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
 
         .wasm-loading-text {
             font-size: 16px;
-            color: #475569;
+            color: var(--text-muted);
             font-weight: 500;
         }
 
         .wasm-loading-subtext {
             font-size: 13px;
-            color: #94a3b8;
+            color: var(--text-light);
         }
 
         .wasm-error {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #dc2626;
+            background: var(--risk-critical-bg);
+            border: none;
+            border-left: 4px solid var(--risk-critical);
+            color: var(--risk-critical);
             padding: 1rem 1.5rem;
-            border-radius: 8px;
+            border-radius: 0 4px 4px 0;
             max-width: 400px;
-            text-align: center;
+            text-align: left;
         }
 
         .wasm-error-title {
@@ -1440,7 +1726,7 @@
         }
 
         .wasm-retry-btn {
-            background: #dc2626;
+            background: var(--risk-critical);
             color: white;
             border: none;
             padding: 0.5rem 1rem;
@@ -1453,13 +1739,14 @@
             background: #b91c1c;
         }
 
-        /* Enhanced Error Message */
+        /* Enhanced Error Message - TUI-style with left border accent */
         .error-message {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #dc2626;
+            background: var(--risk-critical-bg);
+            border: none;
+            border-left: 4px solid var(--risk-critical);
+            color: var(--risk-critical);
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: 0 4px 4px 0;
             margin-bottom: 1rem;
             display: flex;
             align-items: flex-start;
@@ -1491,7 +1778,7 @@
         .page-footer {
             margin-top: 3rem;
             padding: 1.5rem 0;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid var(--border-default);
             text-align: center;
         }
 
@@ -1511,23 +1798,23 @@
 
         .footer-link {
             font-size: 13px;
-            color: #64748b;
+            color: var(--text-secondary);
             text-decoration: none;
             transition: color 0.15s;
         }
 
         .footer-link:hover {
-            color: #3b82f6;
+            color: var(--primary);
         }
 
         .footer-meta {
             font-size: 12px;
-            color: #94a3b8;
+            color: var(--text-light);
         }
 
         .footer-credits {
             font-size: 12px;
-            color: #94a3b8;
+            color: var(--text-light);
             margin-top: 0.25rem;
         }
 
@@ -1623,18 +1910,43 @@
                 font-size: 0.875rem;
             }
 
+            .status-bar {
+                padding: 0.5rem;
+                gap: 0.5rem;
+                overflow-x: auto;
+            }
+
+            .status-bar .status-item {
+                white-space: nowrap;
+            }
+
+            .tab-buttons {
+                overflow-x: auto;
+            }
+
             .tab-button {
                 padding: 0.6rem 0.75rem;
                 font-size: 12px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
             }
 
             textarea {
                 height: 120px;
             }
         }
+
+        /* Keyboard navigation selection */
+        .keyboard-selected {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
     </style>
 </head>
-<body>
+<body class="layout-grid">
     <!-- SVG Arrow Marker Definitions -->
     <svg style="display: none;">
       <defs>
@@ -1742,9 +2054,96 @@
                     <p>4. Click on any highlighted result to see detailed information in the details panel.</p>
                     <p>5. Use "Export JSON" to download the analysis results for further processing.</p>
                 </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">Keyboard Shortcuts</div>
+                    <div class="color-key">
+                        <div class="color-key-item">
+                            <kbd style="background: var(--bg-page); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border-default); font-family: ui-monospace, monospace; font-size: 12px;">j</kbd> / <kbd style="background: var(--bg-page); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border-default); font-family: ui-monospace, monospace; font-size: 12px;">k</kbd>
+                            <span>Navigate through results (next / previous)</span>
+                        </div>
+                        <div class="color-key-item">
+                            <kbd style="background: var(--bg-page); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border-default); font-family: ui-monospace, monospace; font-size: 12px;">1</kbd> - <kbd style="background: var(--bg-page); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border-default); font-family: ui-monospace, monospace; font-size: 12px;">5</kbd>
+                            <span>Switch between tabs (1=Obligations, 2=Conflicts, etc.)</span>
+                        </div>
+                        <div class="color-key-item">
+                            <kbd style="background: var(--bg-page); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border-default); font-family: ui-monospace, monospace; font-size: 12px;">Escape</kbd>
+                            <span>Close details panel or help modal</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="status-title">Analysis</span>
+        <div class="status-counts">
+            <div class="status-item" data-tab="obligation">
+                <span class="status-dot conflicts"></span>
+                <span>Obligations</span>
+                <span class="status-count" id="status-obligations">0</span>
+            </div>
+            <div class="status-item" data-tab="conflict">
+                <span class="status-dot conflicts"></span>
+                <span>Conflicts</span>
+                <span class="status-count" id="status-conflicts">0</span>
+            </div>
+            <div class="status-item" data-tab="scope">
+                <span class="status-dot scopes"></span>
+                <span>Scopes</span>
+                <span class="status-count" id="status-scopes">0</span>
+            </div>
+            <div class="status-item" data-tab="hierarchy">
+                <span class="status-dot links"></span>
+                <span>Links</span>
+                <span class="status-count" id="status-links">0</span>
+            </div>
+            <div class="status-item" data-tab="equivalence">
+                <span class="status-dot equiv"></span>
+                <span>Equiv</span>
+                <span class="status-count" id="status-equiv">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout Grid -->
+    <div class="main-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <nav class="sidebar-nav">
+                <div class="nav-section">Analysis Types</div>
+                <div class="nav-item active" data-tab="obligation">
+                    <span class="nav-dot"></span>
+                    <span>Obligations</span>
+                    <span class="nav-count" id="nav-obligations">—</span>
+                </div>
+                <div class="nav-item" data-tab="conflict">
+                    <span class="nav-dot"></span>
+                    <span>Conflicts</span>
+                    <span class="nav-count" id="nav-conflicts">—</span>
+                </div>
+                <div class="nav-item" data-tab="scope">
+                    <span class="nav-dot"></span>
+                    <span>Scope Operators</span>
+                    <span class="nav-count" id="nav-scopes">—</span>
+                </div>
+                <div class="nav-item" data-tab="hierarchy">
+                    <span class="nav-dot"></span>
+                    <span>Clause Links</span>
+                    <span class="nav-count" id="nav-links">—</span>
+                </div>
+                <div class="nav-item" data-tab="equivalence">
+                    <span class="nav-dot"></span>
+                    <span>Equivalence</span>
+                    <span class="nav-count" id="nav-equiv">—</span>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
 
     <!-- Page Header -->
     <div class="page-header">
@@ -2086,6 +2485,9 @@ ARTICLE 9. PAYMENT OBLIGATIONS
         </div>
     </footer>
 
+        </main>
+    </div>
+
     <script type="module">
         let wasmModule = null;
         let wasmReady = false;
@@ -2186,27 +2588,124 @@ ARTICLE 9. PAYMENT OBLIGATIONS
             const panel = document.getElementById(`details-${tab}`);
             if (!panel) return;
 
+            // Extract special fields for structured display
+            const typeField = details.Type || details.type || details.Category || details.category || tab;
+            const textField = details.Text || details.text || details.Content || details.content || '';
+            const positionFields = {};
+            const metadataFields = {};
+            const relatedFields = {};
+
+            // Categorize fields
+            for (const [key, value] of Object.entries(details)) {
+                const lowerKey = key.toLowerCase();
+                if (lowerKey.includes('line') || lowerKey.includes('position') || lowerKey.includes('start') || lowerKey.includes('end') || lowerKey.includes('offset')) {
+                    positionFields[key] = value;
+                } else if (lowerKey.includes('related') || lowerKey.includes('link') || lowerKey.includes('reference') || lowerKey.includes('source') || lowerKey.includes('target')) {
+                    relatedFields[key] = value;
+                } else if (lowerKey !== 'type' && lowerKey !== 'text' && lowerKey !== 'content' && lowerKey !== 'category') {
+                    metadataFields[key] = value;
+                }
+            }
+
+            // Generate unique ID for copy functionality
+            const copyId = `copy-text-${Date.now()}`;
+
             let html = `
                 <div class="details-panel-header">
                     <div class="details-panel-title">Span Details</div>
                     <button class="details-panel-close" onclick="hideDetailsPanel('${tab}')">&times;</button>
                 </div>
                 <div class="details-panel-content">
+                    <div class="details-header-row">
+                        <span class="details-type-badge">${escapeHtml(String(typeField))}</span>
+                    </div>
             `;
 
-            for (const [key, value] of Object.entries(details)) {
+            // Text content with copy button
+            if (textField) {
                 html += `
-                    <div class="details-row">
-                        <div class="details-label">${escapeHtml(key)}</div>
-                        <div class="details-value">${escapeHtml(String(value))}</div>
+                    <div class="details-section">
+                        <div class="details-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Text Content</span>
+                            <button class="copy-btn" onclick="copySpanText('${copyId}')">Copy</button>
+                        </div>
+                        <div class="details-text-content" id="${copyId}">${escapeHtml(String(textField))}</div>
                     </div>
                 `;
+            }
+
+            // Position information
+            if (Object.keys(positionFields).length > 0) {
+                html += `<div class="details-section"><div class="details-section-title">Position</div>`;
+                for (const [key, value] of Object.entries(positionFields)) {
+                    html += `
+                        <div class="details-row">
+                            <div class="details-label">${escapeHtml(key)}</div>
+                            <div class="details-value metadata">${escapeHtml(String(value))}</div>
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+            }
+
+            // Other metadata
+            if (Object.keys(metadataFields).length > 0) {
+                html += `<div class="details-section"><div class="details-section-title">Metadata</div>`;
+                for (const [key, value] of Object.entries(metadataFields)) {
+                    html += `
+                        <div class="details-row">
+                            <div class="details-label">${escapeHtml(key)}</div>
+                            <div class="details-value">${escapeHtml(String(value))}</div>
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+            }
+
+            // Related items
+            if (Object.keys(relatedFields).length > 0) {
+                html += `<div class="details-section"><div class="details-section-title">Related Items</div>`;
+                for (const [key, value] of Object.entries(relatedFields)) {
+                    html += `
+                        <div class="details-row">
+                            <div class="details-label">${escapeHtml(key)}</div>
+                            <div class="details-value">${escapeHtml(String(value))}</div>
+                        </div>
+                    `;
+                }
+                html += `</div>`;
             }
 
             html += '</div>';
             panel.innerHTML = html;
             panel.style.display = 'block';
         }
+
+        // Copy span text to clipboard
+        window.copySpanText = function(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const text = element.textContent || element.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                // Visual feedback
+                const btn = element.previousElementSibling?.querySelector('.copy-btn') ||
+                            element.parentElement.querySelector('.copy-btn');
+                if (btn) {
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    btn.style.background = 'var(--success, #22c55e)';
+                    btn.style.borderColor = 'var(--success, #22c55e)';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.style.background = '';
+                        btn.style.borderColor = '';
+                    }, 1500);
+                }
+            }).catch(err => {
+                console.error('Failed to copy text:', err);
+            });
+        };
 
         window.hideDetailsPanel = function(tab) {
             const panel = document.getElementById(`details-${tab}`);
@@ -2254,6 +2753,37 @@ ARTICLE 9. PAYMENT OBLIGATIONS
                 // Update content visibility
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 document.getElementById(`tab-${tabId}`).classList.add('active');
+
+                // Also update sidebar active state
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                const navItem = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
+                if (navItem) navItem.classList.add('active');
+            });
+        });
+
+        // Sidebar navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const tabName = item.dataset.tab;
+                // Update sidebar active state
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                // Switch to corresponding tab
+                const tabButton = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
+                if (tabButton) tabButton.click();
+            });
+        });
+
+        // Status bar click navigation
+        document.querySelectorAll('.status-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const tabName = item.dataset.tab;
+                const tabButton = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
+                if (tabButton) tabButton.click();
+                // Also update sidebar
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                const navItem = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
+                if (navItem) navItem.classList.add('active');
             });
         });
 
@@ -2317,12 +2847,28 @@ ARTICLE 9. PAYMENT OBLIGATIONS
 
         // WASM loading overlay management
         function showWasmLoading() {
-            document.getElementById('wasm-loading-overlay').classList.remove('hidden');
+            const overlay = document.getElementById('wasm-loading-overlay');
+            const mainContent = document.querySelector('.main-layout');
+            overlay.classList.remove('hidden');
+            overlay.style.display = 'flex';
+            // Prevent background interaction
+            document.body.style.overflow = 'hidden';
+            if (mainContent) {
+                mainContent.setAttribute('inert', '');
+                mainContent.setAttribute('aria-hidden', 'true');
+            }
         }
 
         function hideWasmLoading() {
             const overlay = document.getElementById('wasm-loading-overlay');
+            const mainContent = document.querySelector('.main-layout');
             overlay.classList.add('hidden');
+            // Restore background interaction
+            document.body.style.overflow = '';
+            if (mainContent) {
+                mainContent.removeAttribute('inert');
+                mainContent.removeAttribute('aria-hidden');
+            }
             // Remove from DOM after transition
             setTimeout(() => {
                 if (overlay.classList.contains('hidden')) {
@@ -2337,6 +2883,7 @@ ARTICLE 9. PAYMENT OBLIGATIONS
                 <div class="wasm-error">
                     <div class="wasm-error-title">Failed to Load WASM Module</div>
                     <div class="wasm-error-message">${escapeHtml(message)}</div>
+                    <div class="error-suggestion">Try refreshing the page. If the problem persists, check your browser's console for details or try a different browser.</div>
                     <button class="wasm-retry-btn" onclick="location.reload()">Retry</button>
                 </div>
             `;
@@ -2463,6 +3010,9 @@ ARTICLE 9. PAYMENT OBLIGATIONS
             html += '</div>';
 
             vizDiv.innerHTML = html;
+
+            // Update status/nav counts
+            updateCounts('obligations', obligations.length);
 
             // Add interactivity to obligation items
             obligations.forEach((obl, i) => {
@@ -2696,6 +3246,9 @@ ARTICLE 9. PAYMENT OBLIGATIONS
                 }
 
                 vizDiv.innerHTML = html;
+
+                // Update status/nav counts
+                updateCounts('conflicts', conflicts.length);
 
                 // Add interactivity to conflict cards
                 conflicts.forEach((conflict, i) => {
@@ -2980,6 +3533,9 @@ ARTICLE 9. PAYMENT OBLIGATIONS
                 // Render annotated text with scope highlighting
                 renderScopeText(text, operators, textContainer);
 
+                // Update status/nav counts
+                updateCounts('scopes', operators.length);
+
                 // Render operator summary
                 renderScopeSummary(operators, vizDiv);
 
@@ -2991,15 +3547,16 @@ ARTICLE 9. PAYMENT OBLIGATIONS
             }
         };
 
-        // Get color for a span link role
+        // Get color for a span link role (reads from CSS variables)
         function getRoleColor(role) {
-            const colors = {
-                'Parent': '#3b82f6',     // blue
-                'Child': '#10b981',      // green
-                'Conjunct': '#8b5cf6',   // purple
-                'Exception': '#f59e0b'   // amber
+            const style = getComputedStyle(document.documentElement);
+            const LINK_COLORS = {
+                'Parent': style.getPropertyValue('--span-link-parent').trim() || '#3b82f6',
+                'Child': style.getPropertyValue('--span-link-child').trim() || '#10b981',
+                'Conjunct': style.getPropertyValue('--span-link-conjunct').trim() || '#8b5cf6',
+                'Exception': style.getPropertyValue('--span-link-exception').trim() || '#f59e0b'
             };
-            return colors[role] || '#6b7280';
+            return LINK_COLORS[role] || '#6b7280';
         }
 
         // Tokenize text into words with positions (simple tokenizer matching WASM behavior)
@@ -3265,6 +3822,9 @@ ARTICLE 9. PAYMENT OBLIGATIONS
                 await new Promise(resolve => setTimeout(resolve, 50));
                 drawSpanLinkArrows(links, textContainer);
 
+                // Update status/nav counts
+                updateCounts('links', links.length);
+
                 // Render summary with interactivity
                 renderLinkSummary(links, vizDiv, text);
 
@@ -3351,6 +3911,10 @@ ARTICLE 9. PAYMENT OBLIGATIONS
 
             vizDiv.innerHTML = html;
 
+            // Update status/nav counts (count total items across all groups)
+            const totalEquivItems = groups.reduce((sum, g) => sum + g.items.length, 0);
+            updateCounts('equiv', totalEquivItems);
+
             // Add interactivity to equivalence items
             itemIndex = 0;
             for (let i = 0; i < groups.length; i++) {
@@ -3397,6 +3961,76 @@ ARTICLE 9. PAYMENT OBLIGATIONS
 
         // Load WASM on page load
         loadWasm();
+
+        // === Gate 4: Interactive Enhancements ===
+
+        // Update status bar and nav counts after analysis
+        function updateCounts(type, count) {
+            const statusCount = document.getElementById(`status-${type}`);
+            const navCount = document.getElementById(`nav-${type}`);
+            if (statusCount) statusCount.textContent = count;
+            if (navCount) navCount.textContent = count > 0 ? count : '—';
+        }
+
+        // Keyboard navigation state
+        let currentResultIndex = -1;
+
+        function navigateResults(direction) {
+            const activeTab = document.querySelector('.tab-content.active');
+            if (!activeTab) return;
+
+            const results = activeTab.querySelectorAll('.conflict-item, .conflict-card, .scope-item, .scope-summary-item, .equivalence-group, .equivalence-item, .link-item, .semantic-role-item, [id^="link-"]');
+            if (results.length === 0) return;
+
+            // Remove current selection
+            results.forEach(r => r.classList.remove('keyboard-selected'));
+
+            // Calculate new index
+            currentResultIndex += direction;
+            if (currentResultIndex < 0) currentResultIndex = results.length - 1;
+            if (currentResultIndex >= results.length) currentResultIndex = 0;
+
+            // Select and scroll to new result
+            const selected = results[currentResultIndex];
+            selected.classList.add('keyboard-selected');
+            selected.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Add keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            // Only handle if not in textarea
+            if (e.target.tagName === 'TEXTAREA') return;
+
+            if (e.key === 'j' || e.key === 'k') {
+                e.preventDefault();
+                const direction = e.key === 'j' ? 1 : -1;
+                navigateResults(direction);
+            }
+
+            // Number keys 1-5 switch tabs
+            if (e.key >= '1' && e.key <= '5') {
+                const tabIndex = parseInt(e.key) - 1;
+                const tabs = ['obligation', 'conflict', 'scope', 'hierarchy', 'equivalence'];
+                const tabButton = document.querySelector(`.tab-button[data-tab="${tabs[tabIndex]}"]`);
+                if (tabButton) {
+                    tabButton.click();
+                    currentResultIndex = -1; // Reset navigation on tab switch
+                }
+            }
+
+            // Escape closes details panel
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.details-panel').forEach(p => p.style.display = 'none');
+            }
+        });
+
+        // Reset result index when switching tabs
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentResultIndex = -1;
+                document.querySelectorAll('.keyboard-selected').forEach(el => el.classList.remove('keyboard-selected'));
+            });
+        });
     </script>
 </body>
 </html>
