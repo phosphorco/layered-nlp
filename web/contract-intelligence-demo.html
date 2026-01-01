@@ -2262,14 +2262,6 @@ ARTICLE 9. PAYMENT OBLIGATIONS
 
     <!-- Tabs -->
     <div class="tabs-container">
-        <div class="tab-buttons">
-            <button class="tab-button active" data-tab="obligation">Obligation Analysis</button>
-            <button class="tab-button" data-tab="conflict">Conflict Detection</button>
-            <button class="tab-button" data-tab="scope">Scope Operators</button>
-            <button class="tab-button" data-tab="hierarchy">Clause Hierarchy</button>
-            <button class="tab-button" data-tab="equivalence">Equivalence Detection</button>
-        </div>
-
         <!-- Tab 1: Obligation Analysis -->
         <div class="tab-content active" id="tab-obligation">
             <div class="info-box">
@@ -2741,36 +2733,32 @@ ARTICLE 9. PAYMENT OBLIGATIONS
             }
         }
 
-        // Tab switching
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const tabId = button.dataset.tab;
+        // Helper function to switch tabs
+        function switchToTab(tabName) {
+            // Update sidebar active state
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            const navItem = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
+            if (navItem) navItem.classList.add('active');
 
-                // Update button states
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-                button.classList.add('active');
-
-                // Update content visibility
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                document.getElementById(`tab-${tabId}`).classList.add('active');
-
-                // Also update sidebar active state
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                const navItem = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
-                if (navItem) navItem.classList.add('active');
+            // Directly switch tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
             });
-        });
+            const targetContent = document.getElementById(`tab-${tabName}`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+
+            // Reset keyboard navigation
+            currentResultIndex = -1;
+            document.querySelectorAll('.keyboard-selected').forEach(el => el.classList.remove('keyboard-selected'));
+        }
 
         // Sidebar navigation
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
                 const tabName = item.dataset.tab;
-                // Update sidebar active state
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-                // Switch to corresponding tab
-                const tabButton = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
-                if (tabButton) tabButton.click();
+                switchToTab(tabName);
             });
         });
 
@@ -2778,12 +2766,7 @@ ARTICLE 9. PAYMENT OBLIGATIONS
         document.querySelectorAll('.status-item').forEach(item => {
             item.addEventListener('click', () => {
                 const tabName = item.dataset.tab;
-                const tabButton = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
-                if (tabButton) tabButton.click();
-                // Also update sidebar
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                const navItem = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
-                if (navItem) navItem.classList.add('active');
+                switchToTab(tabName);
             });
         });
 
@@ -4011,25 +3994,13 @@ ARTICLE 9. PAYMENT OBLIGATIONS
             if (e.key >= '1' && e.key <= '5') {
                 const tabIndex = parseInt(e.key) - 1;
                 const tabs = ['obligation', 'conflict', 'scope', 'hierarchy', 'equivalence'];
-                const tabButton = document.querySelector(`.tab-button[data-tab="${tabs[tabIndex]}"]`);
-                if (tabButton) {
-                    tabButton.click();
-                    currentResultIndex = -1; // Reset navigation on tab switch
-                }
+                switchToTab(tabs[tabIndex]);
             }
 
             // Escape closes details panel
             if (e.key === 'Escape') {
                 document.querySelectorAll('.details-panel').forEach(p => p.style.display = 'none');
             }
-        });
-
-        // Reset result index when switching tabs
-        document.querySelectorAll('.tab-button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                currentResultIndex = -1;
-                document.querySelectorAll('.keyboard-selected').forEach(el => el.classList.remove('keyboard-selected'));
-            });
         });
     </script>
 </body>
