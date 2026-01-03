@@ -12,14 +12,14 @@ FR-006 is implemented across 4 milestones, interleaved with FR-005. See [FR-007]
 
 | Milestone | Component | Status |
 |-----------|-----------|--------|
-| [M1](M1-baseline-conflict-detector.md) | Baseline ConflictDetector | 📋 Planning |
-| M4 | Precedence resolution + richer conflicts | 🔲 Todo |
-| M5 | Metalinguistic references + deictic integration | 🔲 Todo |
-| M8 | Semantic roles + obligation equivalence | 🔲 Todo |
+| [M1](M1-baseline-conflict-detector.md) | Baseline ConflictDetector | ✅ Complete (2025-12-31) — 54 tests |
+| M4 | Precedence resolution + richer conflicts | ✅ Complete (2025-12-31) — 49 tests |
+| M5 | Metalinguistic references + deictic integration | 📋 Planned (Optional) |
+| M8 | Semantic roles + obligation equivalence | ✅ Complete (2025-12-31) — 52 tests |
 
-**Key insight:** M1 (Baseline ConflictDetector) can start **immediately** using existing FR-001/FR-004 infrastructure, without waiting for FR-005 syntactic enhancements. Later milestones refine accuracy as syntactic features arrive.
+**Critical path milestones complete.** M5 (Metalinguistic + Deictic) remains optional for future enhancement.
 
-**Recommended start:** M1 delivers immediate user-visible value (conflict detection) with minimal new code.
+**Completed:** M1 delivered immediate user-visible value (conflict detection). M4 added precedence resolution. M8 completed semantic role extraction and obligation equivalence detection.
 
 ---
 

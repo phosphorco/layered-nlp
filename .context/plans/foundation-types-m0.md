@@ -1,8 +1,8 @@
 # M0: SpanLink & ScopeOperator Foundation
 
-**FR:** Phase 4 Foundation (cross-cutting)  
-**Status:** 📋 Planned  
-**Effort:** M (2-3 days)  
+**FR:** Phase 4 Foundation (cross-cutting)
+**Status:** ✅ Complete (2025-12-31) — 36 tests
+**Effort:** M (2-3 days)
 **Priority:** Critical — blocks all remaining Phase 4 milestones
 
 ## Summary
@@ -23,7 +23,7 @@ This aligns Phase 4 with the layered-nlp architecture philosophy:
 ## Gates
 
 ### Gate 1: SpanLink Core Types
-**Status:** 📋 Planned
+**Status:** ✅ Complete
 
 **Deliverables:**
 
@@ -104,7 +104,7 @@ pub enum ConflictRole {
 ---
 
 ### Gate 2: ScopeOperator Core Types
-**Status:** 📋 Planned
+**Status:** ✅ Complete
 
 **Deliverables:**
 
@@ -212,7 +212,7 @@ pub struct DeicticFrame {
 ---
 
 ### Gate 3: ScopeIndex Query Helper
-**Status:** 📋 Planned
+**Status:** ✅ Complete
 
 **Deliverables:**
 
@@ -265,7 +265,7 @@ impl<'a, O> ScopeIndex<'a, O> {
 ---
 
 ### Gate 4: Ambiguity Types
-**Status:** 📋 Planned
+**Status:** ✅ Complete
 
 **Deliverables:**
 
@@ -375,7 +375,7 @@ impl<T> Ambiguous<T> {
 ---
 
 ### Gate 5: Integration & Exports
-**Status:** 📋 Planned
+**Status:** ✅ Complete
 
 **Deliverables:**
 - [ ] Export SpanLink, ScopeOperator, ScopeIndex, Ambiguous from lib.rs

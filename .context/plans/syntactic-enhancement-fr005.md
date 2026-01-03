@@ -12,12 +12,12 @@ FR-005 is implemented across 4 milestones, interleaved with FR-006. See [FR-007]
 
 | Milestone | Component | Status |
 |-----------|-----------|--------|
-| M2 | ClauseBoundaryResolver + CoordinationResolver upgrade | 🔲 Todo |
-| M3 | TermsOfArtResolver | 🔲 Todo |
-| M6 | PP & relative clause attachment | 🔲 Todo |
-| M7 | Negation & quantifier scope | 🔲 Todo |
+| M2 | ClauseBoundaryResolver + CoordinationResolver upgrade | ✅ Complete (2025-12-31) — 61 tests |
+| M3 | TermsOfArtResolver | ✅ Complete (2025-12-31) — 36 tests |
+| M6 | PP & relative clause attachment | 📋 Planned (Optional) |
+| M7 | Negation & quantifier scope | ✅ Complete (2025-12-31) — 17 tests |
 
-**Recommended start:** M3 (TermsOfArtResolver) is lowest complexity with high value, followed by M2 (clause boundaries) to unblock scope resolution.
+**Critical path milestones complete.** M6 (PP/Relative Attachment) remains optional for future enhancement.
 
 ---
 
