@@ -16,6 +16,7 @@
 //! - [`PronounResolver`] - Resolves pronouns to antecedents
 //! - [`SectionHeaderResolver`] - Parses section headers (Section 3.1, Article IV)
 //! - [`SectionReferenceResolver`] - Detects references to sections
+//! - [`SentenceBoundaryResolver`] - Detects sentence boundaries (periods, etc.)
 //! - [`TemporalExpressionResolver`] - Extracts time expressions (within 30 days)
 //!
 //! ## Document-Level Processing
@@ -60,6 +61,7 @@ mod pronoun;
 mod pronoun_chain;
 mod scope_operators;
 mod section_header;
+mod sentence_boundary;
 mod section_reference;
 mod section_reference_linker;
 mod semantic_diff;
@@ -151,6 +153,7 @@ pub use document_aligner::{
 };
 pub use document_structure::{DocumentProcessor, DocumentStructure, DocumentStructureBuilder, SectionNode};
 pub use section_header::{SectionHeader, SectionHeaderResolver, SectionIdentifier, SectionKind};
+pub use sentence_boundary::{SentenceBoundary, SentenceBoundaryResolver, SentenceConfidence};
 pub use section_reference::{
     ReferencePurpose, ReferenceType, RelativeReference, SectionReference, SectionReferenceResolver,
 };

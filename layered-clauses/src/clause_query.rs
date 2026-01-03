@@ -10,7 +10,7 @@
 //! use layered_clauses::{ClauseKeywordResolver, ClauseResolver, ClauseLinkResolver, ClauseQueryAPI};
 //!
 //! let doc = LayeredDocument::from_text("When it rains, then A happens and B occurs.")
-//!     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"]))
+//!     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
 //!     .run_resolver(&ClauseResolver::default());
 //!
 //! let links = ClauseLinkResolver::resolve(&doc);
@@ -29,7 +29,7 @@
 //! }
 //! ```
 
-use crate::ClauseLink;
+use crate::{ClauseLink, LinkConfidence, CoordinationType, ObligationType};
 use layered_nlp_document::{ClauseRole, DocSpan};
 use std::collections::VecDeque;
 
@@ -52,7 +52,7 @@ impl<'a> ClauseQueryAPI<'a> {
     /// # use layered_nlp_document::LayeredDocument;
     /// # use layered_clauses::{ClauseKeywordResolver, ClauseResolver, ClauseLinkResolver, ClauseQueryAPI};
     /// let doc = LayeredDocument::from_text("When it rains, then it pours.")
-    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"]))
+    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
     ///     .run_resolver(&ClauseResolver::default());
     ///
     /// let links = ClauseLinkResolver::resolve(&doc);
@@ -77,7 +77,7 @@ impl<'a> ClauseQueryAPI<'a> {
     /// # use layered_nlp_document::{LayeredDocument, DocSpan};
     /// # use layered_clauses::{ClauseKeywordResolver, ClauseResolver, ClauseLinkResolver, ClauseQueryAPI};
     /// let doc = LayeredDocument::from_text("When it rains, then it pours.")
-    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"]))
+    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
     ///     .run_resolver(&ClauseResolver::default());
     ///
     /// let links = ClauseLinkResolver::resolve(&doc);
@@ -134,7 +134,7 @@ impl<'a> ClauseQueryAPI<'a> {
     /// # use layered_nlp_document::{LayeredDocument, DocSpan};
     /// # use layered_clauses::{ClauseKeywordResolver, ClauseResolver, ClauseLinkResolver, ClauseQueryAPI};
     /// let doc = LayeredDocument::from_text("A pays, B works, and C manages.")
-    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"]))
+    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
     ///     .run_resolver(&ClauseResolver::default());
     ///
     /// let links = ClauseLinkResolver::resolve(&doc);
@@ -199,7 +199,7 @@ impl<'a> ClauseQueryAPI<'a> {
     /// # use layered_nlp_document::{LayeredDocument, DocSpan};
     /// # use layered_clauses::{ClauseKeywordResolver, ClauseResolver, ClauseLinkResolver, ClauseQueryAPI};
     /// let doc = LayeredDocument::from_text("Tenant shall pay rent unless waived by Landlord.")
-    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"]))
+    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
     ///     .run_resolver(&ClauseResolver::default());
     ///
     /// let links = ClauseLinkResolver::resolve(&doc);
@@ -211,11 +211,30 @@ impl<'a> ClauseQueryAPI<'a> {
     /// // assert_eq!(exceptions.len(), 1); // "waived by Landlord"
     /// ```
     pub fn exceptions(&self, span: DocSpan) -> Vec<DocSpan> {
-        self.links
-            .iter()
-            .filter(|link| link.link.role == ClauseRole::Exception && link.link.target == span)
-            .map(|link| link.anchor)
-            .collect()
+        let mut result = Vec::new();
+        let mut visited = Vec::new();
+        let mut queue = VecDeque::new();
+
+        visited.push(span);
+        queue.push_back(span);
+
+        while let Some(current) = queue.pop_front() {
+            // Find all clauses that are exceptions to the current clause
+            // Exception links go FROM the exception clause TO the base clause
+            // (anchor is the exception, target is what it's an exception to)
+            for link in self.links.iter() {
+                if link.link.target == current && link.link.role == ClauseRole::Exception {
+                    let exception_clause = link.anchor;
+                    if !visited.contains(&exception_clause) {
+                        visited.push(exception_clause);
+                        result.push(exception_clause);
+                        queue.push_back(exception_clause);
+                    }
+                }
+            }
+        }
+
+        result
     }
 
     /// Get all child clauses directly contained by a parent clause.
@@ -234,6 +253,396 @@ impl<'a> ClauseQueryAPI<'a> {
             .map(|link| link.link.target)
             .collect()
     }
+
+    /// Get all high-confidence links.
+    ///
+    /// Returns an iterator over links that have High confidence.
+    ///
+    /// # Returns
+    /// An iterator over high-confidence ClauseLink references
+    ///
+    /// # Example
+    /// ```
+    /// # use layered_nlp_document::LayeredDocument;
+    /// # use layered_clauses::{ClauseKeywordResolver, ClauseResolver, ClauseLinkResolver, ClauseQueryAPI};
+    /// let doc = LayeredDocument::from_text("When it rains, then it pours.")
+    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
+    ///     .run_resolver(&ClauseResolver::default());
+    ///
+    /// let links = ClauseLinkResolver::resolve(&doc);
+    /// let api = ClauseQueryAPI::new(&links);
+    ///
+    /// for link in api.high_confidence_links() {
+    ///     // Process only high-confidence links
+    /// }
+    /// ```
+    pub fn high_confidence_links(&self) -> impl Iterator<Item = &ClauseLink> {
+        self.links
+            .iter()
+            .filter(|link| link.confidence == LinkConfidence::High)
+    }
+
+    /// Get all links with at least the specified minimum confidence level.
+    ///
+    /// Returns an iterator over links that meet or exceed the minimum confidence.
+    ///
+    /// # Arguments
+    /// * `min` - The minimum confidence level (Low, Medium, or High)
+    ///
+    /// # Returns
+    /// An iterator over ClauseLink references meeting the confidence threshold
+    ///
+    /// # Example
+    /// ```
+    /// # use layered_nlp_document::LayeredDocument;
+    /// # use layered_clauses::{ClauseKeywordResolver, ClauseResolver, ClauseLinkResolver, ClauseQueryAPI, LinkConfidence};
+    /// let doc = LayeredDocument::from_text("When it rains, then it pours.")
+    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
+    ///     .run_resolver(&ClauseResolver::default());
+    ///
+    /// let links = ClauseLinkResolver::resolve(&doc);
+    /// let api = ClauseQueryAPI::new(&links);
+    ///
+    /// // Get all medium and high confidence links
+    /// for link in api.links_with_confidence(LinkConfidence::Medium) {
+    ///     // Process links with Medium or High confidence
+    /// }
+    /// ```
+    pub fn links_with_confidence(&self, min: LinkConfidence) -> impl Iterator<Item = &ClauseLink> {
+        self.links.iter().filter(move |link| link.confidence >= min)
+    }
+
+    /// Get the top-level coordination operator (lowest precedence, evaluated last).
+    /// 
+    /// In "A and B or C", the top-level operator is OR (precedence=1) because
+    /// AND (precedence=2) binds tighter and is evaluated first.
+    /// 
+    /// Returns the coordination type of the operator with the lowest precedence value.
+    pub fn top_level_operator(&self) -> Option<CoordinationType> {
+        let min_precedence = self.links.iter()
+            .filter(|l| l.link.role == ClauseRole::Conjunct)
+            .filter_map(|l| l.precedence_group)
+            .min()?;
+        
+        self.links.iter()
+            .find(|l| l.precedence_group == Some(min_precedence) && l.link.role == ClauseRole::Conjunct)
+            .and_then(|l| l.coordination_type)
+    }
+
+    /// Get all clauses in the same precedence group as the given span.
+    ///
+    /// Finds all clauses that share a precedence group with the query span.
+    /// These are clauses that are grouped together at the same level of operator precedence.
+    ///
+    /// # Arguments
+    /// * `span` - The clause span to find group members for
+    ///
+    /// # Returns
+    /// A sorted, deduplicated vector of clause spans in the same precedence group
+    ///
+    /// # Example
+    /// ```
+    /// # use layered_nlp_document::LayeredDocument;
+    /// # use layered_clauses::{ClauseKeywordResolver, ClauseResolver, ClauseLinkResolver, ClauseQueryAPI};
+    /// let doc = LayeredDocument::from_text("A pays, B works, and C manages.")
+    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
+    ///     .run_resolver(&ClauseResolver::default());
+    ///
+    /// let links = ClauseLinkResolver::resolve(&doc);
+    /// let api = ClauseQueryAPI::new(&links);
+    ///
+    /// let clause_spans = ClauseLinkResolver::extract_clause_spans(&doc);
+    /// let first_span = clause_spans[0].span;
+    ///
+    /// // Get all clauses at the same precedence level
+    /// let members = api.precedence_group_members(first_span);
+    /// ```
+    pub fn precedence_group_members(&self, span: DocSpan) -> Vec<DocSpan> {
+        let groups: Vec<u8> = self.links.iter()
+            .filter(|l| l.link.role == ClauseRole::Conjunct)
+            .filter(|l| l.anchor == span || l.link.target == span)
+            .filter_map(|l| l.precedence_group)
+            .collect();
+        
+        if groups.is_empty() {
+            return vec![];
+        }
+        
+        let mut members = Vec::new();
+        for &group in &groups {
+            for link in self.links.iter() {
+                if link.precedence_group == Some(group) && link.link.role == ClauseRole::Conjunct {
+                    if !members.contains(&link.anchor) {
+                        members.push(link.anchor);
+                    }
+                    if !members.contains(&link.link.target) {
+                        members.push(link.link.target);
+                    }
+                }
+            }
+        }
+        
+        members
+    }
+
+    /// Get all distinct precedence groups in the current links.
+    ///
+    /// Returns a sorted list of all precedence group IDs that appear in the links.
+    /// Higher IDs represent tighter binding (evaluated first).
+    ///
+    /// # Returns
+    /// A sorted vector of unique precedence group IDs
+    ///
+    /// # Example
+    /// ```
+    /// # use layered_nlp_document::LayeredDocument;
+    /// # use layered_clauses::{ClauseKeywordResolver, ClauseResolver, ClauseLinkResolver, ClauseQueryAPI};
+    /// let doc = LayeredDocument::from_text("A pays, B works, and C manages.")
+    ///     .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
+    ///     .run_resolver(&ClauseResolver::default());
+    ///
+    /// let links = ClauseLinkResolver::resolve(&doc);
+    /// let api = ClauseQueryAPI::new(&links);
+    ///
+    /// let groups = api.precedence_groups();
+    /// println!("Found {} precedence groups", groups.len());
+    /// ```
+    pub fn precedence_groups(&self) -> Vec<u8> {
+        let mut groups: Vec<u8> = self.links.iter()
+            .filter(|l| l.link.role == ClauseRole::Conjunct)
+            .filter_map(|l| l.precedence_group)
+            .collect();
+        groups.sort();
+        groups.dedup();
+        groups
+    }
+
+    /// Get the list container clause for a list item.
+    ///
+    /// If this span is a list item, returns the container clause that introduces the list.
+    ///
+    /// # Arguments
+    /// * `span` - The list item span to query
+    ///
+    /// # Returns
+    /// The container clause span, or None if this is not a list item
+    pub fn list_container(&self, span: DocSpan) -> Option<DocSpan> {
+        self.links
+            .iter()
+            .find(|link| link.anchor == span && link.link.role == ClauseRole::ListItem)
+            .map(|link| link.link.target)
+    }
+
+    /// Get all list items belonging to a container clause.
+    ///
+    /// Returns all clauses that are marked as list items pointing to this container.
+    ///
+    /// # Arguments
+    /// * `span` - The container clause span
+    ///
+    /// # Returns
+    /// A vector of list item clause spans
+    pub fn list_items(&self, span: DocSpan) -> Vec<DocSpan> {
+        self.links
+            .iter()
+            .filter(|link| link.anchor == span && link.link.role == ClauseRole::ListContainer)
+            .map(|link| link.link.target)
+            .collect()
+    }
+
+    /// Check if a clause is a list item.
+    ///
+    /// # Arguments
+    /// * `span` - The clause span to check
+    ///
+    /// # Returns
+    /// True if this clause is a list item, false otherwise
+    pub fn is_list_item(&self, span: DocSpan) -> bool {
+        self.list_container(span).is_some()
+    }
+
+    /// Check if a clause is a list container.
+    ///
+    /// # Arguments
+    /// * `span` - The clause span to check
+    ///
+    /// # Returns
+    /// True if this clause is a list container, false otherwise
+    pub fn is_list_container(&self, span: DocSpan) -> bool {
+        self.links
+            .iter()
+            .any(|link| link.anchor == span && link.link.role == ClauseRole::ListContainer)
+    }
+
+    // ========================================================================
+    // Cross-Reference Queries (Gate 4)
+    // ========================================================================
+
+    /// Returns all DocSpans of section references within the given clause.
+    ///
+    /// Finds all CrossReference links where the anchor is the given clause span
+    /// and returns the target spans (the section reference spans).
+    ///
+    /// # Arguments
+    /// * `clause_span` - The clause span to find cross-references in
+    ///
+    /// # Returns
+    /// A vector of section reference spans contained in this clause
+    ///
+    /// # Example
+    /// ```
+    /// # use layered_nlp_document::DocSpan;
+    /// # use layered_clauses::{ClauseQueryAPI, ClauseLink, ClauseLinkBuilder, LinkConfidence};
+    /// let clause_span = DocSpan::single_line(0, 0, 30);
+    /// let section_ref_span = DocSpan::single_line(0, 15, 25);
+    ///
+    /// let links = vec![
+    ///     ClauseLink {
+    ///         anchor: clause_span,
+    ///         link: ClauseLinkBuilder::cross_reference_link(section_ref_span),
+    ///         confidence: LinkConfidence::High,
+    ///         coordination_type: None,
+    ///         precedence_group: None,
+    ///         obligation_type: None,
+    ///     },
+    /// ];
+    ///
+    /// let api = ClauseQueryAPI::new(&links);
+    /// let refs = api.referenced_sections(clause_span);
+    /// assert_eq!(refs.len(), 1);
+    /// assert!(refs.contains(&section_ref_span));
+    /// ```
+    pub fn referenced_sections(&self, clause_span: DocSpan) -> Vec<DocSpan> {
+        self.links
+            .iter()
+            .filter(|link| link.anchor == clause_span && link.link.role == ClauseRole::CrossReference)
+            .map(|link| link.link.target)
+            .collect()
+    }
+
+    /// Returns all clause spans that reference a given section reference span.
+    ///
+    /// Finds all CrossReference links where the target is the given section reference span
+    /// and returns the anchor spans (the clause spans that contain the reference).
+    ///
+    /// # Arguments
+    /// * `section_ref_span` - The section reference span to find referencing clauses for
+    ///
+    /// # Returns
+    /// A vector of clause spans that contain cross-references to this section
+    ///
+    /// # Example
+    /// ```
+    /// # use layered_nlp_document::DocSpan;
+    /// # use layered_clauses::{ClauseQueryAPI, ClauseLink, ClauseLinkBuilder, LinkConfidence};
+    /// let clause_span = DocSpan::single_line(0, 0, 30);
+    /// let section_ref_span = DocSpan::single_line(0, 15, 25);
+    ///
+    /// let links = vec![
+    ///     ClauseLink {
+    ///         anchor: clause_span,
+    ///         link: ClauseLinkBuilder::cross_reference_link(section_ref_span),
+    ///         confidence: LinkConfidence::High,
+    ///         coordination_type: None,
+    ///         precedence_group: None,
+    ///         obligation_type: None,
+    ///     },
+    /// ];
+    ///
+    /// let api = ClauseQueryAPI::new(&links);
+    /// let clauses = api.referencing_clauses(section_ref_span);
+    /// assert_eq!(clauses.len(), 1);
+    /// assert!(clauses.contains(&clause_span));
+    /// ```
+    pub fn referencing_clauses(&self, section_ref_span: DocSpan) -> Vec<DocSpan> {
+        self.links
+            .iter()
+            .filter(|link| link.link.target == section_ref_span && link.link.role == ClauseRole::CrossReference)
+            .map(|link| link.anchor)
+            .collect()
+    }
+
+    /// Returns true if the given clause contains any cross-references.
+    ///
+    /// # Arguments
+    /// * `span` - The clause span to check
+    ///
+    /// # Returns
+    /// True if the clause has at least one cross-reference, false otherwise
+    ///
+    /// # Example
+    /// ```
+    /// # use layered_nlp_document::DocSpan;
+    /// # use layered_clauses::{ClauseQueryAPI, ClauseLink, ClauseLinkBuilder, LinkConfidence};
+    /// let clause_span = DocSpan::single_line(0, 0, 30);
+    /// let section_ref_span = DocSpan::single_line(0, 15, 25);
+    ///
+    /// let links = vec![
+    ///     ClauseLink {
+    ///         anchor: clause_span,
+    ///         link: ClauseLinkBuilder::cross_reference_link(section_ref_span),
+    ///         confidence: LinkConfidence::High,
+    ///         coordination_type: None,
+    ///         precedence_group: None,
+    ///         obligation_type: None,
+    ///     },
+    /// ];
+    ///
+    /// let api = ClauseQueryAPI::new(&links);
+    /// assert!(api.has_cross_references(clause_span));
+    /// assert!(!api.has_cross_references(section_ref_span)); // The section ref itself has no cross-refs
+    /// ```
+    pub fn has_cross_references(&self, span: DocSpan) -> bool {
+        !self.referenced_sections(span).is_empty()
+    }
+
+    // ========================================================================
+    // Obligation Type Queries (Gate 2)
+    // ========================================================================
+
+    /// Returns the obligation type for a clause, if detected.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let api = ClauseQueryAPI::new(&links);
+    /// if let Some(obligation) = api.obligation(my_clause_span) {
+    ///     match obligation {
+    ///         ObligationType::Duty => println!("This is a duty clause"),
+    ///         ObligationType::Permission => println!("This is a permission clause"),
+    ///         ObligationType::Prohibition => println!("This is a prohibition clause"),
+    ///     }
+    /// }
+    /// ```
+    pub fn obligation(&self, span: DocSpan) -> Option<ObligationType> {
+        self.links
+            .iter()
+            .find(|link| link.anchor == span)
+            .and_then(|link| link.obligation_type.clone())
+    }
+
+    /// Returns all clause spans that have the specified obligation type.
+    ///
+    /// Results are returned in document order (ascending spans), with duplicates removed.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let api = ClauseQueryAPI::new(&links);
+    /// let duties = api.clauses_by_obligation_type(ObligationType::Duty);
+    /// println!("Found {} duty clauses", duties.len());
+    /// ```
+    pub fn clauses_by_obligation_type(&self, obligation_type: ObligationType) -> Vec<DocSpan> {
+        let mut spans: Vec<DocSpan> = self.links
+            .iter()
+            .filter(|link| link.obligation_type == Some(obligation_type.clone()))
+            .map(|link| link.anchor)
+            .collect();
+
+        // Deduplicate (same clause may appear in multiple links) and sort for document order
+        spans.sort_by_key(|span| (span.start.line, span.start.token));
+        spans.dedup();
+        spans
+    }
+
 }
 
 #[cfg(test)]
@@ -244,11 +653,7 @@ mod tests {
 
     fn create_test_document(text: &str) -> LayeredDocument {
         LayeredDocument::from_text(text)
-            .run_resolver(&ClauseKeywordResolver::new(
-                &["if", "when"],
-                &["and"],
-                &["then"],
-            ))
+            .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
             .run_resolver(&ClauseResolver::default())
     }
 
@@ -363,7 +768,7 @@ mod tests {
     #[test]
     fn test_exceptions_simple() {
         let doc = LayeredDocument::from_text("Tenant shall pay rent unless waived by Landlord.")
-            .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"]))
+            .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
             .run_resolver(&ClauseResolver::default());
 
         let links = ClauseLinkResolver::resolve(&doc);
@@ -425,7 +830,7 @@ mod tests {
     fn test_mixed_link_types() {
         // Document with parent-child, coordination, and exceptions
         let doc = LayeredDocument::from_text("When A happens and B occurs, then C applies unless D.")
-            .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"]))
+            .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
             .run_resolver(&ClauseResolver::default());
 
         let links = ClauseLinkResolver::resolve(&doc);
@@ -507,7 +912,7 @@ mod tests {
         let doc = LayeredDocument::from_text(
             "When X occurs and Y happens, then Z applies unless W, and Q follows."
         )
-        .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"]))
+        .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
         .run_resolver(&ClauseResolver::default());
 
         let links = ClauseLinkResolver::resolve(&doc);
@@ -554,5 +959,351 @@ mod tests {
 
         assert!(has_parent || has_conjunct || has_exception,
             "Expected at least one link type in complex document");
+    }
+
+    #[test]
+    fn test_high_confidence_links() {
+        let doc = create_test_document("When it rains, then it pours.");
+        let links = ClauseLinkResolver::resolve(&doc);
+        let api = ClauseQueryAPI::new(&links);
+
+        // All current links should be high confidence (same-line)
+        let high_confidence: Vec<_> = api.high_confidence_links().collect();
+        assert_eq!(
+            high_confidence.len(),
+            links.len(),
+            "All same-line links should be high confidence"
+        );
+
+        for link in high_confidence {
+            assert_eq!(link.confidence, LinkConfidence::High);
+        }
+    }
+
+    #[test]
+    fn test_links_with_confidence_high() {
+        let doc = create_test_document("When it rains, then it pours.");
+        let links = ClauseLinkResolver::resolve(&doc);
+        let api = ClauseQueryAPI::new(&links);
+
+        // All links should meet High threshold
+        let high: Vec<_> = api.links_with_confidence(LinkConfidence::High).collect();
+        assert_eq!(high.len(), links.len());
+    }
+
+    #[test]
+    fn test_links_with_confidence_medium() {
+        let doc = create_test_document("When it rains, then it pours.");
+        let links = ClauseLinkResolver::resolve(&doc);
+        let api = ClauseQueryAPI::new(&links);
+
+        // All high links should also meet medium threshold
+        let medium_or_higher: Vec<_> = api.links_with_confidence(LinkConfidence::Medium).collect();
+        assert_eq!(
+            medium_or_higher.len(),
+            links.len(),
+            "All High confidence links should meet Medium threshold"
+        );
+    }
+
+    #[test]
+    fn test_links_with_confidence_low() {
+        let doc = create_test_document("When it rains, then it pours.");
+        let links = ClauseLinkResolver::resolve(&doc);
+        let api = ClauseQueryAPI::new(&links);
+
+        // All links should meet Low threshold (lowest bar)
+        let all: Vec<_> = api.links_with_confidence(LinkConfidence::Low).collect();
+        assert_eq!(all.len(), links.len(), "All links should meet Low threshold");
+    }
+
+    #[test]
+    fn test_confidence_filtering_empty() {
+        // Test confidence filtering on empty link set
+        let links = vec![];
+        let api = ClauseQueryAPI::new(&links);
+
+        let high: Vec<_> = api.high_confidence_links().collect();
+        assert_eq!(high.len(), 0);
+
+        let medium: Vec<_> = api.links_with_confidence(LinkConfidence::Medium).collect();
+        assert_eq!(medium.len(), 0);
+    }
+
+    // ========================================================================
+    // List Query Tests
+    // ========================================================================
+
+    #[test]
+    fn test_list_container_empty() {
+        let links = vec![];
+        let api = ClauseQueryAPI::new(&links);
+
+        let span = DocSpan::single_line(0, 0, 5);
+        assert_eq!(api.list_container(span), None);
+    }
+
+    #[test]
+    fn test_list_items_empty() {
+        let links = vec![];
+        let api = ClauseQueryAPI::new(&links);
+
+        let span = DocSpan::single_line(0, 0, 5);
+        assert!(api.list_items(span).is_empty());
+    }
+
+    #[test]
+    fn test_is_list_item_false() {
+        let links = vec![];
+        let api = ClauseQueryAPI::new(&links);
+
+        let span = DocSpan::single_line(0, 0, 5);
+        assert!(!api.is_list_item(span));
+    }
+
+    #[test]
+    fn test_is_list_container_false() {
+        let links = vec![];
+        let api = ClauseQueryAPI::new(&links);
+
+        let span = DocSpan::single_line(0, 0, 5);
+        assert!(!api.is_list_container(span));
+    }
+
+    #[test]
+    fn test_list_queries_with_manual_links() {
+        use crate::ClauseLink;
+
+        // Create synthetic list links for testing
+        let container_span = DocSpan::single_line(0, 0, 5);
+        let item1_span = DocSpan::single_line(0, 6, 10);
+        let item2_span = DocSpan::single_line(0, 11, 15);
+
+        let links = vec![
+            // item1 → container (ListItem)
+            ClauseLink {
+                anchor: item1_span,
+                link: crate::ClauseLinkBuilder::list_item_link(container_span),
+                confidence: LinkConfidence::High,
+                coordination_type: None,
+                precedence_group: None,
+                obligation_type: None,
+            },
+            // container → item1 (ListContainer)
+            ClauseLink {
+                anchor: container_span,
+                link: crate::ClauseLinkBuilder::list_container_link(item1_span),
+                confidence: LinkConfidence::High,
+                coordination_type: None,
+                precedence_group: None,
+                obligation_type: None,
+            },
+            // item2 → container (ListItem)
+            ClauseLink {
+                anchor: item2_span,
+                link: crate::ClauseLinkBuilder::list_item_link(container_span),
+                confidence: LinkConfidence::High,
+                coordination_type: None,
+                precedence_group: None,
+                obligation_type: None,
+            },
+            // container → item2 (ListContainer)
+            ClauseLink {
+                anchor: container_span,
+                link: crate::ClauseLinkBuilder::list_container_link(item2_span),
+                confidence: LinkConfidence::High,
+                coordination_type: None,
+                precedence_group: None,
+                obligation_type: None,
+            },
+        ];
+
+        let api = ClauseQueryAPI::new(&links);
+
+        // Test list_container
+        assert_eq!(api.list_container(item1_span), Some(container_span));
+        assert_eq!(api.list_container(item2_span), Some(container_span));
+        assert_eq!(api.list_container(container_span), None);
+
+        // Test list_items
+        let items = api.list_items(container_span);
+        assert_eq!(items.len(), 2);
+        assert!(items.contains(&item1_span));
+        assert!(items.contains(&item2_span));
+        assert!(api.list_items(item1_span).is_empty());
+
+        // Test is_list_item
+        assert!(api.is_list_item(item1_span));
+        assert!(api.is_list_item(item2_span));
+        assert!(!api.is_list_item(container_span));
+
+        // Test is_list_container
+        assert!(api.is_list_container(container_span));
+        assert!(!api.is_list_container(item1_span));
+        assert!(!api.is_list_container(item2_span));
+    }
+
+    // ========================================================================
+    // Cross-Reference Query Tests
+    // ========================================================================
+
+    #[test]
+    fn test_referenced_sections_empty() {
+        let links = vec![];
+        let api = ClauseQueryAPI::new(&links);
+
+        let span = DocSpan::single_line(0, 0, 5);
+        assert!(api.referenced_sections(span).is_empty());
+    }
+
+    #[test]
+    fn test_referencing_clauses_empty() {
+        let links = vec![];
+        let api = ClauseQueryAPI::new(&links);
+
+        let span = DocSpan::single_line(0, 0, 5);
+        assert!(api.referencing_clauses(span).is_empty());
+    }
+
+    #[test]
+    fn test_has_cross_references_false() {
+        let links = vec![];
+        let api = ClauseQueryAPI::new(&links);
+
+        let span = DocSpan::single_line(0, 0, 5);
+        assert!(!api.has_cross_references(span));
+    }
+
+    #[test]
+    fn test_cross_reference_queries_with_manual_links() {
+        use crate::ClauseLink;
+
+        // Create synthetic cross-reference links for testing
+        // Simulates: "Subject to Section 3.2, the Tenant shall pay rent."
+        let clause_span = DocSpan::single_line(0, 0, 50);
+        let section_ref_span = DocSpan::single_line(0, 11, 22); // "Section 3.2"
+
+        let links = vec![
+            // clause → section_ref (CrossReference)
+            ClauseLink {
+                anchor: clause_span,
+                link: crate::ClauseLinkBuilder::cross_reference_link(section_ref_span),
+                confidence: LinkConfidence::High,
+                coordination_type: None,
+                precedence_group: None,
+                obligation_type: None,
+            },
+        ];
+
+        let api = ClauseQueryAPI::new(&links);
+
+        // Test referenced_sections
+        let refs = api.referenced_sections(clause_span);
+        assert_eq!(refs.len(), 1);
+        assert!(refs.contains(&section_ref_span));
+        assert!(api.referenced_sections(section_ref_span).is_empty());
+
+        // Test referencing_clauses
+        let clauses = api.referencing_clauses(section_ref_span);
+        assert_eq!(clauses.len(), 1);
+        assert!(clauses.contains(&clause_span));
+        assert!(api.referencing_clauses(clause_span).is_empty());
+
+        // Test has_cross_references
+        assert!(api.has_cross_references(clause_span));
+        assert!(!api.has_cross_references(section_ref_span));
+    }
+
+    #[test]
+    fn test_multiple_cross_references_in_clause() {
+        use crate::ClauseLink;
+
+        // Clause with multiple section references
+        // Simulates: "Subject to Sections 3.2 and 4.1, the Tenant shall..."
+        let clause_span = DocSpan::single_line(0, 0, 60);
+        let section_ref1 = DocSpan::single_line(0, 11, 22); // "Sections 3.2"
+        let section_ref2 = DocSpan::single_line(0, 27, 30); // "4.1"
+
+        let links = vec![
+            ClauseLink {
+                anchor: clause_span,
+                link: crate::ClauseLinkBuilder::cross_reference_link(section_ref1),
+                confidence: LinkConfidence::High,
+                coordination_type: None,
+                precedence_group: None,
+                obligation_type: None,
+            },
+            ClauseLink {
+                anchor: clause_span,
+                link: crate::ClauseLinkBuilder::cross_reference_link(section_ref2),
+                confidence: LinkConfidence::High,
+                coordination_type: None,
+                precedence_group: None,
+                obligation_type: None,
+            },
+        ];
+
+        let api = ClauseQueryAPI::new(&links);
+
+        // Should find both section references
+        let refs = api.referenced_sections(clause_span);
+        assert_eq!(refs.len(), 2);
+        assert!(refs.contains(&section_ref1));
+        assert!(refs.contains(&section_ref2));
+
+        // has_cross_references should still return true
+        assert!(api.has_cross_references(clause_span));
+    }
+
+    #[test]
+    fn test_multiple_clauses_referencing_same_section() {
+        use crate::ClauseLink;
+
+        // Multiple clauses referencing the same section
+        let section_ref_span = DocSpan::single_line(0, 0, 10); // shared section reference
+        let clause1 = DocSpan::single_line(1, 0, 30);
+        let clause2 = DocSpan::single_line(2, 0, 25);
+        let clause3 = DocSpan::single_line(3, 0, 40);
+
+        let links = vec![
+            ClauseLink {
+                anchor: clause1,
+                link: crate::ClauseLinkBuilder::cross_reference_link(section_ref_span),
+                confidence: LinkConfidence::High,
+                coordination_type: None,
+                precedence_group: None,
+                obligation_type: None,
+            },
+            ClauseLink {
+                anchor: clause2,
+                link: crate::ClauseLinkBuilder::cross_reference_link(section_ref_span),
+                confidence: LinkConfidence::High,
+                coordination_type: None,
+                precedence_group: None,
+                obligation_type: None,
+            },
+            ClauseLink {
+                anchor: clause3,
+                link: crate::ClauseLinkBuilder::cross_reference_link(section_ref_span),
+                confidence: LinkConfidence::High,
+                coordination_type: None,
+                precedence_group: None,
+                obligation_type: None,
+            },
+        ];
+
+        let api = ClauseQueryAPI::new(&links);
+
+        // All three clauses should be found as referencing the section
+        let clauses = api.referencing_clauses(section_ref_span);
+        assert_eq!(clauses.len(), 3);
+        assert!(clauses.contains(&clause1));
+        assert!(clauses.contains(&clause2));
+        assert!(clauses.contains(&clause3));
+
+        // Each clause should have exactly one reference
+        assert_eq!(api.referenced_sections(clause1).len(), 1);
+        assert_eq!(api.referenced_sections(clause2).len(), 1);
+        assert_eq!(api.referenced_sections(clause3).len(), 1);
     }
 }

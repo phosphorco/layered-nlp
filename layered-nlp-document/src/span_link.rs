@@ -45,6 +45,15 @@ pub enum ClauseRole {
     Conjunct,
     /// Exception clause modifying parent
     Exception,
+    /// List item belongs to a parent list container
+    ListItem,
+    /// Container clause that introduces a list
+    ListContainer,
+    /// Cross-reference to another section (e.g., "subject to Section 3.2")
+    CrossReference,
+    /// Self-referential link for standalone clauses with obligations
+    /// Used when a clause has an obligation_type but no relationships to other clauses
+    Self_,
 }
 
 /// M6: PP/Relative clause attachment relations

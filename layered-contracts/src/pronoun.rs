@@ -16,6 +16,7 @@ use layered_part_of_speech::Tag;
 
 use crate::defined_term::DefinedTerm;
 use crate::Scored;
+use crate::SentenceBoundaryResolver;
 use crate::term_reference::TermReference;
 
 /// A candidate antecedent for a pronoun.
@@ -130,33 +131,6 @@ impl PronounResolver {
             agreement_bonus,
             multiple_candidates_penalty,
         }
-    }
-
-    /// Check if there's a sentence boundary (period, exclamation, question mark)
-    /// between two selections.
-    fn has_sentence_boundary_between(&self, earlier: &LLSelection, later: &LLSelection) -> bool {
-        // Start from the earlier selection and try to find punctuation going forward
-        let mut current = earlier.clone();
-
-        while let Some((next_sel, _)) = current.match_first_forwards(&x::token_text()) {
-            // Check if we've reached or passed the later selection
-            if next_sel == *later {
-                return false;
-            }
-
-            // Check if this is sentence-ending punctuation
-            if let Some((_, punc)) =
-                next_sel.find_first_by(&x::all((x::attr_eq(&TextTag::PUNC), x::token_text())))
-            {
-                if matches!(punc.1, "." | "!" | "?") {
-                    return true;
-                }
-            }
-
-            current = next_sel;
-        }
-
-        false
     }
 
     /// Calculate confidence for a candidate based on scoring factors.
@@ -409,8 +383,8 @@ impl Resolver for PronounResolver {
                 .into_iter()
                 .map(|(ant_sel, text, is_defined_term)| {
                     let token_distance = self.estimate_token_distance(&ant_sel, &pronoun_sel);
-                    let same_sentence =
-                        !self.has_sentence_boundary_between(&ant_sel, &pronoun_sel);
+                    let resolver = SentenceBoundaryResolver::new();
+                    let same_sentence = !resolver.has_boundary_between(&ant_sel, &pronoun_sel);
 
                     let confidence = self.calculate_candidate_confidence(
                         token_distance,

@@ -18,6 +18,7 @@ use layered_part_of_speech::Tag;
 use crate::contract_keyword::ContractKeyword;
 use crate::pronoun::PronounReference;
 use crate::Scored;
+use crate::sentence_boundary::SentenceBoundaryResolver;
 use crate::term_reference::TermReference;
 
 /// Association linking an obligation to its obligor source span.
@@ -512,44 +513,6 @@ impl ObligationPhraseResolver {
         (action_text, word_spans)
     }
 
-    /// Check if there's a sentence boundary between two selections.
-    /// Returns true if no sentence-ending punctuation exists between them.
-    fn in_same_sentence(&self, sel_a: &LLSelection, sel_b: &LLSelection) -> bool {
-        // Determine which selection comes first
-        let (earlier, later) = if self.selection_is_before(sel_a, sel_b) {
-            (sel_a, sel_b)
-        } else if self.selection_is_before(sel_b, sel_a) {
-            (sel_b, sel_a)
-        } else {
-            // Same position or overlapping - same sentence
-            return true;
-        };
-
-        // Walk from earlier looking for sentence-ending punctuation before reaching later
-        let mut current = earlier.clone();
-
-        while let Some((next_sel, text)) = current.match_first_forwards(&x::token_text()) {
-            // Check if we've reached the later selection
-            // Use selection_is_before: if later is no longer after next_sel, we've reached/passed it
-            if !self.selection_is_before(&next_sel, later) {
-                // Reached or passed `later` without finding sentence boundary
-                return true;
-            }
-
-            // Check for sentence-ending punctuation by looking at the token text directly
-            // Note: match_first_forwards returns extended selections, so we check the text
-            // we just matched rather than using find_first_by on the selection
-            if matches!(text, "." | "!" | "?" | ";") {
-                return false;
-            }
-
-            current = next_sel;
-        }
-
-        // Couldn't find sentence boundary - assume same sentence
-        true
-    }
-
     /// Find the next modal keyword after the given position, if any.
     fn find_next_modal(&self, selection: &LLSelection, after_sel: &LLSelection) -> Option<LLSelection> {
         let modals: Vec<_> = selection
@@ -592,7 +555,17 @@ impl ObligationPhraseResolver {
         for condition_type in condition_types {
             for (cond_sel, _) in selection.find_by(&x::attr_eq(&condition_type)) {
                 // Only include conditions in the same sentence as the modal
-                if !self.in_same_sentence(&cond_sel, modal_sel) {
+                // Determine order and check for sentence boundary between them
+                let resolver = SentenceBoundaryResolver::new().with_semicolons();
+                let has_boundary = if self.selection_is_before(&cond_sel, modal_sel) {
+                    resolver.has_boundary_between(&cond_sel, modal_sel)
+                } else if self.selection_is_before(modal_sel, &cond_sel) {
+                    resolver.has_boundary_between(modal_sel, &cond_sel)
+                } else {
+                    // Same position or overlapping - no boundary
+                    false
+                };
+                if has_boundary {
                     continue;
                 }
 
