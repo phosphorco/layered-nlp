@@ -28,6 +28,8 @@ pub enum ContractKeyword {
     MustNot,
     /// "cannot" / "can not" - indicates prohibition
     Cannot,
+    /// "may not" - indicates prohibition
+    MayNot,
     /// "will not" - indicates prohibition
     WillNot,
 
@@ -207,6 +209,7 @@ impl ProhibitionResolver {
         match keyword {
             ContractKeyword::Shall => Some(ContractKeyword::ShallNot),
             ContractKeyword::Must => Some(ContractKeyword::MustNot),
+            ContractKeyword::May => Some(ContractKeyword::MayNot),
             ContractKeyword::Will => Some(ContractKeyword::WillNot),
             ContractKeyword::Can => Some(ContractKeyword::Cannot),
             _ => None,
@@ -224,6 +227,7 @@ impl Resolver for ProhibitionResolver {
         let modals_to_check = [
             ContractKeyword::Shall,
             ContractKeyword::Must,
+            ContractKeyword::May,
             ContractKeyword::Will,
             ContractKeyword::Can,
         ];

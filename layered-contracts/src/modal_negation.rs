@@ -217,7 +217,7 @@ impl ModalNegationClassifier {
             }
 
             // "may not" - prohibition (not permission)
-            (ContractKeyword::May, Polarity::Negative) => {
+            (ContractKeyword::May | ContractKeyword::MayNot, Polarity::Negative) => {
                 ModalNegationClassification::clear(
                     span,
                     ModalObligationType::Prohibition,
@@ -255,8 +255,8 @@ impl ModalNegationClassifier {
                 )
             }
 
-            // ShallNot or MustNot with positive polarity is unusual - flag
-            (ContractKeyword::ShallNot | ContractKeyword::MustNot, Polarity::Positive) => {
+            // ShallNot, MustNot, or MayNot with positive polarity is unusual - flag
+            (ContractKeyword::ShallNot | ContractKeyword::MustNot | ContractKeyword::MayNot, Polarity::Positive) => {
                 ModalNegationClassification::ambiguous(
                     span,
                     ModalObligationType::Prohibition,
@@ -295,6 +295,7 @@ impl ModalNegationClassifier {
             ContractKeyword::May | ContractKeyword::Can => ModalObligationType::Permission,
             ContractKeyword::ShallNot
             | ContractKeyword::MustNot
+            | ContractKeyword::MayNot
             | ContractKeyword::Cannot
             | ContractKeyword::WillNot => ModalObligationType::Prohibition,
             _ => ModalObligationType::Permission,

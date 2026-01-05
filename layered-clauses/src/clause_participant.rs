@@ -212,14 +212,14 @@ impl ClauseParticipants {
     pub fn primary_subject(&self) -> Option<&ClauseParticipant> {
         self.subjects()
             .into_iter()
-            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap())
+            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(std::cmp::Ordering::Equal))
     }
 
     /// Get the primary object (highest confidence object)
     pub fn primary_object(&self) -> Option<&ClauseParticipant> {
         self.objects()
             .into_iter()
-            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap())
+            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(std::cmp::Ordering::Equal))
     }
 
     /// Check if any participant needs review

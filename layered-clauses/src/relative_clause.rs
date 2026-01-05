@@ -127,7 +127,7 @@ impl RelativeClauseAttachment {
         self.clause_type = clause_type;
         // Non-restrictive clauses are easier to detect (comma-bounded)
         if clause_type == RelativeClauseType::NonRestrictive {
-            self.confidence += 0.1;
+            self.confidence = (self.confidence + 0.1).min(1.0);
         }
         self
     }

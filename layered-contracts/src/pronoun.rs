@@ -643,7 +643,8 @@ impl DocumentPronounResolver {
         let lower = token.to_lowercase();
         matches!(
             lower.as_str(),
-            "before" | "until" | "unless" | "if" | "when" | "after" | "once" | "while"
+            "before" | "until" | "unless" | "if" | "when" | "once" | "while"
+            // "after" removed - it indicates backward (anaphoric) reference
         )
     }
 
@@ -695,7 +696,7 @@ impl DocumentPronounReference {
         let best_anaphoric = candidates
             .iter()
             .filter(|c| c.direction == CataphoraDirection::Anaphoric)
-            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap())
+            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(std::cmp::Ordering::Equal))
             .cloned();
 
         Self {
@@ -729,7 +730,7 @@ impl DocumentPronounReference {
     pub fn best_candidate(&self) -> Option<&CataphoraCandidate> {
         self.candidates
             .iter()
-            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap())
+            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(std::cmp::Ordering::Equal))
     }
 
     /// Check if there's ambiguity between forward and backward candidates

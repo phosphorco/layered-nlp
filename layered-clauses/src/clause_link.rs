@@ -111,6 +111,11 @@ impl ClauseLinkBuilder {
     pub fn cross_reference_link(section_ref_span: DocSpan) -> DocSpanLink<ClauseRole> {
         SpanLink::new(ClauseRole::CrossReference, section_ref_span)
     }
+
+    /// Create a relative clause link to its head noun
+    pub fn relative_link(head_noun_span: DocSpan) -> DocSpanLink<ClauseRole> {
+        SpanLink::new(ClauseRole::Relative, head_noun_span)
+    }
 }
 
 impl Default for ClauseLinkBuilder {

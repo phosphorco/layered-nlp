@@ -533,6 +533,7 @@ fn format_contract_keyword(keyword: &ContractKeyword) -> String {
         ContractKeyword::ShallNot => "ShallNot",
         ContractKeyword::MustNot => "MustNot",
         ContractKeyword::Cannot => "Cannot",
+        ContractKeyword::MayNot => "MayNot",
         ContractKeyword::WillNot => "WillNot",
         ContractKeyword::Means => "Means",
         ContractKeyword::Includes => "Includes",
