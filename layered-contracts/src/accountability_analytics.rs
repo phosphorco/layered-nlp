@@ -526,8 +526,14 @@ fn format_obligation_type(duty: &ClauseDuty) -> String {
 fn format_contract_keyword(keyword: &ContractKeyword) -> String {
     match keyword {
         ContractKeyword::Shall => "Shall",
+        ContractKeyword::Must => "Must",
         ContractKeyword::May => "May",
+        ContractKeyword::Can => "Can",
+        ContractKeyword::Will => "Will",
         ContractKeyword::ShallNot => "ShallNot",
+        ContractKeyword::MustNot => "MustNot",
+        ContractKeyword::Cannot => "Cannot",
+        ContractKeyword::WillNot => "WillNot",
         ContractKeyword::Means => "Means",
         ContractKeyword::Includes => "Includes",
         ContractKeyword::Hereinafter => "Hereinafter",

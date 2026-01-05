@@ -9,15 +9,27 @@
 use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver};
 
 /// Contract-specific keywords that carry semantic meaning.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ContractKeyword {
     // Obligation modals
-    /// "shall", "must" - indicates a duty/obligation
+    /// "shall" - indicates a duty/obligation
     Shall,
-    /// "may", "can" - indicates permission
+    /// "must" - indicates a duty/obligation
+    Must,
+    /// "may" - indicates permission
     May,
-    /// "shall not", "must not" - indicates prohibition
+    /// "can" - indicates permission
+    Can,
+    /// "will" - indicates future commitment/duty
+    Will,
+    /// "shall not" - indicates prohibition
     ShallNot,
+    /// "must not" - indicates prohibition
+    MustNot,
+    /// "cannot" / "can not" - indicates prohibition
+    Cannot,
+    /// "will not" - indicates prohibition
+    WillNot,
 
     // Definition signals
     /// "means", "refers to", "is defined as"
@@ -46,8 +58,14 @@ pub enum ContractKeyword {
 pub struct ContractKeywordResolver {
     /// Keywords that map to Shall (obligation)
     shall_keywords: Vec<&'static str>,
+    /// Keywords that map to Must (obligation)
+    must_keywords: Vec<&'static str>,
     /// Keywords that map to May (permission)
     may_keywords: Vec<&'static str>,
+    /// Keywords that map to Can (permission)
+    can_keywords: Vec<&'static str>,
+    /// Keywords that map to Will (future commitment)
+    will_keywords: Vec<&'static str>,
     /// Keywords that map to Means (definition)
     means_keywords: Vec<&'static str>,
     /// Keywords that map to Includes
@@ -69,8 +87,11 @@ pub struct ContractKeywordResolver {
 impl Default for ContractKeywordResolver {
     fn default() -> Self {
         Self {
-            shall_keywords: vec!["shall", "must"],
-            may_keywords: vec!["may", "can"],
+            shall_keywords: vec!["shall"],
+            must_keywords: vec!["must"],
+            may_keywords: vec!["may"],
+            can_keywords: vec!["can"],
+            will_keywords: vec!["will"],
             means_keywords: vec!["means", "mean"],
             includes_keywords: vec!["includes", "including", "include"],
             hereinafter_keywords: vec!["hereinafter", "hereafter"],
@@ -89,43 +110,26 @@ impl ContractKeywordResolver {
         Self::default()
     }
 
-    /// Create a resolver with custom keyword lists.
-    #[allow(clippy::too_many_arguments)]
-    pub fn with_keywords(
-        shall: &[&'static str],
-        may: &[&'static str],
-        means: &[&'static str],
-        includes: &[&'static str],
-        hereinafter: &[&'static str],
-        if_kw: &[&'static str],
-        unless: &[&'static str],
-        provided: &[&'static str],
-        subject_to: &[&'static str],
-        party: &[&'static str],
-    ) -> Self {
-        Self {
-            shall_keywords: shall.to_vec(),
-            may_keywords: may.to_vec(),
-            means_keywords: means.to_vec(),
-            includes_keywords: includes.to_vec(),
-            hereinafter_keywords: hereinafter.to_vec(),
-            if_keywords: if_kw.to_vec(),
-            unless_keywords: unless.to_vec(),
-            provided_keywords: provided.to_vec(),
-            subject_to_keywords: subject_to.to_vec(),
-            party_keywords: party.to_vec(),
-        }
-    }
-
     /// Match a single token to a keyword.
     fn match_single_token(&self, text: &str) -> Option<ContractKeyword> {
         let lower = text.to_lowercase();
         let lower_str = lower.as_str();
 
+        // Check for "cannot" first (single token compound)
+        if lower_str == "cannot" {
+            return Some(ContractKeyword::Cannot);
+        }
+
         if self.shall_keywords.contains(&lower_str) {
             Some(ContractKeyword::Shall)
+        } else if self.must_keywords.contains(&lower_str) {
+            Some(ContractKeyword::Must)
         } else if self.may_keywords.contains(&lower_str) {
             Some(ContractKeyword::May)
+        } else if self.can_keywords.contains(&lower_str) {
+            Some(ContractKeyword::Can)
+        } else if self.will_keywords.contains(&lower_str) {
+            Some(ContractKeyword::Will)
         } else if self.means_keywords.contains(&lower_str) {
             Some(ContractKeyword::Means)
         } else if self.includes_keywords.contains(&lower_str) {
@@ -183,8 +187,8 @@ impl Resolver for ContractKeywordResolver {
     }
 }
 
-/// Resolver for detecting "shall not" / "must not" prohibition patterns.
-/// Run this after ContractKeywordResolver to upgrade Shall to ShallNot when followed by "not".
+/// Resolver for detecting prohibition patterns like "shall not", "must not", "will not", "can not".
+/// Run this after ContractKeywordResolver to upgrade modals to their negated forms when followed by "not".
 pub struct ProhibitionResolver;
 
 impl Default for ProhibitionResolver {
@@ -197,31 +201,48 @@ impl ProhibitionResolver {
     pub fn new() -> Self {
         Self
     }
+
+    /// Check if a modal keyword followed by "not" should produce a negated keyword
+    fn get_negated_keyword(keyword: &ContractKeyword) -> Option<ContractKeyword> {
+        match keyword {
+            ContractKeyword::Shall => Some(ContractKeyword::ShallNot),
+            ContractKeyword::Must => Some(ContractKeyword::MustNot),
+            ContractKeyword::Will => Some(ContractKeyword::WillNot),
+            ContractKeyword::Can => Some(ContractKeyword::Cannot),
+            _ => None,
+        }
+    }
 }
 
 impl Resolver for ProhibitionResolver {
     type Attr = ContractKeyword;
 
     fn go(&self, selection: LLSelection) -> Vec<LLCursorAssignment<Self::Attr>> {
-        // Find Shall keywords and check if followed by "not"
-        selection
-            .find_by(&x::attr_eq(&ContractKeyword::Shall))
-            .into_iter()
-            .filter_map(|(sel, _)| {
+        let mut results = Vec::new();
+
+        // Check each modal keyword type for "not" following
+        let modals_to_check = [
+            ContractKeyword::Shall,
+            ContractKeyword::Must,
+            ContractKeyword::Will,
+            ContractKeyword::Can,
+        ];
+
+        for modal in modals_to_check {
+            for (sel, _) in selection.find_by(&x::attr_eq(&modal)) {
                 // Try to match whitespace then "not"
-                sel.match_first_forwards(&x::whitespace())
-                    .and_then(|(ws_sel, _)| {
-                        ws_sel.match_first_forwards(&x::token_text()).and_then(
-                            |(not_sel, text)| {
-                                if text.to_lowercase() == "not" {
-                                    Some(not_sel.finish_with_attr(ContractKeyword::ShallNot))
-                                } else {
-                                    None
-                                }
-                            },
-                        )
-                    })
-            })
-            .collect()
+                if let Some((ws_sel, _)) = sel.match_first_forwards(&x::whitespace()) {
+                    if let Some((not_sel, text)) = ws_sel.match_first_forwards(&x::token_text()) {
+                        if text.to_lowercase() == "not" {
+                            if let Some(negated) = Self::get_negated_keyword(&modal) {
+                                results.push(not_sel.finish_with_attr(negated));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        results
     }
 }

@@ -44,7 +44,7 @@ pub struct PronounReference {
 }
 
 /// Classification of pronoun types for agreement checking.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum PronounType {
     /// Third person singular neuter (it, its, itself)
     ThirdSingularNeuter,
@@ -427,5 +427,483 @@ impl Resolver for PronounResolver {
         }
 
         results
+    }
+}
+
+// ============================================================================
+// CATAPHORA RESOLUTION (Gate 3)
+// ============================================================================
+// Enables bidirectional pronoun resolution - both backward (anaphora) and
+// forward (cataphora) reference patterns.
+
+/// Direction of pronoun reference
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum CataphoraDirection {
+    /// Traditional backward reference: antecedent appears before pronoun
+    /// Example: "The Company shall... It must..."
+    Anaphoric,
+    /// Forward reference: antecedent appears after pronoun
+    /// Example: "Before it expires, the Contract shall..."
+    Cataphoric,
+    /// Could be interpreted either way
+    Ambiguous,
+}
+
+impl CataphoraDirection {
+    /// Returns true if this is a forward-looking reference
+    pub fn is_forward(&self) -> bool {
+        matches!(self, Self::Cataphoric)
+    }
+
+    /// Returns true if this is a backward-looking reference
+    pub fn is_backward(&self) -> bool {
+        matches!(self, Self::Anaphoric)
+    }
+}
+
+/// Extended antecedent candidate with direction and salience tracking
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CataphoraCandidate {
+    /// The text of the potential antecedent
+    pub text: String,
+    /// Whether this candidate is a formally defined term
+    pub is_defined_term: bool,
+    /// Distance in tokens from the pronoun
+    pub token_distance: usize,
+    /// Direction of the reference (anaphoric/cataphoric)
+    pub direction: CataphoraDirection,
+    /// Salience score based on entity prominence in document (0.0-1.0)
+    pub salience: f64,
+    /// Confidence score for this candidate (0.0-1.0)
+    pub confidence: f64,
+    /// Flag for review if confidence is low or ambiguous
+    pub needs_review: bool,
+    /// Reason why review is needed
+    pub review_reason: Option<String>,
+}
+
+impl CataphoraCandidate {
+    /// Create a new cataphora candidate with default values
+    pub fn new(text: impl Into<String>, direction: CataphoraDirection) -> Self {
+        Self {
+            text: text.into(),
+            is_defined_term: false,
+            token_distance: 0,
+            direction,
+            salience: 0.5,
+            confidence: 0.5,
+            needs_review: false,
+            review_reason: None,
+        }
+    }
+
+    /// Create an anaphoric (backward-looking) candidate
+    pub fn anaphoric(text: impl Into<String>, token_distance: usize) -> Self {
+        Self {
+            text: text.into(),
+            is_defined_term: false,
+            token_distance,
+            direction: CataphoraDirection::Anaphoric,
+            salience: 0.5,
+            confidence: 0.5,
+            needs_review: false,
+            review_reason: None,
+        }
+    }
+
+    /// Create a cataphoric (forward-looking) candidate
+    pub fn cataphoric(text: impl Into<String>, token_distance: usize) -> Self {
+        Self {
+            text: text.into(),
+            is_defined_term: false,
+            token_distance,
+            direction: CataphoraDirection::Cataphoric,
+            salience: 0.5,
+            // Forward references get lower base confidence (less common)
+            confidence: 0.4,
+            needs_review: true,
+            review_reason: Some("Forward reference (cataphora) - verify antecedent".to_string()),
+        }
+    }
+
+    /// Set this candidate as a defined term
+    pub fn with_defined_term(mut self, is_defined: bool) -> Self {
+        self.is_defined_term = is_defined;
+        if is_defined {
+            self.confidence += 0.25;
+            self.confidence = self.confidence.min(1.0);
+        }
+        self
+    }
+
+    /// Set the salience score
+    pub fn with_salience(mut self, salience: f64) -> Self {
+        self.salience = salience.clamp(0.0, 1.0);
+        // High salience boosts confidence
+        if salience > 0.7 {
+            self.confidence += 0.1;
+            self.confidence = self.confidence.min(1.0);
+        }
+        self
+    }
+
+    /// Convert from legacy AntecedentCandidate (assumes anaphoric)
+    pub fn from_antecedent(candidate: &AntecedentCandidate) -> Self {
+        Self {
+            text: candidate.text.clone(),
+            is_defined_term: candidate.is_defined_term,
+            token_distance: candidate.token_distance,
+            direction: CataphoraDirection::Anaphoric,
+            salience: if candidate.is_defined_term { 0.8 } else { 0.5 },
+            confidence: candidate.confidence,
+            needs_review: false,
+            review_reason: None,
+        }
+    }
+}
+
+/// Document-level pronoun resolver with bidirectional resolution
+///
+/// Uses a two-pass algorithm:
+/// 1. Pass 1: Collect all potential antecedents from entire document
+/// 2. Pass 2: For each pronoun, evaluate candidates in both directions
+pub struct DocumentPronounResolver {
+    /// Penalty applied per token of distance
+    pub distance_penalty: f64,
+    /// Maximum distance penalty
+    pub max_distance_penalty: f64,
+    /// Bonus for anaphoric (backward) references (more common)
+    pub anaphoric_bonus: f64,
+    /// Penalty for cataphoric (forward) references (less common)
+    pub cataphoric_penalty: f64,
+    /// Bonus for defined terms
+    pub defined_term_bonus: f64,
+    /// Minimum confidence to not flag for review
+    pub review_threshold: f64,
+}
+
+impl DocumentPronounResolver {
+    pub fn new() -> Self {
+        Self {
+            distance_penalty: 0.02,
+            max_distance_penalty: 0.30,
+            anaphoric_bonus: 0.10,
+            cataphoric_penalty: 0.10,
+            defined_term_bonus: 0.25,
+            review_threshold: 0.6,
+        }
+    }
+
+    /// Score a candidate based on direction, distance, and properties
+    pub fn score_candidate(&self, candidate: &mut CataphoraCandidate) {
+        let mut score = 0.50;
+
+        // Distance penalty (applies to both directions)
+        let distance_penalty = (candidate.token_distance as f64 * self.distance_penalty)
+            .min(self.max_distance_penalty);
+        score -= distance_penalty;
+
+        // Direction adjustment
+        match candidate.direction {
+            CataphoraDirection::Anaphoric => score += self.anaphoric_bonus,
+            CataphoraDirection::Cataphoric => score -= self.cataphoric_penalty,
+            CataphoraDirection::Ambiguous => {} // No adjustment
+        }
+
+        // Defined term bonus
+        if candidate.is_defined_term {
+            score += self.defined_term_bonus;
+        }
+
+        // Salience bonus (entities mentioned more often are more likely referents)
+        score += (candidate.salience - 0.5) * 0.2;
+
+        // Clamp and update
+        candidate.confidence = score.clamp(0.0, 1.0);
+
+        // Flag low-confidence candidates for review
+        if candidate.confidence < self.review_threshold {
+            candidate.needs_review = true;
+            if candidate.review_reason.is_none() {
+                candidate.review_reason = Some(format!(
+                    "Low confidence ({:.2}) - verify pronoun resolution",
+                    candidate.confidence
+                ));
+            }
+        }
+
+        // Cataphoric references always need review (uncommon pattern)
+        if candidate.direction == CataphoraDirection::Cataphoric {
+            candidate.needs_review = true;
+        }
+    }
+
+    /// Detect cataphoric trigger words that suggest forward reference
+    pub fn is_cataphoric_trigger(token: &str) -> bool {
+        let lower = token.to_lowercase();
+        matches!(
+            lower.as_str(),
+            "before" | "until" | "unless" | "if" | "when" | "after" | "once" | "while"
+        )
+    }
+
+    /// Calculate salience score based on mention frequency
+    pub fn calculate_salience(mention_count: usize, max_mentions: usize) -> f64 {
+        if max_mentions == 0 {
+            return 0.5;
+        }
+        let ratio = mention_count as f64 / max_mentions as f64;
+        // Scale from 0.3 to 0.9 based on relative frequency
+        0.3 + (ratio * 0.6)
+    }
+}
+
+impl Default for DocumentPronounResolver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Result of document-level pronoun resolution
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct DocumentPronounReference {
+    /// The pronoun text
+    pub pronoun: String,
+    /// Pronoun type
+    pub pronoun_type: PronounType,
+    /// All candidates (both anaphoric and cataphoric)
+    pub candidates: Vec<CataphoraCandidate>,
+    /// Best anaphoric candidate (if any)
+    pub best_anaphoric: Option<CataphoraCandidate>,
+    /// Best cataphoric candidate (if any)
+    pub best_cataphoric: Option<CataphoraCandidate>,
+    /// Whether this reference needs human review
+    pub needs_review: bool,
+    /// Reason for review
+    pub review_reason: Option<String>,
+}
+
+impl DocumentPronounReference {
+    /// Create from a legacy PronounReference (backward compatible)
+    pub fn from_pronoun_reference(pr: &PronounReference) -> Self {
+        let candidates: Vec<CataphoraCandidate> = pr
+            .candidates
+            .iter()
+            .map(CataphoraCandidate::from_antecedent)
+            .collect();
+
+        let best_anaphoric = candidates
+            .iter()
+            .filter(|c| c.direction == CataphoraDirection::Anaphoric)
+            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap())
+            .cloned();
+
+        Self {
+            pronoun: pr.pronoun.clone(),
+            pronoun_type: pr.pronoun_type,
+            candidates,
+            best_anaphoric,
+            best_cataphoric: None,
+            needs_review: false,
+            review_reason: None,
+        }
+    }
+
+    /// Add a cataphoric candidate
+    pub fn add_cataphoric(&mut self, candidate: CataphoraCandidate) {
+        self.candidates.push(candidate.clone());
+
+        // Update best cataphoric if this is better
+        if candidate.direction == CataphoraDirection::Cataphoric {
+            match &self.best_cataphoric {
+                None => self.best_cataphoric = Some(candidate),
+                Some(current) if candidate.confidence > current.confidence => {
+                    self.best_cataphoric = Some(candidate);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Get the best overall candidate (considering both directions)
+    pub fn best_candidate(&self) -> Option<&CataphoraCandidate> {
+        self.candidates
+            .iter()
+            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap())
+    }
+
+    /// Check if there's ambiguity between forward and backward candidates
+    pub fn is_direction_ambiguous(&self) -> bool {
+        match (&self.best_anaphoric, &self.best_cataphoric) {
+            (Some(ana), Some(cat)) => {
+                // Ambiguous if both have decent confidence and are close
+                ana.confidence > 0.5 && cat.confidence > 0.4
+                    && (ana.confidence - cat.confidence).abs() < 0.15
+            }
+            _ => false,
+        }
+    }
+}
+
+#[cfg(test)]
+mod cataphora_tests {
+    use super::*;
+
+    #[test]
+    fn test_cataphora_direction_properties() {
+        assert!(CataphoraDirection::Cataphoric.is_forward());
+        assert!(!CataphoraDirection::Cataphoric.is_backward());
+
+        assert!(CataphoraDirection::Anaphoric.is_backward());
+        assert!(!CataphoraDirection::Anaphoric.is_forward());
+
+        assert!(!CataphoraDirection::Ambiguous.is_forward());
+        assert!(!CataphoraDirection::Ambiguous.is_backward());
+    }
+
+    #[test]
+    fn test_cataphora_candidate_constructors() {
+        let ana = CataphoraCandidate::anaphoric("Company", 5);
+        assert_eq!(ana.direction, CataphoraDirection::Anaphoric);
+        assert_eq!(ana.token_distance, 5);
+        assert!(!ana.needs_review);
+
+        let cat = CataphoraCandidate::cataphoric("Contract", 10);
+        assert_eq!(cat.direction, CataphoraDirection::Cataphoric);
+        assert_eq!(cat.token_distance, 10);
+        assert!(cat.needs_review); // Cataphoric always needs review
+    }
+
+    #[test]
+    fn test_cataphora_candidate_defined_term_bonus() {
+        let mut candidate = CataphoraCandidate::anaphoric("Tenant", 3);
+        let initial_confidence = candidate.confidence;
+
+        candidate = candidate.with_defined_term(true);
+
+        assert!(candidate.is_defined_term);
+        assert!(candidate.confidence > initial_confidence);
+    }
+
+    #[test]
+    fn test_cataphora_candidate_salience() {
+        let candidate = CataphoraCandidate::anaphoric("Company", 5)
+            .with_salience(0.9);
+
+        assert!(candidate.salience > 0.8);
+        // High salience should boost confidence
+    }
+
+    #[test]
+    fn test_document_resolver_scoring() {
+        let resolver = DocumentPronounResolver::new();
+
+        // Anaphoric candidate (backward reference)
+        let mut anaphoric = CataphoraCandidate::anaphoric("Company", 5);
+        resolver.score_candidate(&mut anaphoric);
+
+        // Cataphoric candidate (forward reference) at same distance
+        let mut cataphoric = CataphoraCandidate::cataphoric("Contract", 5);
+        resolver.score_candidate(&mut cataphoric);
+
+        // Anaphoric should score higher (more common pattern)
+        assert!(anaphoric.confidence > cataphoric.confidence);
+    }
+
+    #[test]
+    fn test_forward_reference_before_it_expires() {
+        // "Before it expires, the Contract shall be renewed"
+        // Pronoun "it" at position 1, antecedent "Contract" at position 5
+
+        let mut cataphoric = CataphoraCandidate::cataphoric("Contract", 4)
+            .with_defined_term(true)
+            .with_salience(0.8);
+
+        let resolver = DocumentPronounResolver::new();
+        resolver.score_candidate(&mut cataphoric);
+
+        // Should have reasonable confidence despite being forward reference
+        assert!(cataphoric.confidence > 0.4);
+        assert!(cataphoric.needs_review); // Forward references always flagged
+        assert_eq!(cataphoric.direction, CataphoraDirection::Cataphoric);
+    }
+
+    #[test]
+    fn test_cataphoric_trigger_detection() {
+        assert!(DocumentPronounResolver::is_cataphoric_trigger("Before"));
+        assert!(DocumentPronounResolver::is_cataphoric_trigger("UNTIL"));
+        assert!(DocumentPronounResolver::is_cataphoric_trigger("unless"));
+        assert!(DocumentPronounResolver::is_cataphoric_trigger("if"));
+
+        assert!(!DocumentPronounResolver::is_cataphoric_trigger("the"));
+        assert!(!DocumentPronounResolver::is_cataphoric_trigger("shall"));
+    }
+
+    #[test]
+    fn test_document_pronoun_reference_ambiguity() {
+        let doc_ref = DocumentPronounReference {
+            pronoun: "it".to_string(),
+            pronoun_type: PronounType::ThirdSingularNeuter,
+            candidates: vec![],
+            best_anaphoric: Some(CataphoraCandidate {
+                text: "Company".to_string(),
+                is_defined_term: true,
+                token_distance: 5,
+                direction: CataphoraDirection::Anaphoric,
+                salience: 0.7,
+                confidence: 0.65,
+                needs_review: false,
+                review_reason: None,
+            }),
+            best_cataphoric: Some(CataphoraCandidate {
+                text: "Contract".to_string(),
+                is_defined_term: true,
+                token_distance: 3,
+                direction: CataphoraDirection::Cataphoric,
+                salience: 0.8,
+                confidence: 0.55,
+                needs_review: true,
+                review_reason: None,
+            }),
+            needs_review: false,
+            review_reason: None,
+        };
+
+        // Close confidence scores mean ambiguous direction
+        assert!(doc_ref.is_direction_ambiguous());
+    }
+
+    #[test]
+    fn test_salience_calculation() {
+        // Entity mentioned 5 times out of max 10
+        let salience = DocumentPronounResolver::calculate_salience(5, 10);
+        assert!(salience > 0.5);
+        assert!(salience < 0.7);
+
+        // Most mentioned entity
+        let high_salience = DocumentPronounResolver::calculate_salience(10, 10);
+        assert!(high_salience > 0.8);
+
+        // Rarely mentioned
+        let low_salience = DocumentPronounResolver::calculate_salience(1, 10);
+        assert!(low_salience < 0.5);
+    }
+
+    #[test]
+    fn test_conversion_from_legacy_antecedent() {
+        let legacy = AntecedentCandidate {
+            text: "Landlord".to_string(),
+            is_defined_term: true,
+            token_distance: 7,
+            confidence: 0.75,
+        };
+
+        let cataphora = CataphoraCandidate::from_antecedent(&legacy);
+
+        assert_eq!(cataphora.text, "Landlord");
+        assert!(cataphora.is_defined_term);
+        assert_eq!(cataphora.token_distance, 7);
+        assert_eq!(cataphora.direction, CataphoraDirection::Anaphoric);
+        assert_eq!(cataphora.confidence, 0.75);
     }
 }

@@ -30,6 +30,7 @@
 //! ```
 
 use crate::{ClauseLink, LinkConfidence, CoordinationType, ObligationType};
+use crate::clause_participant::ClauseParticipants;
 use layered_nlp_document::{ClauseRole, DocSpan};
 use std::collections::VecDeque;
 
@@ -641,6 +642,74 @@ impl<'a> ClauseQueryAPI<'a> {
         spans.sort_by_key(|span| (span.start.line, span.start.token));
         spans.dedup();
         spans
+    }
+
+    // ========================================================================
+    // PARTICIPANT QUERIES (Gate 4)
+    // ========================================================================
+
+    /// Get participants for a clause.
+    ///
+    /// NOTE: This requires running a ParticipantResolver to populate the
+    /// participant data. Returns an empty ClauseParticipants if no participant
+    /// data is available for this clause span.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let api = ClauseQueryAPI::new(&links);
+    /// let participants = api.participants(clause_span);
+    /// if let Some(subject) = participants.primary_subject() {
+    ///     println!("Subject: {}", subject.text);
+    /// }
+    /// ```
+    pub fn participants(&self, clause_span: DocSpan) -> ClauseParticipants {
+        // TODO: Integrate with ParticipantResolver output
+        // For now, return empty participants as participant data
+        // would need to be passed in or queried from a separate store.
+        //
+        // Integration approach:
+        // 1. ParticipantResolver produces Vec<(DocSpan, ClauseParticipants)>
+        // 2. Store alongside ClauseLinks or in parallel data structure
+        // 3. Query here using clause_span as key
+        ClauseParticipants::new(clause_span)
+    }
+
+    // ========================================================================
+    // RELATIVE CLAUSE QUERIES (Gate 5)
+    // ========================================================================
+
+    /// Get the relative clause that modifies this noun span (if any).
+    ///
+    /// Looks for ClauseLinks where the role is Relative and the target
+    /// matches the given span (the head noun being modified).
+    ///
+    /// # Example
+    /// ```ignore
+    /// // "the tenant who fails to pay"
+    /// let api = ClauseQueryAPI::new(&links);
+    /// if let Some(rel_clause) = api.relative_clause(tenant_span) {
+    ///     // rel_clause is the span of "who fails to pay"
+    /// }
+    /// ```
+    pub fn relative_clause(&self, head_noun_span: DocSpan) -> Option<DocSpan> {
+        self.links
+            .iter()
+            .find(|link| {
+                link.link.role == ClauseRole::Relative && link.link.target == head_noun_span
+            })
+            .map(|link| link.anchor)
+    }
+
+    /// Get all relative clauses in the document.
+    ///
+    /// Returns pairs of (head_noun_span, relative_clause_span) for each
+    /// detected relative clause attachment.
+    pub fn all_relative_clauses(&self) -> Vec<(DocSpan, DocSpan)> {
+        self.links
+            .iter()
+            .filter(|link| link.link.role == ClauseRole::Relative)
+            .map(|link| (link.link.target, link.anchor))
+            .collect()
     }
 
 }

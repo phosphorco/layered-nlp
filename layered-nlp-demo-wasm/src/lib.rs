@@ -115,6 +115,7 @@ fn get_span_links_internal(text: &str) -> SpanLinkResult {
                 ClauseRole::ListItem => "ListItem",
                 ClauseRole::ListContainer => "ListContainer",
                 ClauseRole::CrossReference => "CrossRef",
+                ClauseRole::Relative => "Relative",
                 ClauseRole::Self_ => "Self",
             };
 

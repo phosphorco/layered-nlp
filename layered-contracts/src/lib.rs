@@ -55,7 +55,9 @@ mod defined_term;
 mod deictic;
 mod document_aligner;
 mod document_structure;
+mod modal_negation;
 mod obligation;
+mod polarity;
 mod precedence;
 mod pronoun;
 mod pronoun_chain;
@@ -125,6 +127,8 @@ pub use defined_term::{DefinedTerm, DefinedTermResolver, DefinitionType};
 pub use obligation::{
     ConditionRef, ObligationPhrase, ObligationPhraseResolver, ObligationType, ObligorReference,
 };
+pub use modal_negation::*;
+pub use polarity::*;
 pub use precedence::{
     ConflictResolution, PrecedenceDetector, PrecedenceResolver, PrecedenceRule, ResolutionBasis,
     SectionClassifier, resolve_in_document,
@@ -136,7 +140,10 @@ pub use semantic_roles::{
     ArgumentRole, CanonicalModal, EnhancedNormalizedObligation, EnhancedObligationNormalizer,
     EquivalenceResult, FrameArgument, ObligationFrame, SemanticRoleLabeler,
 };
-pub use pronoun::{AntecedentCandidate, PronounReference, PronounResolver, PronounType};
+pub use pronoun::{
+    AntecedentCandidate, CataphoraCandidate, CataphoraDirection, DocumentPronounReference,
+    DocumentPronounResolver, PronounReference, PronounResolver, PronounType,
+};
 pub use pronoun_chain::{ChainMention, MentionType, PronounChain, PronounChainResolver};
 // Note: Scored and ScoreSource are now re-exported from layered_nlp_document at the top
 pub use term_reference::{TermReference, TermReferenceResolver};

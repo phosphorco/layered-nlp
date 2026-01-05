@@ -54,6 +54,10 @@ pub enum ClauseRole {
     /// Self-referential link for standalone clauses with obligations
     /// Used when a clause has an obligation_type but no relationships to other clauses
     Self_,
+    /// Relative clause modifying a head noun
+    /// E.g., in "the tenant who fails to pay", the relative clause
+    /// "who fails to pay" has role Relative pointing to head noun "tenant"
+    Relative,
 }
 
 /// M6: PP/Relative clause attachment relations
