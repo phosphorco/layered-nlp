@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contract Analyzer</title>
+    <link rel="stylesheet" href="shared-styles.css">
     <style>
         * {
             box-sizing: border-box;
@@ -13,16 +14,16 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 2rem;
-            background: #fafafa;
-            color: #333;
+            background: var(--bg-page);
+            color: var(--text-primary);
             line-height: 1.5;
         }
         h1 {
             margin-bottom: 0.5rem;
-            color: #1a1a1a;
+            color: var(--text-primary);
         }
         .subtitle {
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 2rem;
         }
         .input-section {
@@ -34,14 +35,14 @@
             padding: 1rem;
             font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
             font-size: 14px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-default);
             border-radius: 6px;
             resize: vertical;
         }
         textarea:focus {
             outline: none;
-            border-color: #0969da;
-            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-alpha-10);
         }
         .button-row {
             margin-top: 1rem;
@@ -58,19 +59,19 @@
             transition: background 0.15s;
         }
         button.primary {
-            background: #0969da;
+            background: var(--primary);
             color: white;
         }
         button.primary:hover {
-            background: #0860c7;
+            background: var(--primary-dark);
         }
         button.secondary {
-            background: #f3f4f6;
-            color: #374151;
-            border: 1px solid #d1d5db;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-default);
         }
         button.secondary:hover {
-            background: #e5e7eb;
+            background: var(--bg-hover);
         }
         button:disabled {
             opacity: 0.6;
@@ -80,16 +81,17 @@
             margin-top: 2rem;
         }
         .text-display {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            border-left: 4px solid var(--primary);
+            border-radius: 0 6px 6px 0;
             padding: 1rem;
             margin-bottom: 1.5rem;
         }
         .text-display h3 {
             margin: 0 0 0.5rem 0;
             font-size: 14px;
-            color: #666;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
@@ -100,9 +102,10 @@
             word-break: break-word;
         }
         .tracks-display {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            border-left: 4px solid var(--primary);
+            border-radius: 0 6px 6px 0;
             padding: 1rem;
             margin-bottom: 1.5rem;
             overflow-x: auto;
@@ -110,7 +113,7 @@
         .tracks-display h3 {
             margin: 0 0 0.5rem 0;
             font-size: 14px;
-            color: #666;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
@@ -121,30 +124,30 @@
             line-height: 1.4;
         }
         .track-line {
-            color: #0969da;
+            color: var(--primary);
         }
         .track-label {
-            color: #6e40c9;
+            color: var(--accent-purple);
             font-weight: 500;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            background: white;
+            background: var(--bg-card);
             border-radius: 6px;
             overflow: hidden;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-default);
         }
         th, td {
             padding: 0.75rem 1rem;
             text-align: left;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border-subtle);
         }
         th {
-            background: #f9fafb;
+            background: var(--bg-secondary);
             font-weight: 600;
             font-size: 13px;
-            color: #666;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
@@ -155,7 +158,7 @@
             border-bottom: none;
         }
         tr:hover td {
-            background: #f9fafb;
+            background: var(--bg-hover);
         }
         .kind-badge {
             display: inline-block;
@@ -164,22 +167,30 @@
             font-size: 12px;
             font-weight: 500;
         }
-        .kind-badge.ContractKeyword { background: #fef3c7; color: #92400e; }
-        .kind-badge.DefinedTerm { background: #dbeafe; color: #1e40af; }
-        .kind-badge.TermReference { background: #e0e7ff; color: #3730a3; }
-        .kind-badge.PronounReference { background: #ede9fe; color: #5b21b6; }
-        .kind-badge.ObligationPhrase { background: #dcfce7; color: #166534; }
-        .kind-badge.PronounChain { background: #fce7f3; color: #9d174d; }
-        .kind-badge.ContractClause { background: #cffafe; color: #0e7490; }
-        .kind-badge.ClauseAggregate { background: #f3e8ff; color: #7c3aed; }
-        .kind-badge.ObligationNode { background: #fee2e2; color: #991b1b; }
-        .kind-badge.DeicticReference { background: #ccfbf1; color: #0f766e; }
+        .kind-badge.ContractKeyword { background: var(--keyword-bg); color: var(--keyword-text); }
+        .kind-badge.DefinedTerm { background: var(--defined-term-bg); color: var(--defined-term-text); }
+        .kind-badge.TermReference { background: var(--term-ref-bg); color: var(--term-ref-text); }
+        .kind-badge.PronounReference { background: var(--pronoun-bg); color: var(--pronoun-text); }
+        .kind-badge.ObligationPhrase { background: var(--obligation-bg); color: var(--obligation-text); }
+        .kind-badge.PronounChain { background: var(--chain-bg); color: var(--chain-text); }
+        .kind-badge.ContractClause { background: var(--clause-bg); color: var(--clause-text); }
+        .kind-badge.ClauseAggregate { background: var(--aggregate-bg); color: var(--aggregate-text); }
+        .kind-badge.ObligationNode { background: var(--node-bg); color: var(--node-text); }
+        .kind-badge.DeicticReference { background: var(--deixis-bg); color: var(--deixis-text); }
         .layer-filters {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--bg-card);
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
             align-items: center;
             font-size: 13px;
+            padding: 1rem;
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            margin-bottom: 1rem;
         }
         .layer-filters label {
             display: flex;
@@ -190,27 +201,27 @@
         .snippet {
             font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
             font-size: 13px;
-            background: #f3f4f6;
+            background: var(--bg-secondary);
             padding: 0.2rem 0.4rem;
             border-radius: 3px;
         }
         .offsets {
-            color: #666;
+            color: var(--text-secondary);
             font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
             font-size: 12px;
         }
         .metadata {
             font-size: 12px;
-            color: #666;
+            color: var(--text-secondary);
         }
         .test-section {
             margin-top: 2rem;
             padding-top: 2rem;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid var(--border-default);
         }
         .test-log {
-            background: #1a1a1a;
-            color: #e5e5e5;
+            background: var(--code-bg);
+            color: var(--code-text);
             padding: 1rem;
             border-radius: 6px;
             font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
@@ -220,31 +231,31 @@
             white-space: pre-wrap;
         }
         .test-pass {
-            color: #22c55e;
+            color: var(--success);
         }
         .test-fail {
-            color: #ef4444;
+            color: var(--error);
         }
         .test-info {
-            color: #60a5fa;
+            color: var(--info);
         }
         .empty-state {
-            color: #666;
+            color: var(--text-secondary);
             font-style: italic;
             padding: 2rem;
             text-align: center;
         }
         .error-message {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #dc2626;
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
+            color: var(--error);
             padding: 1rem;
             border-radius: 6px;
             margin-bottom: 1rem;
         }
         .version-info {
             font-size: 12px;
-            color: #999;
+            color: var(--text-tertiary);
             margin-top: 0.5rem;
         }
     </style>
@@ -269,8 +280,8 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             <button id="analyze-btn" class="primary">Analyze</button>
             <button id="clear-btn" class="secondary">Clear</button>
         </div>
-        <div class="layer-filters" id="layer-filters" style="display: none; margin-top: 1rem;">
-            <strong style="font-size: 13px; color: #666;">Show layers:</strong>
+        <div class="layer-filters" id="layer-filters" style="display: none;">
+            <strong style="font-size: 13px; color: var(--text-secondary);">Show layers:</strong>
             <label><input type="checkbox" data-kind="ContractKeyword" checked> Keywords</label>
             <label><input type="checkbox" data-kind="DefinedTerm" checked> Defined Terms</label>
             <label><input type="checkbox" data-kind="TermReference" checked> Term Refs</label>
@@ -281,6 +292,7 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             <label><input type="checkbox" data-kind="ClauseAggregate" checked> Aggregates</label>
             <label><input type="checkbox" data-kind="ObligationNode" checked> Nodes</label>
             <label><input type="checkbox" data-kind="DeicticReference" checked> Deixis</label>
+            <span style="margin-left: auto; font-size: 12px; color: var(--text-tertiary);">Keyboard: Ctrl/Cmd+Enter to analyze</span>
         </div>
     </div>
 

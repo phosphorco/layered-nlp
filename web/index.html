@@ -4,58 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>layered-nlp Demos</title>
+    <link rel="stylesheet" href="shared-styles.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             max-width: 800px;
             margin: 50px auto;
-            padding: 20px;
-            background: #f5f5f5;
+            padding: var(--space-xl);
+            background: var(--bg-page);
         }
         h1 {
-            color: #333;
-            border-bottom: 2px solid #007acc;
-            padding-bottom: 10px;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: var(--space-md);
+            font-size: 32px;
+            font-weight: 600;
         }
         .demo-list {
             list-style: none;
             padding: 0;
         }
         .demo-list li {
-            background: white;
-            margin: 10px 0;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: var(--bg-card);
+            margin: var(--space-lg) 0;
+            padding: var(--space-xl);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-default);
+            transition: all 0.15s ease;
+        }
+        .demo-list li:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
         }
         .demo-list a {
-            font-size: 1.2em;
-            color: #007acc;
+            font-size: 18px;
+            color: var(--primary);
             text-decoration: none;
             font-weight: 500;
         }
         .demo-list a:hover {
+            color: var(--primary-hover);
             text-decoration: underline;
         }
         .demo-list p {
-            margin: 8px 0 0 0;
-            color: #666;
+            margin: var(--space-sm) 0 0 0;
+            color: var(--text-secondary);
+            line-height: 1.6;
         }
         .demo-list .featured {
-            border: 2px solid #007acc;
-            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+            border-left: 4px solid var(--primary);
+            background: var(--bg-card);
         }
         .demo-list .featured-badge {
             display: inline-block;
-            background: #007acc;
+            background: var(--primary);
             color: white;
-            font-size: 0.7em;
+            font-size: 11px;
             padding: 2px 8px;
-            border-radius: 4px;
-            margin-left: 10px;
+            border-radius: 12px;
+            margin-left: var(--space-md);
             vertical-align: middle;
             text-transform: uppercase;
             font-weight: 600;
+            letter-spacing: 0.025em;
         }
     </style>
 </head>

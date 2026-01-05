@@ -292,7 +292,11 @@
             padding: 0;
             margin-bottom: 1.5rem;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            overflow: hidden;
+            overflow-x: hidden; /* Preserve border-radius clipping horizontally */
+            flex: 1;
+            min-height: 0; /* Allow flex children to shrink */
+            display: flex;
+            flex-direction: column;
         }
 
         .tab-buttons {
@@ -300,6 +304,7 @@
             border-bottom: 1px solid var(--border-default);
             background: var(--bg-page);
             overflow-x: auto;
+            flex-shrink: 0; /* Prevent header from shrinking */
         }
 
         .tab-button {
@@ -329,6 +334,9 @@
         .tab-content {
             display: none;
             padding: 1.5rem;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0; /* Allow content to scroll within flex container */
         }
 
         .tab-content.active {

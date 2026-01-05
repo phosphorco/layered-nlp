@@ -1,0 +1,885 @@
+/**
+ * Layered NLP Demo Design System
+ *
+ * Shared CSS design system for all layered-nlp web demonstrations.
+ * Provides consistent typography, colors, spacing, and component patterns
+ * across contract intelligence, legal analysis, and other NLP demo interfaces.
+ *
+ * Used by:
+ * - contract-viewer.html - Original contract analysis demo
+ * - contract-viewer-v2.html - Enhanced contract viewer
+ * - contract-diff.html - Semantic contract diff viewer
+ * - index.html - Demo index/landing page
+ *
+ * Design principles:
+ * - TUI-inspired 4px left accent borders for visual hierarchy
+ * - Semantic color coding for span types and risk levels
+ * - Georgia serif for contract text readability
+ * - System font stacks for optimal cross-platform rendering
+ * - Mobile-first responsive patterns
+ *
+ * Usage:
+ * 1. Import in <head>: <link rel="stylesheet" href="shared-styles.css">
+ * 2. Use CSS variables (--primary, --risk-critical, etc.) for colors
+ * 3. Apply .tui-accent or .tui-card classes for TUI-style borders
+ * 4. Use .text-serif for contract text, .text-mono for metadata
+ * 5. Apply .span-* classes for NLP annotation highlighting
+ */
+
+/* ============================================================================
+   CSS Variables
+   ============================================================================ */
+
+:root {
+  /* Primary colors */
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --primary-light: #dbeafe;
+
+  /* Text colors - slate scale */
+  --text-primary: #0f172a;
+  --text-body: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #475569;
+  --text-muted: #475569;
+  --text-light: #94a3b8;
+
+  /* Background colors */
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-hover: #f1f5f9;
+  --bg-active: #e2e8f0;
+  --bg-accent: #f1f5f9;
+  --bg-highlight: #eff6ff;
+  --bg-highlight-strong: #dbeafe;
+
+  /* Border colors */
+  --border-default: #e2e8f0;
+  --border-subtle: #cbd5e1;
+  --border-strong: #94a3b8;
+
+  /* Risk levels - semantic color system */
+  --risk-critical: #dc2626;
+  --risk-critical-bg: #fee2e2;
+  --risk-critical-light: #fef2f2;
+
+  --risk-high: #ea580c;
+  --risk-high-bg: #ffedd5;
+  --risk-high-light: #fff7ed;
+
+  --risk-medium: #ca8a04;
+  --risk-medium-bg: #fef3c7;
+  --risk-medium-light: #fefce8;
+
+  --risk-low: #16a34a;
+  --risk-low-bg: #dcfce7;
+  --risk-low-light: #f0fdf4;
+
+  /* Risk shorthand aliases (for convenience) */
+  --bg-critical: #fee2e2;
+  --bg-high: #ffedd5;
+  --bg-medium: #fef3c7;
+  --bg-low: #dcfce7;
+
+  /* Warning/Error states */
+  --bg-warning: #fef3c7;
+  --border-warning: #f59e0b;
+  --text-warning: #92400e;
+  --bg-error: #fee2e2;
+  --border-error: #ef4444;
+
+  /* Span type colors - 11 semantic categories for NLP annotation */
+
+  /* Defined terms - amber (legal definitions) */
+  --defined-term-bg: #fef3c7;
+  --defined-term-border: #f59e0b;
+  --defined-term-text: #92400e;
+
+  /* Term references - amber (references to defined terms) */
+  --term-ref-bg: #fef3c7;
+  --term-ref-border: #f59e0b;
+  --term-ref-text: #92400e;
+
+  /* Obligations - blue (must/shall/required) */
+  --obligation-bg: #dbeafe;
+  --obligation-border: #3b82f6;
+  --obligation-text: #1e40af;
+
+  /* Prohibitions - red (must not/shall not/forbidden) */
+  --prohibition-bg: #fee2e2;
+  --prohibition-border: #ef4444;
+  --prohibition-text: #991b1b;
+
+  /* Permissions - green (may/can/allowed) */
+  --permission-bg: #d1fae5;
+  --permission-border: #10b981;
+  --permission-text: #065f46;
+
+  /* Clauses - purple (structural legal units) */
+  --clause-bg: #f3e8ff;
+  --clause-border: #8b5cf6;
+  --clause-text: #6b21a8;
+
+  /* Scope operators - red-orange (except/unless/notwithstanding) */
+  --scope-operator-bg: #fef2f2;
+  --scope-operator-border: #dc2626;
+  --scope-operator-text: #7f1d1d;
+
+  /* Quantifiers - indigo (all/any/each) */
+  --quantifier-bg: #dbeafe;
+  --quantifier-border: #2563eb;
+  --quantifier-text: #1e3a8a;
+
+  /* Precedence - orange (notwithstanding/subject to) */
+  --precedence-bg: #fef3c7;
+  --precedence-border: #d97706;
+  --precedence-text: #78350f;
+
+  /* Conflicts - orange-red (contradictions detected) */
+  --conflict-bg: #fed7aa;
+  --conflict-border: #f97316;
+  --conflict-text: #7c2d12;
+
+  /* Semantic frames - violet (higher-level meaning structures) */
+  --semantic-frame-bg: #f3e8ff;
+  --semantic-frame-border: #9333ea;
+  --semantic-frame-text: #581c87;
+
+  /* Overlay */
+  --overlay-bg: rgba(31, 41, 55, 0.5);
+  --overlay-light: rgba(248, 250, 252, 0.95);
+
+  /* Layout dimensions */
+  --sidebar-width: 220px;
+  --status-bar-height: 44px;
+  --header-height: 60px;
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+  /* TUI accent border width */
+  --accent-border-width: 4px;
+
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+}
+
+/* ============================================================================
+   Typography
+   ============================================================================ */
+
+/* Serif font - optimized for contract/legal text reading */
+.text-serif,
+.legal-text,
+.contract-text {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-body);
+}
+
+/* Monospace font - for code, metadata, technical content */
+.text-mono,
+.code-text {
+  font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Monaco, "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Label text - uppercase section headers and metadata labels */
+.text-label {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+/* Text color utilities */
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-body {
+  color: var(--text-body);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-light {
+  color: var(--text-light);
+}
+
+/* Font size utilities */
+.text-xs {
+  font-size: 11px;
+}
+
+.text-sm {
+  font-size: 13px;
+}
+
+.text-base {
+  font-size: 14px;
+}
+
+.text-lg {
+  font-size: 16px;
+}
+
+.text-xl {
+  font-size: 18px;
+}
+
+/* Font weight utilities */
+.font-normal {
+  font-weight: 400;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+/* ============================================================================
+   Layout Utilities
+   ============================================================================ */
+
+/* Sticky top positioning - for headers and status bars */
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-card);
+}
+
+/* Sidebar - fixed width navigation column */
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-default);
+  background: var(--bg-card);
+}
+
+/* Status bar - sticky footer with metadata/controls */
+.status-bar {
+  position: sticky;
+  bottom: 0;
+  height: var(--status-bar-height);
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-lg);
+  z-index: 10;
+}
+
+/* Grid layout: sidebar + main content */
+.grid-sidebar-content {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  min-height: 100vh;
+}
+
+/* Container utilities */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+.container-narrow {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+/* Flexbox utilities */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-sm {
+  gap: var(--space-sm);
+}
+
+.gap-md {
+  gap: var(--space-md);
+}
+
+.gap-lg {
+  gap: var(--space-lg);
+}
+
+/* ============================================================================
+   Border Utilities (TUI Pattern)
+   ============================================================================ */
+
+/* TUI accent border - 4px solid left border for visual hierarchy */
+.tui-accent {
+  border-left: var(--accent-border-width) solid var(--primary);
+  padding-left: var(--space-md);
+}
+
+/* Risk-level TUI accent variants */
+.tui-accent-critical {
+  border-left: var(--accent-border-width) solid var(--risk-critical);
+  padding-left: var(--space-md);
+}
+
+.tui-accent-high {
+  border-left: var(--accent-border-width) solid var(--risk-high);
+  padding-left: var(--space-md);
+}
+
+.tui-accent-medium {
+  border-left: var(--accent-border-width) solid var(--risk-medium);
+  padding-left: var(--space-md);
+}
+
+.tui-accent-low {
+  border-left: var(--accent-border-width) solid var(--risk-low);
+  padding-left: var(--space-md);
+}
+
+/* TUI card - combined pattern: no borders except 4px left accent, rounded right corners */
+.tui-card {
+  border: none;
+  border-left: var(--accent-border-width) solid var(--primary);
+  border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+  background: var(--bg-card);
+  padding: var(--space-lg);
+}
+
+.tui-card-critical {
+  border-left-color: var(--risk-critical);
+}
+
+.tui-card-high {
+  border-left-color: var(--risk-high);
+}
+
+.tui-card-medium {
+  border-left-color: var(--risk-medium);
+}
+
+.tui-card-low {
+  border-left-color: var(--risk-low);
+}
+
+/* ============================================================================
+   Risk Level Utilities
+   ============================================================================ */
+
+/* Risk level backgrounds with appropriate text colors */
+.risk-critical {
+  background-color: var(--risk-critical-bg);
+  color: var(--risk-critical);
+}
+
+.risk-high {
+  background-color: var(--risk-high-bg);
+  color: var(--risk-high);
+}
+
+.risk-medium {
+  background-color: var(--risk-medium-bg);
+  color: var(--risk-medium);
+}
+
+.risk-low {
+  background-color: var(--risk-low-bg);
+  color: var(--risk-low);
+}
+
+/* Risk badges - small pill-shaped indicators */
+.risk-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.risk-badge.critical {
+  background-color: var(--risk-critical-bg);
+  color: var(--risk-critical);
+}
+
+.risk-badge.high {
+  background-color: var(--risk-high-bg);
+  color: var(--risk-high);
+}
+
+.risk-badge.medium {
+  background-color: var(--risk-medium-bg);
+  color: var(--risk-medium);
+}
+
+.risk-badge.low {
+  background-color: var(--risk-low-bg);
+  color: var(--risk-low);
+}
+
+/* ============================================================================
+   Span Type Utilities (NLP Annotations)
+   ============================================================================ */
+
+/* Base span styling - inline annotation with subtle background and border */
+.span-annotation {
+  padding: 1px 3px;
+  border-radius: 2px;
+  border-bottom: 2px solid;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.span-annotation:hover {
+  filter: brightness(0.95);
+}
+
+/* Defined term spans */
+.span-defined-term {
+  background-color: var(--defined-term-bg);
+  border-bottom-color: var(--defined-term-border);
+  color: var(--defined-term-text);
+}
+
+/* Term reference spans */
+.span-term-ref {
+  background-color: var(--term-ref-bg);
+  border-bottom-color: var(--term-ref-border);
+  color: var(--term-ref-text);
+}
+
+/* Obligation spans */
+.span-obligation {
+  background-color: var(--obligation-bg);
+  border-bottom-color: var(--obligation-border);
+  color: var(--obligation-text);
+}
+
+/* Prohibition spans */
+.span-prohibition {
+  background-color: var(--prohibition-bg);
+  border-bottom-color: var(--prohibition-border);
+  color: var(--prohibition-text);
+}
+
+/* Permission spans */
+.span-permission {
+  background-color: var(--permission-bg);
+  border-bottom-color: var(--permission-border);
+  color: var(--permission-text);
+}
+
+/* Clause spans */
+.span-clause {
+  background-color: var(--clause-bg);
+  border-bottom-color: var(--clause-border);
+  color: var(--clause-text);
+}
+
+/* Scope operator spans */
+.span-scope-operator {
+  background-color: var(--scope-operator-bg);
+  border-bottom-color: var(--scope-operator-border);
+  color: var(--scope-operator-text);
+}
+
+/* Quantifier spans */
+.span-quantifier {
+  background-color: var(--quantifier-bg);
+  border-bottom-color: var(--quantifier-border);
+  color: var(--quantifier-text);
+}
+
+/* Precedence spans */
+.span-precedence {
+  background-color: var(--precedence-bg);
+  border-bottom-color: var(--precedence-border);
+  color: var(--precedence-text);
+}
+
+/* Conflict spans */
+.span-conflict {
+  background-color: var(--conflict-bg);
+  border-bottom-color: var(--conflict-border);
+  color: var(--conflict-text);
+}
+
+/* Semantic frame spans */
+.span-semantic-frame {
+  background-color: var(--semantic-frame-bg);
+  border-bottom-color: var(--semantic-frame-border);
+  color: var(--semantic-frame-text);
+}
+
+/* ============================================================================
+   Common Components
+   ============================================================================ */
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  outline: none;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--bg-hover);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+}
+
+.btn-secondary:hover {
+  background-color: var(--border-default);
+}
+
+.btn-sm {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.btn-lg {
+  padding: 12px 24px;
+  font-size: 15px;
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+
+.card-header {
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.card-footer {
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: var(--bg-accent);
+  color: var(--text-secondary);
+}
+
+.badge-primary {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+/* Lists */
+.list-unstyled {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.list-item {
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+/* Dividers */
+.divider {
+  height: 1px;
+  background-color: var(--border-default);
+  margin: var(--space-lg) 0;
+}
+
+.divider-vertical {
+  width: 1px;
+  background-color: var(--border-default);
+  margin: 0 var(--space-lg);
+}
+
+/* Overlays */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--overlay-bg);
+  z-index: 50;
+}
+
+/* Panel headers - uppercase section titles */
+.panel-header {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-default);
+}
+
+/* ============================================================================
+   Loading & Error States
+   ============================================================================ */
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
+.loading::after {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-left: 0.75rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-message {
+  background: var(--bg-error);
+  border: none;
+  border-left: 4px solid var(--risk-critical);
+  color: var(--risk-critical);
+  padding: 1rem;
+  border-radius: 0 4px 4px 0;
+}
+
+/* ============================================================================
+   Spacing Utilities
+   ============================================================================ */
+
+.p-0 { padding: 0; }
+.p-xs { padding: var(--space-xs); }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+.p-xl { padding: var(--space-xl); }
+
+.m-0 { margin: 0; }
+.m-xs { margin: var(--space-xs); }
+.m-sm { margin: var(--space-sm); }
+.m-md { margin: var(--space-md); }
+.m-lg { margin: var(--space-lg); }
+.m-xl { margin: var(--space-xl); }
+
+.mt-0 { margin-top: 0; }
+.mt-sm { margin-top: var(--space-sm); }
+.mt-md { margin-top: var(--space-md); }
+.mt-lg { margin-top: var(--space-lg); }
+.mt-xl { margin-top: var(--space-xl); }
+
+.mb-0 { margin-bottom: 0; }
+.mb-sm { margin-bottom: var(--space-sm); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+.mb-xl { margin-bottom: var(--space-xl); }
+
+/* ============================================================================
+   Responsive Breakpoints
+   ============================================================================ */
+
+/* Tablet and below */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 200px;
+  }
+
+  .grid-sidebar-content {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    transition: left 0.3s ease;
+    z-index: 100;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .container {
+    padding: 0 var(--space-md);
+  }
+
+  .text-serif {
+    font-size: 14px;
+  }
+
+  .tui-accent,
+  .tui-accent-critical,
+  .tui-accent-high,
+  .tui-accent-medium,
+  .tui-accent-low {
+    padding-left: var(--space-sm);
+  }
+
+  .tui-card {
+    padding: var(--space-md);
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  :root {
+    --space-lg: 12px;
+    --space-xl: 20px;
+  }
+
+  .container {
+    padding: 0 var(--space-sm);
+  }
+
+  .status-bar {
+    padding: 0 var(--space-md);
+    font-size: 12px;
+  }
+
+  .card {
+    padding: var(--space-md);
+  }
+
+  .btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .text-serif {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+}
+
+/* ============================================================================
+   Utility Classes
+   ============================================================================ */
+
+.hidden {
+  display: none;
+}
+
+.invisible {
+  visibility: hidden;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.select-none {
+  user-select: none;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.h-full {
+  height: 100%;
+}

@@ -4,33 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contract Analyzer v2</title>
+    <link rel="stylesheet" href="shared-styles.css">
     <style>
+        /* Additional span types not in shared-styles.css */
         :root {
-            /* Span type colors */
-            --defined-term-bg: #fef3c7;
-            --defined-term-border: #f59e0b;
-            --defined-term-text: #92400e;
-
-            --term-ref-bg: #fef3c7;
-            --term-ref-border: #f59e0b;
-            --term-ref-text: #92400e;
-
-            --obligation-bg: #dbeafe;
-            --obligation-border: #3b82f6;
-            --obligation-text: #1e40af;
-
-            --prohibition-bg: #fee2e2;
-            --prohibition-border: #ef4444;
-            --prohibition-text: #991b1b;
-
-            --permission-bg: #d1fae5;
-            --permission-border: #10b981;
-            --permission-text: #065f46;
-
-            --clause-bg: #f3e8ff;
-            --clause-border: #8b5cf6;
-            --clause-text: #6b21a8;
-
             --pronoun-bg: #e0e7ff;
             --pronoun-border: #6366f1;
             --pronoun-text: #3730a3;
@@ -39,13 +16,13 @@
             --deictic-border: #14b8a6;
             --deictic-text: #0f766e;
 
-            --keyword-bg: #fef3c7;
-            --keyword-border: #f59e0b;
-            --keyword-text: #92400e;
-
             --chain-bg: #fce7f3;
             --chain-border: #ec4899;
             --chain-text: #9d174d;
+
+            --keyword-bg: #fef3c7;
+            --keyword-border: #f59e0b;
+            --keyword-text: #92400e;
         }
 
         * { box-sizing: border-box; }
@@ -401,7 +378,7 @@
             background: #f8fafc;
             border-radius: 8px;
             margin-bottom: 1rem;
-            border-left: 3px solid #3b82f6;
+            border-left: 4px solid #3b82f6;
         }
 
         .no-spans-message {
@@ -776,7 +753,15 @@
 </head>
 <body>
     <h1>Contract Analyzer</h1>
-    <p class="subtitle">Interactive contract analysis with layered-nlp</p>
+    <p class="subtitle">Interactive contract analysis with layered-nlp • Press j/k to navigate spans</p>
+
+    <div id="status-bar" class="status-bar" style="display: none; margin-bottom: 1.5rem; justify-content: flex-start; gap: 1.5rem; font-size: 13px;">
+        <span style="color: #64748b;">Total Spans: <strong id="total-spans">0</strong></span>
+        <span style="color: #f59e0b;">Terms: <strong id="term-count">0</strong></span>
+        <span style="color: #3b82f6;">Obligations: <strong id="obligation-count">0</strong></span>
+        <span style="color: #6366f1;">Pronouns: <strong id="pronoun-count">0</strong></span>
+        <span style="color: #8b5cf6;">Clauses: <strong id="clause-count">0</strong></span>
+    </div>
 
     <div class="input-section">
         <textarea id="contract-input">SERVICES AGREEMENT
@@ -1739,6 +1724,23 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             }
         }
 
+        // Update status bar with span counts
+        function updateStatusBar(spans) {
+            const counts = {
+                total: spans.length,
+                terms: spans.filter(s => s.kind === 'DefinedTerm' || s.kind === 'TermReference').length,
+                obligations: spans.filter(s => s.kind === 'ObligationPhrase').length,
+                pronouns: spans.filter(s => s.kind === 'PronounReference' || s.kind === 'PronounChain').length,
+                clauses: spans.filter(s => s.kind === 'ContractClause').length
+            };
+
+            document.getElementById('total-spans').textContent = counts.total;
+            document.getElementById('term-count').textContent = counts.terms;
+            document.getElementById('obligation-count').textContent = counts.obligations;
+            document.getElementById('pronoun-count').textContent = counts.pronouns;
+            document.getElementById('clause-count').textContent = counts.clauses;
+        }
+
         // Main analyze function
         async function handleAnalyze() {
             clearError();
@@ -1772,7 +1774,11 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
 
                 analysisResult = result;
 
+                // Update status bar with span counts
+                updateStatusBar(result.spans);
+
                 // Show UI
+                document.getElementById('status-bar').style.display = 'flex';
                 document.getElementById('filter-bar').classList.add('visible');
                 document.getElementById('main-content').classList.add('visible');
 
@@ -1825,6 +1831,7 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
 
         function handleClear() {
             document.getElementById('contract-input').value = '';
+            document.getElementById('status-bar').style.display = 'none';
             document.getElementById('filter-bar').classList.remove('visible');
             document.getElementById('main-content').classList.remove('visible');
             analysisResult = null;
