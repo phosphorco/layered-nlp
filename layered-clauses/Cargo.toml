@@ -28,6 +28,8 @@ keywords = ["layered-nlp", "nlp", "tokens", "grammar", "wasm"]
 [dependencies]
 layered-nlp = { path = "..", version = "0.1", default-features = false }
 layered-nlp-document = { path = "../layered-nlp-document", version = "0.1" }
+layered-contracts = { path = "../layered-contracts", version = "0.1" }
+serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
 insta = "1.7"
