@@ -91,8 +91,11 @@ fn get_span_links_internal(text: &str) -> SpanLinkResult {
         // Run clause keyword resolver to detect clause boundaries
         .run_resolver(&ClauseKeywordResolver::new(
             &["if", "when", "where", "whereas", "although"],  // condition_start
-            &["and", "or", "but"],                             // coordination
-            &["then", "therefore", "thus", "accordingly"],     // then/effect
+            &["and"],                                          // and
+            &["then", "therefore", "thus", "accordingly"],    // then/effect
+            &["or"],                                          // or
+            &["but"],                                         // but
+            &["nor"],                                         // nor
         ))
         // Run clause resolver to identify clause boundaries
         .run_resolver(&ClauseResolver::default());
@@ -109,6 +112,10 @@ fn get_span_links_internal(text: &str) -> SpanLinkResult {
                 ClauseRole::Child => "Child",
                 ClauseRole::Conjunct => "Conjunct",
                 ClauseRole::Exception => "Exception",
+                ClauseRole::ListItem => "ListItem",
+                ClauseRole::ListContainer => "ListContainer",
+                ClauseRole::CrossReference => "CrossRef",
+                ClauseRole::Self_ => "Self",
             };
 
             WasmSpanLink {
