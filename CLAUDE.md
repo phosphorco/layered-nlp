@@ -267,3 +267,23 @@ cd layered-nlp-demo-wasm && wasm-pack build --target web --out-dir ../web/pkg
 cd ../web && python3 -m http.server 8080
 # Open http://localhost:8080/contract-viewer.html
 ```
+
+### Web Demo Design System
+
+All web demos share a common design system defined in `web/shared-styles.css`. This provides:
+
+- **CSS variables** for colors, spacing, typography (`--primary`, `--risk-critical`, `--text-serif`)
+- **TUI-style accent borders** - 4px left borders for visual hierarchy (`.tui-accent`, `.tui-card`)
+- **Typography classes** - Georgia serif for contracts (`.text-serif`), monospace for metadata (`.text-mono`)
+- **Risk level colors** - Semantic colors for critical/high/medium/low risk (`.risk-critical`, etc.)
+- **Span annotation styles** - 11 semantic categories for NLP highlighting (`.span-obligation`, `.span-defined-term`, etc.)
+
+**Adding a new demo:**
+
+1. Import shared-styles.css: `<link rel="stylesheet" href="shared-styles.css">`
+2. Use `.text-serif` for contract text display
+3. Apply `.tui-card` or `.tui-accent-{risk-level}` for cards/panels
+4. Use `.span-{type}` classes for NLP span highlighting
+5. Reference CSS variables for consistent colors: `color: var(--risk-high)`
+
+All demos (contract-viewer.html, contract-diff.html, etc.) follow this pattern for visual consistency.
