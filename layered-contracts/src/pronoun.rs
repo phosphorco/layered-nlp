@@ -291,11 +291,15 @@ impl PronounResolver {
     /// Estimate token distance between two selections.
     /// Since we can't access internal indices, we count tokens between them.
     fn estimate_token_distance(&self, earlier: &LLSelection, later: &LLSelection) -> usize {
+        const MAX_ITERATIONS: usize = 1000;
         let mut distance = 0;
         let mut current = earlier.clone();
 
         while let Some((next_sel, _)) = current.match_first_forwards(&x::token_text()) {
             distance += 1;
+            if distance > MAX_ITERATIONS {
+                return distance; // Prevent runaway
+            }
             if next_sel == *later {
                 return distance;
             }
@@ -526,24 +530,19 @@ impl CataphoraCandidate {
         }
     }
 
-    /// Set this candidate as a defined term
+    /// Set this candidate as a defined term.
+    /// Note: This is a flag-setter only. Confidence adjustments are applied
+    /// centrally in `DocumentPronounResolver::score_candidate()`.
     pub fn with_defined_term(mut self, is_defined: bool) -> Self {
         self.is_defined_term = is_defined;
-        if is_defined {
-            self.confidence += 0.25;
-            self.confidence = self.confidence.min(1.0);
-        }
         self
     }
 
-    /// Set the salience score
+    /// Set the salience score.
+    /// Note: This is a flag-setter only. Confidence adjustments are applied
+    /// centrally in `DocumentPronounResolver::score_candidate()`.
     pub fn with_salience(mut self, salience: f64) -> Self {
         self.salience = salience.clamp(0.0, 1.0);
-        // High salience boosts confidence
-        if salience > 0.7 {
-            self.confidence += 0.1;
-            self.confidence = self.confidence.min(1.0);
-        }
         self
     }
 
@@ -777,22 +776,38 @@ mod cataphora_tests {
 
     #[test]
     fn test_cataphora_candidate_defined_term_bonus() {
-        let mut candidate = CataphoraCandidate::anaphoric("Tenant", 3);
-        let initial_confidence = candidate.confidence;
-
-        candidate = candidate.with_defined_term(true);
-
+        // Builder method is a flag-setter only
+        let candidate = CataphoraCandidate::anaphoric("Tenant", 3)
+            .with_defined_term(true);
         assert!(candidate.is_defined_term);
-        assert!(candidate.confidence > initial_confidence);
+
+        // Confidence boost is applied by score_candidate()
+        let resolver = DocumentPronounResolver::new();
+        let mut defined = CataphoraCandidate::anaphoric("Tenant", 3).with_defined_term(true);
+        let mut not_defined = CataphoraCandidate::anaphoric("Tenant", 3).with_defined_term(false);
+
+        resolver.score_candidate(&mut defined);
+        resolver.score_candidate(&mut not_defined);
+
+        assert!(defined.confidence > not_defined.confidence);
     }
 
     #[test]
     fn test_cataphora_candidate_salience() {
+        // Builder method is a flag-setter only
         let candidate = CataphoraCandidate::anaphoric("Company", 5)
             .with_salience(0.9);
-
         assert!(candidate.salience > 0.8);
-        // High salience should boost confidence
+
+        // Confidence boost is applied by score_candidate()
+        let resolver = DocumentPronounResolver::new();
+        let mut high_salience = CataphoraCandidate::anaphoric("Company", 5).with_salience(0.9);
+        let mut low_salience = CataphoraCandidate::anaphoric("Company", 5).with_salience(0.3);
+
+        resolver.score_candidate(&mut high_salience);
+        resolver.score_candidate(&mut low_salience);
+
+        assert!(high_salience.confidence > low_salience.confidence);
     }
 
     #[test]

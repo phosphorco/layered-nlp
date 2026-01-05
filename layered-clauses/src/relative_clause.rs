@@ -182,14 +182,37 @@ impl RelativeClauseDetector {
         // If preceded by a noun/determiner and followed by a verb/pronoun, likely relative
         // This is a heuristic - full parsing would give better results
 
+        // Exclusion list: common words ending in noun-like suffixes that are NOT nouns
+        const NON_NOUN_EXCLUSIONS: &[&str] = &[
+            // Words ending in -er/-or that are not nouns
+            "after", "before", "better", "bitter", "clever", "ever", "never", "over",
+            "under", "other", "rather", "whether", "either", "neither", "however",
+            "for", "or", "nor",
+            // Words ending in -ent/-ant that are not nouns
+            "want", "went", "sent", "meant", "spent", "bent",
+            "different", "present", "current", "recent", "frequent",
+            // Words ending in -ion that are verbs/other
+            "question",  // can be noun but also verb context
+        ];
+
         let preceded_by_noun = preceding_token.map_or(false, |t| {
             let lower = t.to_lowercase();
+
+            // Check exclusion list first
+            if NON_NOUN_EXCLUSIONS.contains(&lower.as_str()) {
+                return false;
+            }
+
             // Check for common noun-ending patterns or determiners
             lower.ends_with("er") || lower.ends_with("or") || lower.ends_with("ant")
                 || lower.ends_with("ent") || lower.ends_with("ion")
                 || lower.ends_with("ty") || lower.ends_with("ies")
                 || matches!(lower.as_str(), "party" | "company" | "tenant" | "landlord"
-                    | "buyer" | "seller" | "contract" | "agreement" | "property")
+                    | "buyer" | "seller" | "contract" | "agreement" | "property"
+                    // Contract-specific noun terms
+                    | "licensee" | "licensor" | "mortgagor" | "mortgagee"
+                    | "assignee" | "assignor" | "guarantor" | "beneficiary"
+                    | "trustee" | "agent" | "principal")
         });
 
         let followed_by_verb_like = following_token.map_or(false, |t| {
@@ -387,5 +410,34 @@ mod tests {
 
         // No commas = likely restrictive
         assert!(!RelativeClauseDetector::is_likely_non_restrictive(false, false));
+    }
+
+    #[test]
+    fn test_is_relative_that_excludes_non_nouns() {
+        let detector = RelativeClauseDetector::new();
+
+        // "after that happens" - "after" is NOT a noun, should return false
+        assert!(!detector.is_relative_that(Some("after"), Some("happens")));
+
+        // "before that occurs" - "before" is NOT a noun
+        assert!(!detector.is_relative_that(Some("before"), Some("occurs")));
+
+        // "however that works" - "however" is NOT a noun
+        assert!(!detector.is_relative_that(Some("however"), Some("works")));
+
+        // "for that reason" - "for" is NOT a noun
+        assert!(!detector.is_relative_that(Some("for"), Some("reason")));
+
+        // "the tenant that fails" - "tenant" IS a noun, should return true
+        assert!(detector.is_relative_that(Some("tenant"), Some("fails")));
+
+        // "the buyer that agrees" - "buyer" IS a noun
+        assert!(detector.is_relative_that(Some("buyer"), Some("agrees")));
+
+        // "the licensor that grants" - contract term noun
+        assert!(detector.is_relative_that(Some("licensor"), Some("grants")));
+
+        // "the beneficiary that receives" - contract term noun
+        assert!(detector.is_relative_that(Some("beneficiary"), Some("receives")));
     }
 }

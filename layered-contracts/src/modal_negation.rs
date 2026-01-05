@@ -185,7 +185,7 @@ impl ModalNegationClassifier {
         }
 
         // Standard classification based on modal + polarity
-        match (modal, &polarity_ctx.polarity) {
+        let mut classification = match (modal, &polarity_ctx.polarity) {
             // Positive modals (no negation in scope)
             (ContractKeyword::Shall | ContractKeyword::Must, Polarity::Positive) => {
                 ModalNegationClassification::clear(
@@ -283,7 +283,32 @@ impl ModalNegationClassifier {
                 polarity_ctx.polarity,
                 "Unexpected modal-polarity combination",
             ),
+        };
+
+        // Apply confidence penalties based on polarity context
+        self.apply_confidence_penalties(&mut classification, polarity_ctx);
+
+        classification
+    }
+
+    /// Apply confidence penalties based on polarity context complexity
+    fn apply_confidence_penalties(
+        &self,
+        classification: &mut ModalNegationClassification,
+        polarity_ctx: &PolarityContext,
+    ) {
+        // Apply penalty for ambiguous polarity
+        if polarity_ctx.polarity == Polarity::Ambiguous {
+            classification.confidence -= self.ambiguous_polarity_penalty;
         }
+
+        // Apply penalty for complex negation patterns (double negatives or multiple negations)
+        if polarity_ctx.has_double_negative || polarity_ctx.negation_count > 1 {
+            classification.confidence -= self.complex_negation_penalty;
+        }
+
+        // Clamp confidence to valid range
+        classification.confidence = classification.confidence.clamp(0.0, 1.0);
     }
 
     /// Best-guess obligation type when polarity is unclear
@@ -577,5 +602,44 @@ mod tests {
         assert_eq!(discretion.obligation_type, ModalObligationType::Discretion);
         assert!(discretion.discretion_pattern.is_some());
         assert_eq!(discretion.modal, "Shall");
+    }
+
+    #[test]
+    fn test_complex_negation_penalty_applied() {
+        let classifier = ModalNegationClassifier::new();
+        let span = make_span(0, 0, 0, 5);
+
+        // Create a context with double negative
+        let complex_ctx = PolarityContext {
+            span,
+            polarity: Polarity::Negative,
+            negation_count: 2,
+            negation_spans: vec![span, span],
+            has_double_negative: true,
+            confidence: 0.7,
+            needs_review: false,
+            review_reason: None,
+        };
+
+        let result = classifier.classify(span, &ContractKeyword::Shall, &complex_ctx);
+
+        // Base confidence is 0.95, minus 0.2 complex_negation_penalty = 0.75
+        assert_eq!(result.obligation_type, ModalObligationType::Prohibition);
+        assert!((result.confidence - 0.75).abs() < 0.001, "Expected ~0.75, got {}", result.confidence);
+    }
+
+    #[test]
+    fn test_simple_negation_no_penalty() {
+        let classifier = ModalNegationClassifier::new();
+        let span = make_span(0, 0, 0, 5);
+
+        // Simple single negation - no penalty should apply
+        let simple_ctx = negative_ctx(span);
+
+        let result = classifier.classify(span, &ContractKeyword::Shall, &simple_ctx);
+
+        // Base confidence is 0.95, no penalty applied
+        assert_eq!(result.obligation_type, ModalObligationType::Prohibition);
+        assert!((result.confidence - 0.95).abs() < 0.001, "Expected 0.95, got {}", result.confidence);
     }
 }

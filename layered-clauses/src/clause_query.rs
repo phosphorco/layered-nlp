@@ -648,11 +648,20 @@ impl<'a> ClauseQueryAPI<'a> {
     // PARTICIPANT QUERIES (Gate 4)
     // ========================================================================
 
-    /// Get participants for a clause.
+    /// Get participants for a specific clause span.
     ///
-    /// NOTE: This requires running a ParticipantResolver to populate the
-    /// participant data. Returns an empty ClauseParticipants if no participant
-    /// data is available for this clause span.
+    /// # Status: Stub Implementation
+    ///
+    /// This method currently returns an empty `ClauseParticipants` collection.
+    /// Full functionality requires a `ParticipantResolver` to populate participant
+    /// data in the document. See `clause_participant.rs` for the data types.
+    ///
+    /// # Future Integration
+    ///
+    /// Once `ParticipantResolver` is implemented:
+    /// 1. Run the resolver on the document
+    /// 2. Query participant data from the resolver's output
+    /// 3. Or pass participant data to `ClauseQueryAPI::new()`
     ///
     /// # Example
     /// ```ignore
@@ -664,13 +673,6 @@ impl<'a> ClauseQueryAPI<'a> {
     /// ```
     pub fn participants(&self, clause_span: DocSpan) -> ClauseParticipants {
         // TODO: Integrate with ParticipantResolver output
-        // For now, return empty participants as participant data
-        // would need to be passed in or queried from a separate store.
-        //
-        // Integration approach:
-        // 1. ParticipantResolver produces Vec<(DocSpan, ClauseParticipants)>
-        // 2. Store alongside ClauseLinks or in parallel data structure
-        // 3. Query here using clause_span as key
         ClauseParticipants::new(clause_span)
     }
 
@@ -678,10 +680,21 @@ impl<'a> ClauseQueryAPI<'a> {
     // RELATIVE CLAUSE QUERIES (Gate 5)
     // ========================================================================
 
-    /// Get the relative clause that modifies this noun span (if any).
+    /// Find the relative clause that modifies a given head noun span.
     ///
-    /// Looks for ClauseLinks where the role is Relative and the target
-    /// matches the given span (the head noun being modified).
+    /// # Status: Stub Implementation
+    ///
+    /// This method searches for `ClauseLink` entries with `ClauseRole::Relative`,
+    /// but currently no resolver produces such links. Returns `None` until
+    /// `RelativeClauseLinkResolver` is implemented.
+    ///
+    /// # Future Integration
+    ///
+    /// The `relative_clause.rs` module provides detection logic via
+    /// `RelativeClauseDetector`. A resolver needs to:
+    /// 1. Detect relative clauses using `RelativeClauseDetector`
+    /// 2. Emit `ClauseLink` with `ClauseRole::Relative` and target = head noun span
+    /// 3. Store links in the document for querying here
     ///
     /// # Example
     /// ```ignore
@@ -700,10 +713,17 @@ impl<'a> ClauseQueryAPI<'a> {
             .map(|link| link.anchor)
     }
 
-    /// Get all relative clauses in the document.
+    /// Get all relative clause attachments in the document.
     ///
-    /// Returns pairs of (head_noun_span, relative_clause_span) for each
-    /// detected relative clause attachment.
+    /// # Status: Stub Implementation
+    ///
+    /// See `relative_clause()` for status details. Currently returns empty
+    /// iterator until resolver integration is complete.
+    ///
+    /// # Returns
+    ///
+    /// Pairs of (head_noun_span, relative_clause_span) for each detected
+    /// relative clause attachment.
     pub fn all_relative_clauses(&self) -> Vec<(DocSpan, DocSpan)> {
         self.links
             .iter()

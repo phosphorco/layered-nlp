@@ -49,8 +49,8 @@ impl ParticipantRole {
 /// A participant mention within a clause
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClauseParticipant {
-    /// The span of this participant mention in the document
-    pub span: DocSpan,
+    /// The span of this participant mention in the document (None for implicit participants)
+    pub span: Option<DocSpan>,
     /// The text of this participant
     pub text: String,
     /// Role of this participant in the clause
@@ -73,7 +73,7 @@ impl ClauseParticipant {
     /// Create a new participant with explicit entity (not a pronoun)
     pub fn entity(span: DocSpan, text: impl Into<String>, role: ParticipantRole) -> Self {
         Self {
-            span,
+            span: Some(span),
             text: text.into(),
             role,
             resolved_to: None,
@@ -96,7 +96,7 @@ impl ClauseParticipant {
     ) -> Self {
         let confidence = resolution_confidence * 0.9; // Slight penalty for indirection
         Self {
-            span: pronoun_span,
+            span: Some(pronoun_span),
             text: pronoun_text.into(),
             role,
             resolved_to: Some(resolved_to),
@@ -115,7 +115,7 @@ impl ClauseParticipant {
     /// Create an implicit participant (inferred from context)
     pub fn implicit(role: ParticipantRole, inferred_text: impl Into<String>) -> Self {
         Self {
-            span: DocSpan::single_line(0, 0, 0), // Zero span for implicit participants
+            span: None, // No position for implicit participants
             text: inferred_text.into(),
             role,
             resolved_to: None,
@@ -130,6 +130,11 @@ impl ClauseParticipant {
     /// Check if this participant is resolved (either explicit entity or resolved pronoun)
     pub fn is_resolved(&self) -> bool {
         !self.is_pronoun || self.resolved_to.is_some()
+    }
+
+    /// Check if this is an implicit participant (no document span)
+    pub fn is_implicit(&self) -> bool {
+        self.span.is_none()
     }
 
     /// Get the final resolved text (either direct text or resolved referent)
@@ -356,6 +361,8 @@ mod tests {
         assert!(!participant.is_pronoun);
         assert!(participant.is_resolved());
         assert!(participant.confidence > 0.8);
+        assert!(!participant.is_implicit());
+        assert_eq!(participant.span, Some(span));
     }
 
     #[test]
@@ -388,6 +395,8 @@ mod tests {
 
         assert!(participant.needs_review);
         assert_eq!(participant.confidence, 0.5);
+        assert!(participant.is_implicit());
+        assert!(participant.span.is_none());
     }
 
     #[test]

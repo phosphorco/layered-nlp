@@ -152,7 +152,12 @@ impl PolarityTracker {
 
         // Double negatives require review - don't auto-resolve
         if has_double_negative {
-            let pattern = &self.double_negatives[0].1;
+            let all_patterns: Vec<&str> = self
+                .double_negatives
+                .iter()
+                .map(|(_, p)| p.description())
+                .collect();
+            let combined_reason = all_patterns.join("; ");
             return PolarityContext {
                 span,
                 polarity: Polarity::Ambiguous,
@@ -161,7 +166,32 @@ impl PolarityTracker {
                 has_double_negative: true,
                 confidence: 0.6,
                 needs_review: true,
-                review_reason: Some(pattern.description().to_string()),
+                review_reason: Some(combined_reason),
+            };
+        }
+
+        // Check for correlative negations (neither...nor) which need special handling
+        let has_correlative = self
+            .negations
+            .iter()
+            .any(|(_, kind)| *kind == NegationKind::Correlative);
+        if has_correlative {
+            // Correlative negations have complex scope - flag for review
+            // but don't change polarity calculation
+            let polarity = if negation_count % 2 == 0 {
+                Polarity::Positive
+            } else {
+                Polarity::Negative
+            };
+            return PolarityContext {
+                span,
+                polarity,
+                negation_count,
+                negation_spans,
+                has_double_negative: false,
+                confidence: 0.7,
+                needs_review: true,
+                review_reason: Some("Correlative negation detected (neither...nor)".to_string()),
             };
         }
 
@@ -417,5 +447,45 @@ mod tests {
         tracker.reset();
 
         assert_eq!(tracker.negation_count(), 0);
+    }
+
+    #[test]
+    fn test_detect_patterns_empty_input() {
+        let tokens: [&str; 0] = [];
+        let patterns = PolarityResolver::detect_double_negative_patterns(&tokens);
+        assert!(patterns.is_empty());
+    }
+
+    #[test]
+    fn test_correlative_negation_needs_review() {
+        let mut tracker = PolarityTracker::new();
+        tracker.add_negation(make_span(0, 0, 0, 1), NegationKind::Correlative);
+        tracker.add_negation(make_span(0, 3, 0, 4), NegationKind::Correlative);
+
+        let ctx = tracker.polarity(make_span(0, 0, 0, 5));
+
+        // Two correlative negations = positive, but needs review
+        assert_eq!(ctx.polarity, Polarity::Positive);
+        assert_eq!(ctx.negation_count, 2);
+        assert!(ctx.needs_review);
+        assert!(ctx.review_reason.unwrap().contains("Correlative negation"));
+    }
+
+    #[test]
+    fn test_multiple_double_negative_patterns_combined() {
+        let mut tracker = PolarityTracker::new();
+        tracker.add_double_negative(make_span(0, 0, 0, 2), DoubleNegativePattern::UnlessNot);
+        tracker.add_double_negative(make_span(0, 5, 0, 7), DoubleNegativePattern::NotWithout);
+
+        let ctx = tracker.polarity(make_span(0, 0, 0, 10));
+
+        assert_eq!(ctx.polarity, Polarity::Ambiguous);
+        assert!(ctx.has_double_negative);
+        assert!(ctx.needs_review);
+
+        let reason = ctx.review_reason.unwrap();
+        assert!(reason.contains("unless not"));
+        assert!(reason.contains("not without"));
+        assert!(reason.contains("; ")); // Joined with semicolon
     }
 }
