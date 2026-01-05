@@ -12,11 +12,7 @@ fn test_setup(sentence: &'static str) -> LLLine {
 #[test]
 fn test_clauses() {
     let ll_line = test_setup("When it rains, then it pours.")
-        .run(&ClauseKeywordResolver::new(
-            &["if", "when"],
-            &["and"],
-            &["then"],
-        ))
+        .run(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
         .run(&ClauseResolver::default());
 
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
@@ -35,11 +31,7 @@ fn test_clauses() {
 #[test]
 fn test_short_clauses() {
     let ll_line = test_setup("When it rains, run!")
-        .run(&ClauseKeywordResolver::new(
-            &["if", "when"],
-            &["and"],
-            &["then"],
-        ))
+        .run(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
         .run(&ClauseResolver::default());
 
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
@@ -58,11 +50,7 @@ fn test_short_clauses() {
 fn test_clauses_comma() {
     let ll_line = test_setup("If it is raining, open your umbrella.")
         .run(&POSTagResolver::default())
-        .run(&ClauseKeywordResolver::new(
-            &["if", "when"],
-            &["and"],
-            &["then"],
-        ))
+        .run(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
         .run(&ClauseResolver::default());
 
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
@@ -98,7 +86,7 @@ fn test_clauses_comma() {
 #[test]
 fn tired() {
     let ll_line = test_setup("Si tu es fatigué, va te coucher.")
-        .run(&ClauseKeywordResolver::new(&["si"], &["et"], &["alors"]))
+        .run(&ClauseKeywordResolver::new(&["si"], &["et"], &["alors"], &["or"], &["but", "however"], &["nor"]))
         .run(&ClauseResolver::default());
 
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
@@ -116,7 +104,7 @@ fn tired() {
 #[test]
 fn tired_rev() {
     let ll_line = test_setup("Va te coucher si tu es fatigué.")
-        .run(&ClauseKeywordResolver::new(&["si"], &["et"], &["alors"]))
+        .run(&ClauseKeywordResolver::new(&["si"], &["et"], &["alors"], &["or"], &["but", "however"], &["nor"]))
         .run(&ClauseResolver::default());
 
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
@@ -135,11 +123,7 @@ fn tired_rev() {
 fn rain() {
     let ll_line =
         test_setup("If it is raining then open the umbrella and close the garage and the door.")
-            .run(&ClauseKeywordResolver::new(
-                &["if", "when"],
-                &["and"],
-                &["then"],
-            ))
+            .run(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
             .run(&ClauseResolver::default());
 
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
@@ -164,11 +148,7 @@ fn rain() {
 fn rain_rev() {
     let ll_line =
         test_setup("Open the umbrella and close the garage and the door if it is raining.")
-            .run(&ClauseKeywordResolver::new(
-                &["if", "when"],
-                &["and"],
-                &["then"],
-            ))
+            .run(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
             .run(&ClauseResolver::default());
 
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
@@ -191,11 +171,7 @@ fn rain_rev() {
 #[test]
 fn extra_rain() {
     let ll_line = test_setup("Open the umbrella if it is raining and not too windy.")
-        .run(&ClauseKeywordResolver::new(
-            &["if", "when"],
-            &["and"],
-            &["then"],
-        ))
+        .run(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
         .run(&ClauseResolver::default());
 
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
@@ -216,11 +192,7 @@ fn extra_rain() {
 #[test]
 fn no_keyword() {
     let ll_line = test_setup("Open the umbrella.")
-        .run(&ClauseKeywordResolver::new(
-            &["if", "when"],
-            &["and"],
-            &["then"],
-        ))
+        .run(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
         .run(&ClauseResolver::default());
 
     let mut ll_line_display = LLLineDisplay::new(&ll_line);

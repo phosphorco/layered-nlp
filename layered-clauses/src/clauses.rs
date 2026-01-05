@@ -29,10 +29,19 @@ impl Resolver for ClauseResolver {
             // If the first selection is the whole line that means there is no `ConditionStart` in it
             // We probably want to handle this case better in the future
             if let Some(trimmed_clause_selection) = clauses[0].trim(&x::whitespace()) {
-                if let Some((_, ClauseKeyword::ConditionStart)) =
-                    clauses[0].match_first_backwards(&x::attr::<ClauseKeyword>())
-                {
-                    vec![trimmed_clause_selection.finish_with_attr(Clause::Condition)]
+                // Check which keyword precedes this clause
+                if let Some((_, keyword)) = clauses[0].match_first_backwards(&x::attr::<ClauseKeyword>()) {
+                    match keyword {
+                        ClauseKeyword::ConditionStart => {
+                            vec![trimmed_clause_selection.finish_with_attr(Clause::Condition)]
+                        }
+                        ClauseKeyword::Then => {
+                            vec![trimmed_clause_selection.finish_with_attr(Clause::TrailingEffect)]
+                        }
+                        _ => {
+                            vec![trimmed_clause_selection.finish_with_attr(Clause::Independent)]
+                        }
+                    }
                 } else {
                     vec![trimmed_clause_selection.finish_with_attr(Clause::Independent)]
                 }
@@ -58,6 +67,27 @@ impl Resolver for ClauseResolver {
                                 trimmed_clause_selection.finish_with_attr(Clause::TrailingEffect),
                             ),
                             ClauseKeyword::And => Some(trimmed_clause_selection.finish_with_attr(
+                                if condition_clause_found {
+                                    Clause::TrailingEffect
+                                } else {
+                                    Clause::LeadingEffect
+                                },
+                            )),
+                            ClauseKeyword::Or => Some(trimmed_clause_selection.finish_with_attr(
+                                if condition_clause_found {
+                                    Clause::TrailingEffect
+                                } else {
+                                    Clause::LeadingEffect
+                                },
+                            )),
+                            ClauseKeyword::But => Some(trimmed_clause_selection.finish_with_attr(
+                                if condition_clause_found {
+                                    Clause::TrailingEffect
+                                } else {
+                                    Clause::LeadingEffect
+                                },
+                            )),
+                            ClauseKeyword::Nor => Some(trimmed_clause_selection.finish_with_attr(
                                 if condition_clause_found {
                                     Clause::TrailingEffect
                                 } else {

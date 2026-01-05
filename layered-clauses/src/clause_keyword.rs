@@ -8,6 +8,12 @@ pub enum ClauseKeyword {
     Then,
     /// "and"
     And,
+    /// "or"
+    Or,
+    /// "but", "however"
+    But,
+    /// "nor"
+    Nor,
     /// "except", "unless", "notwithstanding", "provided that", "subject to"
     Exception,
 }
@@ -16,15 +22,28 @@ pub struct ClauseKeywordResolver {
     cond_start: Vec<&'static str>,
     and: Vec<&'static str>,
     then: Vec<&'static str>,
+    or: Vec<&'static str>,
+    but: Vec<&'static str>,
+    nor: Vec<&'static str>,
     exception: Vec<&'static str>,
 }
 
 impl ClauseKeywordResolver {
-    pub fn new(cond_start: &[&'static str], and: &[&'static str], then: &[&'static str]) -> Self {
+    pub fn new(
+        cond_start: &[&'static str],
+        and: &[&'static str],
+        then: &[&'static str],
+        or: &[&'static str],
+        but: &[&'static str],
+        nor: &[&'static str],
+    ) -> Self {
         ClauseKeywordResolver {
             cond_start: cond_start.to_vec(),
             and: and.to_vec(),
             then: then.to_vec(),
+            or: or.to_vec(),
+            but: but.to_vec(),
+            nor: nor.to_vec(),
             exception: vec!["except", "unless", "notwithstanding", "provided", "subject"],
         }
     }
@@ -34,12 +53,18 @@ impl ClauseKeywordResolver {
         cond_start: &[&'static str],
         and: &[&'static str],
         then: &[&'static str],
+        or: &[&'static str],
+        but: &[&'static str],
+        nor: &[&'static str],
         exception: &[&'static str],
     ) -> Self {
         ClauseKeywordResolver {
             cond_start: cond_start.to_vec(),
             and: and.to_vec(),
             then: then.to_vec(),
+            or: or.to_vec(),
+            but: but.to_vec(),
+            nor: nor.to_vec(),
             exception: exception.to_vec(),
         }
     }
@@ -61,6 +86,12 @@ impl Resolver for ClauseKeywordResolver {
                         ClauseKeyword::Then
                     } else if self.and.contains(&text.as_str()) {
                         ClauseKeyword::And
+                    } else if self.or.contains(&text.as_str()) {
+                        ClauseKeyword::Or
+                    } else if self.but.contains(&text.as_str()) {
+                        ClauseKeyword::But
+                    } else if self.nor.contains(&text.as_str()) {
+                        ClauseKeyword::Nor
                     } else if self.exception.contains(&text.as_str()) {
                         ClauseKeyword::Exception
                     } else {
