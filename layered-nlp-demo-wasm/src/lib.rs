@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
+mod extractors;
+mod manifest;
+pub use manifest::{RawAssociation, RawSpan, ResolverManifest, ResolverTag, RESOLVER_MANIFESTS};
+
 // Set up panic hook for better error messages in browser console
 #[wasm_bindgen(start)]
 pub fn init() {
@@ -8,11 +12,10 @@ pub fn init() {
 }
 
 use layered_contracts::{
-    ClauseAggregate, ClauseAggregationResolver, ContractClause, ContractClauseResolver,
-    ContractKeyword, ContractKeywordResolver, DefinedTerm, DefinedTermResolver,
-    ObligationNode, AccountabilityGraphResolver, ObligationPhrase, ObligationPhraseResolver,
-    ProhibitionResolver, PronounChain, PronounChainResolver, PronounReference, PronounResolver,
-    Scored, TermReference, TermReferenceResolver,
+    // Resolver imports (used by resolver stack)
+    ClauseAggregationResolver, ContractClauseResolver, ContractKeywordResolver,
+    DefinedTermResolver, AccountabilityGraphResolver, ObligationPhraseResolver,
+    ProhibitionResolver, PronounChainResolver, PronounResolver, TermReferenceResolver,
     // Semantic diff imports
     pipeline::Pipeline,
     DocumentAligner, DocumentStructureBuilder, SemanticDiffEngine, SemanticDiffResult,
@@ -27,10 +30,9 @@ use layered_contracts::{
     NegationKind, QuantifierKind,
 };
 use layered_deixis::{
-    DeicticCategory, DeicticReference, DeicticSubcategory, DiscourseMarkerResolver,
-    PersonPronounResolver, PlaceDeicticResolver, SimpleTemporalResolver,
+    DiscourseMarkerResolver, PersonPronounResolver, PlaceDeicticResolver, SimpleTemporalResolver,
 };
-use layered_nlp::{create_line_from_string, x};
+use layered_nlp::create_line_from_string;
 use layered_clauses::{ClauseKeywordResolver, ClauseResolver, ClauseLinkResolver};
 use layered_nlp_document::{LayeredDocument, ClauseRole};
 
@@ -138,51 +140,32 @@ fn get_span_links_internal(text: &str) -> SpanLinkResult {
     }
 }
 
-/// Format DeicticSubcategory as human-readable label
-fn format_deictic_label(category: &DeicticCategory, subcategory: &DeicticSubcategory) -> String {
-    let cat = match category {
-        DeicticCategory::Person => "Person",
-        DeicticCategory::Place => "Place",
-        DeicticCategory::Time => "Time",
-        DeicticCategory::Discourse => "Discourse",
-        DeicticCategory::Social => "Social",
-    };
+/// Serializable representation of resolver metadata for frontend
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WasmResolverManifest {
+    pub name: String,
+    pub description: String,
+    pub color: String,
+    pub tags: Vec<String>,
+}
 
-    let sub = match subcategory {
-        // Person
-        DeicticSubcategory::PersonFirst => "1st",
-        DeicticSubcategory::PersonFirstPlural => "1st plural",
-        DeicticSubcategory::PersonSecond => "2nd",
-        DeicticSubcategory::PersonSecondPlural => "2nd plural",
-        DeicticSubcategory::PersonThirdSingular => "3rd singular",
-        DeicticSubcategory::PersonThirdPlural => "3rd plural",
-        DeicticSubcategory::PersonRelative => "relative",
-        // Place
-        DeicticSubcategory::PlaceProximal => "proximal",
-        DeicticSubcategory::PlaceDistal => "distal",
-        DeicticSubcategory::PlaceOther => "other",
-        // Time
-        DeicticSubcategory::TimePresent => "present",
-        DeicticSubcategory::TimePast => "past",
-        DeicticSubcategory::TimeFuture => "future",
-        DeicticSubcategory::TimeRelative => "relative",
-        DeicticSubcategory::TimeDefinedTerm => "defined term",
-        DeicticSubcategory::TimeDuration => "duration",
-        DeicticSubcategory::TimeDeadline => "deadline",
-        // Discourse
-        DeicticSubcategory::DiscourseThisDocument => "this document",
-        DeicticSubcategory::DiscourseSectionRef => "section ref",
-        DeicticSubcategory::DiscourseAnaphoric => "anaphoric",
-        DeicticSubcategory::DiscourseCataphoric => "cataphoric",
-        DeicticSubcategory::DiscourseMarker => "marker",
-        // Social
-        DeicticSubcategory::SocialFormal => "formal",
-        DeicticSubcategory::SocialInformal => "informal",
-        // Other
-        DeicticSubcategory::Other => "other",
-    };
-
-    format!("{} ({})", cat, sub)
+/// Get all resolver manifests with metadata for visualization
+#[wasm_bindgen]
+pub fn get_resolver_manifests() -> JsValue {
+    init();
+    let manifests: Vec<WasmResolverManifest> = RESOLVER_MANIFESTS
+        .iter()
+        .map(|m| WasmResolverManifest {
+            name: m.name.to_string(),
+            description: m.description.to_string(),
+            color: m.color.to_string(),
+            tags: m.tags.iter().map(|t| match t {
+                ResolverTag::Stable => "stable".to_string(),
+                ResolverTag::Experimental => "experimental".to_string(),
+            }).collect(),
+        })
+        .collect();
+    serde_wasm_bindgen::to_value(&manifests).unwrap_or(JsValue::NULL)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -193,6 +176,10 @@ pub struct Span {
     pub kind: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<serde_json::Value>,
+    /// CSS hex color from manifest
+    pub color: String,
+    /// Stability tags from manifest (e.g., ["stable"])
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -239,261 +226,23 @@ fn analyze_contract_internal(text: &str) -> AnalysisResult {
 
     let mut spans = Vec::new();
 
-    // Layer 1-2: ContractKeyword spans
-    for find in ll_line.find(&x::attr::<ContractKeyword>()) {
-        let (start, end) = find.range();
-        spans.push(Span {
-            start_offset: start as u32,
-            end_offset: end as u32,
-            label: format!("{:?}", find.attr()),
-            kind: "ContractKeyword".to_string(),
-            metadata: None,
-        });
-    }
-
-    // Layer 3: DefinedTerm spans
-    for find in ll_line.find(&x::attr::<Scored<DefinedTerm>>()) {
-        let (start, end) = find.range();
-        let scored = find.attr();
-        spans.push(Span {
-            start_offset: start as u32,
-            end_offset: end as u32,
-            label: scored.value.term_name.clone(),
-            kind: "DefinedTerm".to_string(),
-            metadata: Some(serde_json::json!({
-                "confidence": scored.confidence,
-                "definition_type": format!("{:?}", scored.value.definition_type),
-            })),
-        });
-    }
-
-    // Layer 4: TermReference spans
-    for find in ll_line.find(&x::attr::<Scored<TermReference>>()) {
-        let (start, end) = find.range();
-        let scored = find.attr();
-        spans.push(Span {
-            start_offset: start as u32,
-            end_offset: end as u32,
-            label: scored.value.term_name.clone(),
-            kind: "TermReference".to_string(),
-            metadata: Some(serde_json::json!({
-                "confidence": scored.confidence,
-                "definition_type": format!("{:?}", scored.value.definition_type),
-            })),
-        });
-    }
-
-    // Layer 5: PronounReference spans
-    for find in ll_line.find(&x::attr::<Scored<PronounReference>>()) {
-        let (start, end) = find.range();
-        let scored = find.attr();
-        let best_candidate = scored.value.candidates.first();
-        spans.push(Span {
-            start_offset: start as u32,
-            end_offset: end as u32,
-            label: scored.value.pronoun.clone(),
-            kind: "PronounReference".to_string(),
-            metadata: Some(serde_json::json!({
-                "confidence": scored.confidence,
-                "pronoun_type": format!("{:?}", scored.value.pronoun_type),
-                "resolved_to": best_candidate.map(|c| &c.text),
-                "resolution_confidence": best_candidate.map(|c| c.confidence),
-            })),
-        });
-    }
-
-    // Layer 6: ObligationPhrase spans (with provenance associations)
-    // Build associations lookup once, then match by pointer equality
-    let obligation_associations: Vec<_> = ll_line
-        .query_with_associations::<Scored<ObligationPhrase>>()
-        .into_iter()
-        .flat_map(|(_, _, attrs_with_assocs)| attrs_with_assocs)
-        .collect();
-
-    for find in ll_line.find(&x::attr::<Scored<ObligationPhrase>>()) {
-        let (start, end) = find.range();
-        let scored = find.attr();
-
-        // Match by pointer equality - both find() and query_with_associations()
-        // return references to the same stored values
-        let scored_ptr: *const Scored<ObligationPhrase> = *scored;
-        let provenance: Vec<serde_json::Value> = obligation_associations
-            .iter()
-            .filter(|(attr, _)| std::ptr::eq(*attr as *const _, scored_ptr))
-            .flat_map(|(_, assocs)| assocs.iter())
-            .map(|assoc| serde_json::json!({
-                "label": assoc.label(),
-                "glyph": assoc.glyph(),
-                "target_token_range": [assoc.span.start_idx, assoc.span.end_idx],
-            }))
-            .collect();
-
-        spans.push(Span {
-            start_offset: start as u32,
-            end_offset: end as u32,
-            label: format!("{:?}", scored.value.obligation_type),
-            kind: "ObligationPhrase".to_string(),
-            metadata: Some(serde_json::json!({
-                "confidence": scored.confidence,
-                "obligor": format!("{:?}", scored.value.obligor),
-                "action": scored.value.action,
-                "conditions": scored.value.conditions.iter()
-                    .map(|c| serde_json::json!({
-                        "type": format!("{:?}", c.condition_type),
-                        "preview": c.text_preview,
-                    }))
-                    .collect::<Vec<_>>(),
-                "provenance": provenance,
-            })),
-        });
-    }
-
-    // Layer 7: PronounChain spans
-    for find in ll_line.find(&x::attr::<Scored<PronounChain>>()) {
-        let (start, end) = find.range();
-        let scored = find.attr();
-        spans.push(Span {
-            start_offset: start as u32,
-            end_offset: end as u32,
-            label: scored.value.canonical_name.clone(),
-            kind: "PronounChain".to_string(),
-            metadata: Some(serde_json::json!({
-                "confidence": scored.confidence,
-                "chain_id": scored.value.chain_id,
-                "is_defined_term": scored.value.is_defined_term,
-                "mention_count": scored.value.mentions.len(),
-                "has_verified_mention": scored.value.has_verified_mention,
-            })),
-        });
-    }
-
-    // Layer 8: ContractClause spans
-    for find in ll_line.find(&x::attr::<Scored<ContractClause>>()) {
-        let (start, end) = find.range();
-        let scored = find.attr();
-        spans.push(Span {
-            start_offset: start as u32,
-            end_offset: end as u32,
-            label: format!("{}: {:?}", scored.value.obligor.display_text, scored.value.duty.obligation_type),
-            kind: "ContractClause".to_string(),
-            metadata: Some(serde_json::json!({
-                "confidence": scored.confidence,
-                "clause_id": scored.value.clause_id,
-                "obligor": scored.value.obligor.display_text,
-                "obligor_chain_id": scored.value.obligor.chain_id,
-                "obligation_type": format!("{:?}", scored.value.duty.obligation_type),
-                "action": scored.value.duty.action,
-                "conditions": scored.value.conditions.iter()
-                    .map(|c| serde_json::json!({
-                        "type": format!("{:?}", c.condition_type),
-                        "text": c.text,
-                        "mentions_unknown_entity": c.mentions_unknown_entity,
-                    }))
-                    .collect::<Vec<_>>(),
-            })),
-        });
-    }
-
-    // Layer 9: ClauseAggregate spans
-    for find in ll_line.find(&x::attr::<Scored<ClauseAggregate>>()) {
-        let (start, end) = find.range();
-        let scored = find.attr();
-        spans.push(Span {
-            start_offset: start as u32,
-            end_offset: end as u32,
-            label: format!("{} ({})", scored.value.obligor.display_text, scored.value.clause_ids.len()),
-            kind: "ClauseAggregate".to_string(),
-            metadata: Some(serde_json::json!({
-                "confidence": scored.confidence,
-                "aggregate_id": scored.value.aggregate_id,
-                "obligor": scored.value.obligor.display_text,
-                "obligor_chain_id": scored.value.obligor.chain_id,
-                "clause_count": scored.value.clause_ids.len(),
-                "clause_ids": scored.value.clause_ids,
-            })),
-        });
-    }
-
-    // Layer 10: ObligationNode spans (accountability graph)
-    for find in ll_line.find(&x::attr::<Scored<ObligationNode>>()) {
-        let (start, end) = find.range();
-        let scored = find.attr();
-        spans.push(Span {
-            start_offset: start as u32,
-            end_offset: end as u32,
-            label: format!("{} → {} beneficiaries", 
-                scored.value.obligor.display_text, 
-                scored.value.beneficiaries.len()
-            ),
-            kind: "ObligationNode".to_string(),
-            metadata: Some(serde_json::json!({
-                "confidence": scored.confidence,
-                "node_id": scored.value.node_id,
-                "obligor": scored.value.obligor.display_text,
-                "obligor_chain_id": scored.value.obligor.chain_id,
-                "beneficiaries": scored.value.beneficiaries.iter()
-                    .map(|b| serde_json::json!({
-                        "display_text": b.display_text,
-                        "chain_id": b.chain_id,
-                        "needs_verification": b.needs_verification,
-                    }))
-                    .collect::<Vec<_>>(),
-                "condition_count": scored.value.condition_links.len(),
-                "clause_count": scored.value.clauses.len(),
-                "confidence_breakdown": scored.value.confidence_breakdown,
-            })),
-        });
-    }
-
-    // Layer 11-14: DeicticReference spans (from simple word-list resolvers)
-    for find in ll_line.find(&x::attr::<DeicticReference>()) {
-        let (start, end) = find.range();
-        let deictic = find.attr();
-
-        // Format source for display
-        let source_display = match &deictic.source {
-            layered_deixis::DeicticSource::WordList { pattern } => {
-                serde_json::json!({ "type": "WordList", "pattern": pattern })
-            }
-            layered_deixis::DeicticSource::PronounResolver => {
-                serde_json::json!({ "type": "PronounResolver" })
-            }
-            layered_deixis::DeicticSource::TemporalResolver => {
-                serde_json::json!({ "type": "TemporalResolver" })
-            }
-            layered_deixis::DeicticSource::SectionReferenceResolver => {
-                serde_json::json!({ "type": "SectionReferenceResolver" })
-            }
-            layered_deixis::DeicticSource::POSTag => {
-                serde_json::json!({ "type": "POSTag" })
-            }
-            layered_deixis::DeicticSource::Derived => {
-                serde_json::json!({ "type": "Derived" })
-            }
-        };
-
-        // Format resolved referent if present
-        let referent_json = deictic.resolved_referent.as_ref().map(|r| {
-            serde_json::json!({
-                "text": r.text,
-                "confidence": r.resolution_confidence,
-            })
-        });
-
-        spans.push(Span {
-            start_offset: start as u32,
-            end_offset: end as u32,
-            label: format_deictic_label(&deictic.category, &deictic.subcategory),
-            kind: "DeicticReference".to_string(),
-            metadata: Some(serde_json::json!({
-                "category": format!("{:?}", deictic.category),
-                "subcategory": format!("{:?}", deictic.subcategory),
-                "surface_text": deictic.surface_text,
-                "confidence": deictic.confidence,
-                "source": source_display,
-                "resolved_referent": referent_json,
-            })),
-        });
+    // Manifest-driven extraction - replaces 260 lines of per-type loops
+    for manifest in RESOLVER_MANIFESTS.iter() {
+        let raw_spans = (manifest.extract)(&ll_line);
+        for raw_span in raw_spans {
+            spans.push(Span {
+                start_offset: raw_span.start,
+                end_offset: raw_span.end,
+                label: raw_span.label,
+                kind: manifest.name.to_string(),
+                metadata: raw_span.metadata,
+                color: manifest.color.to_string(),
+                tags: manifest.tags.iter().map(|t| match t {
+                    ResolverTag::Stable => "stable".to_string(),
+                    ResolverTag::Experimental => "experimental".to_string(),
+                }).collect(),
+            });
+        }
     }
 
     AnalysisResult {

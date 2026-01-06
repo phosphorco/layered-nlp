@@ -268,6 +268,48 @@ cd ../web && python3 -m http.server 8080
 # Open http://localhost:8080/contract-viewer.html
 ```
 
+### Adding New Resolvers to Demo
+
+The demo uses a manifest-driven architecture. To add a new span type to visualization:
+
+1. **Create extraction function** in `layered-nlp-demo-wasm/src/extractors.rs`:
+   ```rust
+   pub fn extract_my_new_type(ll_line: &LLLine) -> Vec<RawSpan> {
+       ll_line.find(&x::attr::<MyNewType>())
+           .into_iter()
+           .map(|find| {
+               let (start, end) = find.range();
+               RawSpan {
+                   start: start as u32,
+                   end: end as u32,
+                   label: format!("{:?}", find.attr()),
+                   metadata: None,
+                   associations: vec![],
+               }
+           })
+           .collect()
+   }
+   ```
+
+2. **Add manifest entry** in `layered-nlp-demo-wasm/src/manifest.rs`:
+   ```rust
+   ResolverManifest {
+       name: "MyNewType",
+       description: "Description for UI tooltip",
+       color: "#hexcolor",
+       tags: &[ResolverTag::Stable],  // or Experimental
+       extract: extract_my_new_type,
+   },
+   ```
+
+3. **Done** - The demo UI automatically discovers the new resolver via `get_resolver_manifests()`.
+
+**Files involved:**
+- `layered-nlp-demo-wasm/src/extractors.rs` - Extraction functions
+- `layered-nlp-demo-wasm/src/manifest.rs` - Manifest entries with metadata
+- `layered-nlp-demo-wasm/src/lib.rs` - WASM exports (no changes needed)
+- `web/contract-viewer.html` - Dynamic UI (no changes needed)
+
 ### Web Demo Design System
 
 All web demos share a common design system defined in `web/shared-styles.css`. This provides:

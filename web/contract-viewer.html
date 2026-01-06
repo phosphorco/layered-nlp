@@ -166,17 +166,8 @@
             border-radius: 4px;
             font-size: 12px;
             font-weight: 500;
+            color: #000;
         }
-        .kind-badge.ContractKeyword { background: var(--keyword-bg); color: var(--keyword-text); }
-        .kind-badge.DefinedTerm { background: var(--defined-term-bg); color: var(--defined-term-text); }
-        .kind-badge.TermReference { background: var(--term-ref-bg); color: var(--term-ref-text); }
-        .kind-badge.PronounReference { background: var(--pronoun-bg); color: var(--pronoun-text); }
-        .kind-badge.ObligationPhrase { background: var(--obligation-bg); color: var(--obligation-text); }
-        .kind-badge.PronounChain { background: var(--chain-bg); color: var(--chain-text); }
-        .kind-badge.ContractClause { background: var(--clause-bg); color: var(--clause-text); }
-        .kind-badge.ClauseAggregate { background: var(--aggregate-bg); color: var(--aggregate-text); }
-        .kind-badge.ObligationNode { background: var(--node-bg); color: var(--node-text); }
-        .kind-badge.DeicticReference { background: var(--deixis-bg); color: var(--deixis-text); }
         .layer-filters {
             position: sticky;
             top: 0;
@@ -281,18 +272,7 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             <button id="clear-btn" class="secondary">Clear</button>
         </div>
         <div class="layer-filters" id="layer-filters" style="display: none;">
-            <strong style="font-size: 13px; color: var(--text-secondary);">Show layers:</strong>
-            <label><input type="checkbox" data-kind="ContractKeyword" checked> Keywords</label>
-            <label><input type="checkbox" data-kind="DefinedTerm" checked> Defined Terms</label>
-            <label><input type="checkbox" data-kind="TermReference" checked> Term Refs</label>
-            <label><input type="checkbox" data-kind="PronounReference" checked> Pronouns</label>
-            <label><input type="checkbox" data-kind="ObligationPhrase" checked> Obligations</label>
-            <label><input type="checkbox" data-kind="PronounChain" checked> Chains</label>
-            <label><input type="checkbox" data-kind="ContractClause" checked> Clauses</label>
-            <label><input type="checkbox" data-kind="ClauseAggregate" checked> Aggregates</label>
-            <label><input type="checkbox" data-kind="ObligationNode" checked> Nodes</label>
-            <label><input type="checkbox" data-kind="DeicticReference" checked> Deixis</label>
-            <span style="margin-left: auto; font-size: 12px; color: var(--text-tertiary);">Keyboard: Ctrl/Cmd+Enter to analyze</span>
+            <!-- Filters will be generated dynamically from resolver manifests -->
         </div>
     </div>
 
@@ -333,6 +313,7 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
     <script type="module">
         let wasmModule = null;
         let lastAnalysisResult = null;
+        let resolverManifests = null;
 
         function getVisibleKinds() {
             const checkboxes = document.querySelectorAll('#layer-filters input[type="checkbox"]');
@@ -346,12 +327,66 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             return spans.filter(s => visibleKinds.includes(s.kind));
         }
 
+        function generateLayerFilters(manifests) {
+            const filterDiv = document.getElementById('layer-filters');
+            filterDiv.innerHTML = '';
+
+            // Add heading
+            const heading = document.createElement('strong');
+            heading.style.fontSize = '13px';
+            heading.style.color = 'var(--text-secondary)';
+            heading.textContent = 'Show layers:';
+            filterDiv.appendChild(heading);
+
+            for (const manifest of manifests) {
+                const label = document.createElement('label');
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.setAttribute('data-kind', manifest.name);
+                // Stable checked by default, Experimental unchecked
+                input.checked = manifest.tags.includes('stable');
+                input.addEventListener('change', renderResults);
+
+                let text = manifest.name;
+                if (manifest.tags.includes('experimental')) {
+                    text = '⚠️ ' + text;
+                }
+
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(' ' + text));
+                filterDiv.appendChild(label);
+            }
+
+            // Add keyboard shortcut hint
+            const hint = document.createElement('span');
+            hint.style.marginLeft = 'auto';
+            hint.style.fontSize = '12px';
+            hint.style.color = 'var(--text-tertiary)';
+            hint.textContent = 'Keyboard: Ctrl/Cmd+Enter to analyze';
+            filterDiv.appendChild(hint);
+        }
+
+        function loadResolverManifests() {
+            if (!wasmModule) return;
+            try {
+                resolverManifests = wasmModule.get_resolver_manifests();
+                if (resolverManifests && resolverManifests.length > 0) {
+                    generateLayerFilters(resolverManifests);
+                } else {
+                    console.warn('No resolver manifests available');
+                }
+            } catch (err) {
+                console.error('Failed to load resolver manifests:', err);
+            }
+        }
+
         async function loadWasm() {
             try {
                 const module = await import('./pkg/layered_nlp_demo_wasm.js');
                 await module.default();
                 wasmModule = module;
                 console.log('WASM module loaded');
+                loadResolverManifests();
                 return true;
             } catch (err) {
                 console.error('Failed to load WASM:', err);
@@ -490,7 +525,7 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
 
         function renderSpansTable(spans) {
             const tbody = document.getElementById('spans-tbody');
-            
+
             if (spans.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No spans detected</td></tr>';
                 return;
@@ -500,7 +535,7 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                 const start = span.start_offset ?? span.start;
                 const end = span.end_offset ?? span.end;
                 // Handle both Map (from serde-wasm-bindgen) and plain objects
-                let metadata = '—';
+                let metadata = '';
                 if (span.metadata) {
                     if (span.metadata instanceof Map) {
                         metadata = JSON.stringify(Object.fromEntries(span.metadata));
@@ -508,10 +543,15 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                         metadata = JSON.stringify(span.metadata);
                     }
                 }
+                // Use span.color for dynamic badge styling
+                const bgColor = span.color || '#ccc';
+                // Add experimental warning if tagged
+                const isExperimental = span.tags && span.tags.includes('experimental');
+                const experimentalSuffix = isExperimental ? ' ⚠️' : '';
                 return `
                     <tr>
-                        <td><span class="kind-badge ${escapeHtml(span.kind)}">${escapeHtml(span.kind)}</span></td>
-                        <td>${escapeHtml(span.label || '—')}</td>
+                        <td><span class="kind-badge" style="background-color: ${escapeHtml(bgColor)}">${escapeHtml(span.kind)}${experimentalSuffix}</span></td>
+                        <td>${escapeHtml(span.label || '')}</td>
                         <td class="offsets">${start}..${end}</td>
                         <td><code class="snippet">${escapeHtml(span.snippet || '')}</code></td>
                         <td class="metadata">${escapeHtml(metadata)}</td>
@@ -746,11 +786,6 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
         document.getElementById('analyze-btn').addEventListener('click', handleAnalyze);
         document.getElementById('clear-btn').addEventListener('click', handleClear);
         document.getElementById('run-tests-btn').addEventListener('click', runTests);
-        
-        // Layer filter listeners
-        document.querySelectorAll('#layer-filters input[type="checkbox"]').forEach(cb => {
-            cb.addEventListener('change', renderResults);
-        });
 
         // Keyboard shortcut: Ctrl/Cmd + Enter to analyze
         document.getElementById('contract-input').addEventListener('keydown', (e) => {
