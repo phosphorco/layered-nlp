@@ -9,7 +9,7 @@
 use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver};
 
 /// Contract-specific keywords that carry semantic meaning.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ContractKeyword {
     // Obligation modals
     /// "shall" - indicates a duty/obligation

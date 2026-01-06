@@ -56,11 +56,14 @@ mod deictic;
 mod document_aligner;
 mod document_structure;
 mod modal_negation;
+mod modal_scope;
 mod obligation;
+mod obligation_linker;
 mod polarity;
 mod precedence;
 mod pronoun;
 mod pronoun_chain;
+mod scope_ambiguity;
 mod scope_operators;
 mod section_header;
 mod sentence_boundary;
@@ -128,10 +131,18 @@ pub use obligation::{
     ConditionRef, ObligationPhrase, ObligationPhraseResolver, ObligationType, ObligorReference,
 };
 pub use modal_negation::*;
+pub use modal_scope::{ModalScopeAnalyzer, ScopedObligation};
+pub use obligation_linker::{
+    ClauseParticipant, LinkedObligation, ObligationPartyLinker, ObligationPartyLinkerConfig,
+    ParticipantRole,
+};
 pub use polarity::*;
 pub use precedence::{
     ConflictResolution, PrecedenceDetector, PrecedenceResolver, PrecedenceRule, ResolutionBasis,
     SectionClassifier, resolve_in_document,
+};
+pub use scope_ambiguity::{
+    ScopeAmbiguityFlagger, ScopeAmbiguityFlaggerConfig, ScopeAmbiguityFlag,
 };
 pub use scope_operators::{
     NegationDetector, QuantifierDetector, ScopeBoundaryDetector,
@@ -142,7 +153,8 @@ pub use semantic_roles::{
 };
 pub use pronoun::{
     AntecedentCandidate, CataphoraCandidate, CataphoraDirection, DocumentPronounReference,
-    DocumentPronounResolver, PronounReference, PronounResolver, PronounType,
+    DocumentPronounResolver, DocumentPronounResult, PronounChainResult, PronounReference,
+    PronounResolver, PronounType,
 };
 pub use pronoun_chain::{ChainMention, MentionType, PronounChain, PronounChainResolver};
 // Note: Scored and ScoreSource are now re-exported from layered_nlp_document at the top

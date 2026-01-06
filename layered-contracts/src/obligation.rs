@@ -71,7 +71,7 @@ impl ObligationType {
 }
 
 /// Reference to who has the obligation.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ObligorReference {
     /// Direct reference to a defined term (e.g., "the Company")
     TermRef {
@@ -96,7 +96,7 @@ pub enum ObligorReference {
 }
 
 /// A reference to a condition that qualifies this obligation.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ConditionRef {
     /// The condition keyword type
     pub condition_type: ContractKeyword,
@@ -105,7 +105,7 @@ pub struct ConditionRef {
 }
 
 /// An obligation phrase extracted from contract text.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ObligationPhrase {
     /// Who has the obligation
     pub obligor: ObligorReference,

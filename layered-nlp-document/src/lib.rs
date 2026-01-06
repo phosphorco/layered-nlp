@@ -25,6 +25,7 @@
 mod document;
 mod scored;
 mod ambiguity;
+mod reviewable;
 mod span_link;
 mod scope_operator;
 mod scope_index;
@@ -50,6 +51,12 @@ pub use ambiguity::{
     AmbiguityFlag,
     AmbiguityConfig,
     Ambiguous,
+};
+
+// Reviewable infrastructure
+pub use reviewable::{
+    ReviewableResult,
+    compose_confidence,
 };
 
 // Span link infrastructure
