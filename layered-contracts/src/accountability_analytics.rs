@@ -88,10 +88,56 @@ impl<'a> ObligationGraph<'a> {
     }
 
     /// Surface unresolved beneficiaries that need verification.
+    ///
+    /// Returns items sorted by confidence ascending (lowest confidence first).
     pub fn verification_queue(&self) -> Vec<VerificationQueueItem> {
         let mut queue = Vec::new();
         for node in self.nodes {
+            // Check obligor review status (from LinkedObligation path)
+            if node.value.obligor_needs_review {
+                let reason = node.value.obligor_review_reason.as_deref().unwrap_or("");
+                let is_passive_voice = reason.to_lowercase().contains("passive");
+
+                let details = if is_passive_voice {
+                    VerificationQueueDetails::PassiveVoiceObligor {
+                        obligor_text: node.value.obligor.display_text.clone(),
+                        confidence: node.value.obligor.confidence,
+                    }
+                } else {
+                    VerificationQueueDetails::LowConfidenceObligor {
+                        obligor_text: node.value.obligor.display_text.clone(),
+                        confidence: node.value.obligor.confidence,
+                        threshold: 0.7, // Default review threshold
+                    }
+                };
+
+                queue.push(VerificationQueueItem {
+                    target: VerificationTarget::ObligorLink {
+                        node_id: node.value.node_id,
+                        source_clause_id: node
+                            .value
+                            .clauses
+                            .first()
+                            .map(|c| c.clause_id)
+                            .unwrap_or(0),
+                        obligor_display_text: node.value.obligor.display_text.clone(),
+                    },
+                    node_id: node.value.node_id,
+                    clause_id: node
+                        .value
+                        .clauses
+                        .first()
+                        .map(|c| c.clause_id)
+                        .unwrap_or(0),
+                    obligor: PartySummary::from(&node.value.obligor),
+                    details,
+                    confidence: node.value.obligor.confidence,
+                });
+            }
+
+            // Check beneficiary links
             for link in &node.value.beneficiaries {
+                // Legacy needs_verification flag (unresolved party reference)
                 if link.needs_verification {
                     queue.push(VerificationQueueItem {
                         target: VerificationTarget::BeneficiaryLink {
@@ -106,9 +152,35 @@ impl<'a> ObligationGraph<'a> {
                             beneficiary_text: link.display_text.clone(),
                             has_chain: link.chain_id.is_some(),
                         },
+                        confidence: link.confidence,
+                    });
+                }
+                // New needs_review flag (from LinkedObligation path)
+                else if link.needs_review {
+                    let review_reason = link
+                        .review_reason
+                        .clone()
+                        .unwrap_or_else(|| "Ambiguous beneficiary".to_string());
+                    queue.push(VerificationQueueItem {
+                        target: VerificationTarget::BeneficiaryLink {
+                            node_id: node.value.node_id,
+                            source_clause_id: link.source_clause_id,
+                            beneficiary_display_text: link.display_text.clone(),
+                        },
+                        node_id: node.value.node_id,
+                        clause_id: link.source_clause_id,
+                        obligor: PartySummary::from(&node.value.obligor),
+                        details: VerificationQueueDetails::AmbiguousBeneficiary {
+                            beneficiary_text: link.display_text.clone(),
+                            confidence: link.confidence,
+                            review_reason,
+                        },
+                        confidence: link.confidence,
                     });
                 }
             }
+
+            // Check condition links with unknown entities
             for condition_link in node
                 .value
                 .condition_links
@@ -131,9 +203,19 @@ impl<'a> ObligationGraph<'a> {
                         ),
                         mentions_unknown_entity: true,
                     },
+                    // Conditions don't carry confidence; use node confidence as proxy
+                    confidence: node.confidence,
                 });
             }
         }
+
+        // Sort by confidence ascending (lowest confidence = highest priority)
+        queue.sort_by(|a, b| {
+            a.confidence
+                .partial_cmp(&b.confidence)
+                .unwrap_or(Ordering::Equal)
+        });
+
         queue
     }
 
@@ -330,6 +412,8 @@ pub struct VerificationQueueItem {
     pub obligor: PartySummary,
     /// Detailed context for the verification request.
     pub details: VerificationQueueDetails,
+    /// Confidence score for sorting (lower confidence = higher priority).
+    pub confidence: f64,
 }
 
 /// Additional context for a verification queue entry.
@@ -351,6 +435,31 @@ pub enum VerificationQueueDetails {
         condition_type: String,
         /// Whether the parser flagged an unknown entity.
         mentions_unknown_entity: bool,
+    },
+    /// Obligor detected via passive voice (from LinkedObligation).
+    PassiveVoiceObligor {
+        /// Surface text of the obligor.
+        obligor_text: String,
+        /// Confidence score for this detection.
+        confidence: f64,
+    },
+    /// Obligor with low confidence requiring review.
+    LowConfidenceObligor {
+        /// Surface text of the obligor.
+        obligor_text: String,
+        /// Confidence score for this detection.
+        confidence: f64,
+        /// Threshold below which review is required.
+        threshold: f64,
+    },
+    /// Ambiguous beneficiary requiring clarification.
+    AmbiguousBeneficiary {
+        /// Surface text of the beneficiary.
+        beneficiary_text: String,
+        /// Confidence score for this detection.
+        confidence: f64,
+        /// Reason this beneficiary needs review.
+        review_reason: String,
     },
 }
 

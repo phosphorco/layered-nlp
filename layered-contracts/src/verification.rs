@@ -31,6 +31,15 @@ pub enum VerificationTarget {
         /// Captured condition text.
         condition_text: String,
     },
+    /// Obligor link needing review (from LinkedObligation).
+    ObligorLink {
+        /// Obligation node identifier.
+        node_id: u32,
+        /// Clause identifier from which the obligor was derived.
+        source_clause_id: u32,
+        /// Obligor display text for disambiguation.
+        obligor_display_text: String,
+    },
 }
 
 /// Reviewer note associated with a verification target.
@@ -221,12 +230,16 @@ pub fn apply_verification_action(
                         link.chain_id = resolved_chain_id;
                         link.needs_verification = false;
                         link.has_verified_chain = resolved_chain_id.is_some();
+                        // Also clear the needs_review flag (Gate 5)
+                        link.needs_review = false;
+                        link.review_reason = None;
                         updated = true;
                     }
                 }
 
                 if updated {
-                    if node.value.beneficiaries.iter().all(|b| !b.needs_verification) {
+                    // Mark as verified when all beneficiaries are resolved (both flags)
+                    if node.value.beneficiaries.iter().all(|b| !b.needs_verification && !b.needs_review) {
                         mark_score_verified(node, &verifier_id);
                     }
                     push_note(

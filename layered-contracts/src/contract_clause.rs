@@ -38,6 +38,17 @@ pub struct ClauseParty {
     pub chain_id: Option<u32>,
     /// Whether the underlying chain already contains a verified mention.
     pub has_verified_chain: bool,
+    /// Confidence score for this party identification (0.0-1.0).
+    ///
+    /// - 1.0: Direct term reference (highest confidence)
+    /// - 0.9: Pronoun with verified chain
+    /// - 0.7: Pronoun without verified chain
+    /// - 0.5: Noun phrase not linked to defined term (lowest confidence)
+    pub confidence: f64,
+    /// Whether this party identification needs human review.
+    pub needs_review: bool,
+    /// Reason for review if applicable.
+    pub review_reason: Option<String>,
 }
 
 /// The duty extracted from an obligation phrase.
@@ -164,16 +175,28 @@ impl ContractClauseResolver {
                     display_text: term_name.clone(),
                     chain_id: chain.map(|c| c.chain_id),
                     has_verified_chain: chain.map(|c| c.has_verified_mention).unwrap_or(false),
+                    confidence: 1.0,
+                    needs_review: false,
+                    review_reason: None,
                 }
             }
             ObligorReference::PronounRef {
                 resolved_to, ..
             } => {
                 let chain = self.best_chain_match(chains, resolved_to);
+                let has_verified = chain.map(|c| c.has_verified_mention).unwrap_or(false);
+                let (confidence, needs_review, review_reason) = if has_verified {
+                    (0.9, false, None)
+                } else {
+                    (0.7, true, Some("Pronoun chain unverified".to_string()))
+                };
                 ClauseParty {
                     display_text: resolved_to.clone(),
                     chain_id: chain.map(|c| c.chain_id),
-                    has_verified_chain: chain.map(|c| c.has_verified_mention).unwrap_or(false),
+                    has_verified_chain: has_verified,
+                    confidence,
+                    needs_review,
+                    review_reason,
                 }
             }
             ObligorReference::NounPhrase { text } => {
@@ -182,6 +205,9 @@ impl ContractClauseResolver {
                     display_text: text.clone(),
                     chain_id: chain.map(|c| c.chain_id),
                     has_verified_chain: chain.map(|c| c.has_verified_mention).unwrap_or(false),
+                    confidence: 0.5,
+                    needs_review: true,
+                    review_reason: Some("Not linked to defined term".to_string()),
                 }
             }
         }

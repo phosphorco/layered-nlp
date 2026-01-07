@@ -109,7 +109,8 @@ expression: payload.to_json_string()
         "type": "beneficiary",
         "beneficiary_text": "Regional Authority",
         "has_chain": false
-      }
+      },
+      "confidence": 0.5
     }
   ]
 }

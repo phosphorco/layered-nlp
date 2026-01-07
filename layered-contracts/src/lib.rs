@@ -58,7 +58,9 @@ mod document_structure;
 mod modal_negation;
 mod modal_scope;
 mod obligation;
+mod scoped_obligation_resolver;
 mod obligation_linker;
+mod linked_obligation_resolver;
 mod polarity;
 mod precedence;
 mod pronoun;
@@ -132,10 +134,12 @@ pub use obligation::{
 };
 pub use modal_negation::*;
 pub use modal_scope::{ModalScopeAnalyzer, ScopedObligation};
+pub use scoped_obligation_resolver::ScopedObligationResolver;
 pub use obligation_linker::{
     ClauseParticipant, LinkedObligation, ObligationPartyLinker, ObligationPartyLinkerConfig,
     ParticipantRole,
 };
+pub use linked_obligation_resolver::{LinkedObligationResolver, LinkedObligationResolverConfig};
 pub use polarity::*;
 pub use precedence::{
     ConflictResolution, PrecedenceDetector, PrecedenceResolver, PrecedenceRule, ResolutionBasis,

@@ -4,5 +4,5 @@ expression: "test_pronouns(r#\"The Company shall deliver and it must comply.\"#)
 ---
 The     Company     shall     deliver     and     it     must     comply  .
                     ╰───╯Shall
-                                                         ╰──╯Shall
+                                                         ╰──╯Must
                                                   ╰╯Scored(PronounReference { pronoun: "it", pronoun_type: ThirdSingularNeuter, candidates: [AntecedentCandidate { text: "and", is_defined_term: false, token_distance: 7, confidence: 0.61 }, AntecedentCandidate { text: "Company", is_defined_term: false, token_distance: 13, confidence: 0.49 }] }, conf: 0.41)

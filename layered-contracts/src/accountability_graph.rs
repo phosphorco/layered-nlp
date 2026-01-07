@@ -11,6 +11,7 @@ use layered_nlp::{x, LLCursorAssignment, LLSelection, Resolver};
 
 use crate::clause_aggregate::{ClauseAggregate, ClauseAggregateEntry};
 use crate::contract_clause::{ClauseCondition, ClauseParty};
+use crate::obligation_linker::LinkedObligation;
 use crate::pronoun_chain::PronounChain;
 use crate::Scored;
 use crate::utils::normalize_party_name;
@@ -29,6 +30,12 @@ pub struct BeneficiaryLink {
     pub needs_verification: bool,
     /// Clause ID the beneficiary link was extracted from.
     pub source_clause_id: u32,
+    /// Confidence score for this beneficiary link (0.0-1.0).
+    pub confidence: f64,
+    /// Whether this beneficiary link needs human review.
+    pub needs_review: bool,
+    /// Reason for review if applicable.
+    pub review_reason: Option<String>,
 }
 
 /// Edge capturing conditional relationships (Section references, If/Unless, etc.).
@@ -59,6 +66,12 @@ pub struct ObligationNode {
     pub verification_notes: Vec<VerificationNote>,
     /// Explanation of how the node confidence was derived.
     pub confidence_breakdown: Vec<String>,
+    /// Overall confidence for the node (from LinkedObligation if available).
+    pub node_confidence: f64,
+    /// Whether the obligor needs human review.
+    pub obligor_needs_review: bool,
+    /// Reason for obligor review if applicable.
+    pub obligor_review_reason: Option<String>,
 }
 
 /// Resolver that converts `ClauseAggregate` records into `ObligationNode`s.
@@ -163,20 +176,34 @@ impl AccountabilityGraphResolver {
         for candidate in Self::extract_beneficiary_candidates(&entry.duty.action) {
             let normalized = normalize_party_name(&candidate);
             if let Some(chain) = chain_map.get(&normalized) {
+                // Legacy path: regex extraction with pronoun chain linkage
+                // Higher confidence when we can link to a verified chain
+                let confidence = if chain.has_verified { 0.7 } else { 0.6 };
                 results.push(BeneficiaryLink {
                     display_text: candidate.clone(),
                     chain_id: Some(chain.chain_id),
                     has_verified_chain: chain.has_verified,
                     needs_verification: false,
                     source_clause_id: entry.clause_id,
+                    confidence,
+                    needs_review: false,
+                    review_reason: None,
                 });
             } else if Self::looks_like_entity(&candidate) {
+                // Legacy path: unlinked regex extraction
+                // Lower confidence for unresolved party references
                 results.push(BeneficiaryLink {
                     display_text: candidate.clone(),
                     chain_id: None,
                     has_verified_chain: false,
                     needs_verification: true,
                     source_clause_id: entry.clause_id,
+                    confidence: 0.5,
+                    needs_review: true,
+                    review_reason: Some(format!(
+                        "Beneficiary '{}' not linked to pronoun chain",
+                        candidate
+                    )),
                 });
             }
         }
@@ -226,6 +253,7 @@ impl Resolver for AccountabilityGraphResolver {
     type Attr = Scored<ObligationNode>;
 
     fn go(&self, selection: LLSelection) -> Vec<LLCursorAssignment<Self::Attr>> {
+        // Build pronoun chain map for legacy beneficiary detection
         let mut chain_map = HashMap::new();
         for (_, chain) in selection
             .find_by(&x::attr::<Scored<PronounChain>>())
@@ -240,6 +268,108 @@ impl Resolver for AccountabilityGraphResolver {
             );
         }
 
+        // Primary path: Try LinkedObligation first (Gate 3 output)
+        let linked_obligations: Vec<_> = selection
+            .find_by(&x::attr::<LinkedObligation>())
+            .into_iter()
+            .collect();
+
+        if !linked_obligations.is_empty() {
+            return self.build_from_linked_obligations(linked_obligations, &chain_map);
+        }
+
+        // Legacy fallback: Use ClauseAggregate when LinkedObligation not available
+        self.build_from_aggregates(selection, &chain_map)
+    }
+}
+
+impl AccountabilityGraphResolver {
+    /// Build ObligationNodes from LinkedObligation (primary path).
+    ///
+    /// Uses LinkedObligation for party extraction with higher confidence
+    /// than the legacy regex-based approach.
+    fn build_from_linked_obligations(
+        &self,
+        linked_obligations: Vec<(LLSelection, &LinkedObligation)>,
+        chain_map: &HashMap<String, ChainInfo>,
+    ) -> Vec<LLCursorAssignment<Scored<ObligationNode>>> {
+        let mut results = Vec::new();
+        let mut node_id = 1u32;
+
+        for (sel, linked) in linked_obligations {
+            // Extract obligor from LinkedObligation
+            let obligor_participant = &linked.obligor.ambiguous.best.value;
+            let obligor_text = obligor_participant.resolved_entity_text();
+            let normalized = normalize_party_name(obligor_text);
+            let chain_info = chain_map.get(&normalized);
+
+            let obligor = ClauseParty {
+                display_text: obligor_text.to_string(),
+                chain_id: chain_info.map(|c| c.chain_id),
+                has_verified_chain: chain_info.map(|c| c.has_verified).unwrap_or(false),
+                confidence: obligor_participant.confidence,
+                needs_review: obligor_participant.needs_review,
+                review_reason: obligor_participant.review_reason.clone(),
+            };
+
+            // Extract beneficiary from LinkedObligation if present
+            let mut beneficiaries = Vec::new();
+            if let Some(ref beneficiary_result) = linked.beneficiary {
+                let beneficiary_participant = &beneficiary_result.ambiguous.best.value;
+                let normalized = normalize_party_name(beneficiary_participant.resolved_entity_text());
+                let chain_info = chain_map.get(&normalized);
+
+                beneficiaries.push(BeneficiaryLink {
+                    display_text: beneficiary_participant.text.clone(),
+                    chain_id: chain_info.map(|c| c.chain_id),
+                    has_verified_chain: chain_info.map(|c| c.has_verified).unwrap_or(false),
+                    needs_verification: beneficiary_result.needs_review,
+                    source_clause_id: 0, // LinkedObligation doesn't track clause ID
+                    confidence: beneficiary_result.confidence(),
+                    needs_review: beneficiary_result.needs_review,
+                    review_reason: beneficiary_result.review_reason.clone(),
+                });
+            }
+
+            // Build confidence breakdown
+            let mut breakdown = vec![
+                format!("LinkedObligation overall: {:.2}", linked.overall_confidence),
+                format!("Obligor confidence: {:.2}", linked.obligor.confidence()),
+            ];
+            if let Some(ref ben) = linked.beneficiary {
+                breakdown.push(format!("Beneficiary confidence: {:.2}", ben.confidence()));
+            }
+
+            let node = ObligationNode {
+                node_id,
+                aggregate_id: node_id, // No aggregate ID from LinkedObligation path
+                obligor,
+                beneficiaries,
+                condition_links: Vec::new(), // Conditions not tracked in LinkedObligation
+                clauses: Vec::new(),         // No clause entries from LinkedObligation path
+                verification_notes: Vec::new(),
+                confidence_breakdown: breakdown,
+                node_confidence: linked.overall_confidence,
+                obligor_needs_review: linked.obligor.needs_review,
+                obligor_review_reason: linked.obligor.review_reason.clone(),
+            };
+
+            results.push(sel.finish_with_attr(Scored::derived(node, linked.overall_confidence)));
+            node_id += 1;
+        }
+
+        results
+    }
+
+    /// Build ObligationNodes from ClauseAggregate (legacy fallback).
+    ///
+    /// Uses regex-based beneficiary extraction with lower confidence.
+    /// This path is maintained for backward compatibility during migration.
+    fn build_from_aggregates(
+        &self,
+        selection: LLSelection,
+        chain_map: &HashMap<String, ChainInfo>,
+    ) -> Vec<LLCursorAssignment<Scored<ObligationNode>>> {
         let mut aggregates: Vec<_> = selection
             .find_by(&x::attr::<Scored<ClauseAggregate>>())
             .into_iter()
@@ -254,7 +384,7 @@ impl Resolver for AccountabilityGraphResolver {
             let mut condition_links = Vec::new();
 
             for entry in &aggregate.value.clauses {
-                beneficiaries.extend(self.detect_beneficiaries(entry, &chain_map));
+                beneficiaries.extend(self.detect_beneficiaries(entry, chain_map));
                 condition_links.extend(Self::build_condition_links(entry));
             }
 
@@ -280,6 +410,10 @@ impl Resolver for AccountabilityGraphResolver {
                 clauses: aggregate.value.clauses.clone(),
                 verification_notes: Vec::new(),
                 confidence_breakdown: breakdown,
+                // Legacy path: use calculated confidence, obligor not reviewed
+                node_confidence: confidence,
+                obligor_needs_review: false,
+                obligor_review_reason: None,
             };
 
             results.push(sel.finish_with_attr(Scored::derived(node, confidence)));

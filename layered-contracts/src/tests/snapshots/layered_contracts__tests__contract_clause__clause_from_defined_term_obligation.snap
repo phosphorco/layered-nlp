@@ -4,4 +4,4 @@ expression: "test_clauses(r#\"ABC Corp (the \"Company\") shall deliver finished 
 ---
 ABC     Corp     (  the     "  Company  "  )     shall     deliver     finished     goods  .
                                                  ╰───╯Scored(ObligationPhrase { obligor: NounPhrase { text: "Company" }, obligation_type: Duty, action: "deliver finished goods", conditions: [] }, conf: 0.75)
-                                                 ╰───╯Scored(ContractClause { clause_id: 12, source_offset: 12, obligor: ClauseParty { display_text: "Company", chain_id: None, has_verified_chain: false }, duty: ClauseDuty { obligation_type: Duty, action: "deliver finished goods" }, conditions: [] }, conf: 0.75)
+                                                 ╰───╯Scored(ContractClause { clause_id: 12, source_offset: 12, obligor: ClauseParty { display_text: "Company", chain_id: None, has_verified_chain: false, confidence: 0.5, needs_review: true, review_reason: Some("Not linked to defined term") }, duty: ClauseDuty { obligation_type: Duty, action: "deliver finished goods" }, conditions: [] }, conf: 0.75)
