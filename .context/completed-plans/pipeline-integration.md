@@ -179,3 +179,28 @@ After both gates:
 cargo test -p layered-nlp-specs
 # Should show fixtures executing end-to-end
 ```
+
+---
+
+## Completion Summary
+
+**Completed**: 2026-01-07
+
+### Outcomes
+
+- `run_fixture()` now processes fixture text through the full resolver chain (POS -> ContractKeyword -> Prohibition -> DefinedTerm -> TermReference -> Pronoun -> ObligationPhrase)
+- `PipelineResult` populated with real detected spans from resolver output
+- 2 of 7 fixtures pass end-to-end with real resolver output
+- 5 fixtures documented in `expected_failures.toml` with 10 known failure entries
+
+### Key Learnings
+
+1. **Span anchoring**: Resolvers anchor at semantic trigger points (modal keywords), not full phrases
+2. **Quote handling**: Fixtures use quoted text while resolver output excludes quotes
+3. **Multi-paragraph**: Current chain processes paragraphs independently; cross-paragraph resolution needs future work
+
+### Next Steps (Future Work)
+
+- Cross-paragraph pronoun resolution
+- Term reference linking across paragraphs
+- Span text construction improvements for quote handling

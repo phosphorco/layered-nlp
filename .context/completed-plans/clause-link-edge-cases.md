@@ -2,8 +2,37 @@
 
 **Interesting artifacts and learnings must be written back to this document.**
 
-**Status:** Gate 4 Complete ✅ (Cross-Reference Integration)
+**Status:** ✅ PLAN COMPLETE (Gates 0-4 implemented, Gates 5-6 deferred)
 **Created:** 2026-01-01
+
+---
+
+## Completion Summary
+
+**Completion Date:** 2026-01-05
+
+**Summary:** Gates 0-4 fully implemented, Gates 5-6 deferred pending infrastructure.
+
+**Test Results:** 157 unit tests + 14 doc tests passing
+
+**Key Artifacts:**
+- `clause_link_resolver.rs` - Core linking logic with cross-line support, operators, exception scope, list detection, and cross-reference integration
+- `clause_query.rs` - Query API with conjuncts(), exceptions(), list_items(), referenced_sections(), etc.
+- `sentence_boundary.rs` - Sentence boundary detection for cross-line linking
+- `list_marker.rs` - List marker detection for (a), (i), 1. patterns
+
+**Gates Completed:**
+- **Gate 0:** Cross-line clause relationships (sentence boundary detection, confidence scoring)
+- **Gate 2:** Extended operators (Or, But, Nor) with precedence parsing
+- **Gate 1:** Exception scope propagation (transitive exception chains, semicolon boundaries)
+- **Gate 3:** List structure support (list markers, ListItem/ListContainer roles)
+- **Gate 4:** Cross-reference integration (SectionReference linking, query API)
+
+**Deferred (Gates 5-6):**
+- Gate 5: Semantic disambiguation (polarity tracking, modal-negation interaction) - blocked on NP chunker
+- Gate 6: Linguistic phenomena (anaphora, cataphora, relative clauses) - design decisions pending
+
+---
 **Package:** layered-clauses
 
 ## Overview
