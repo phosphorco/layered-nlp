@@ -1,0 +1,9 @@
+# Test: Multi-Paragraph Obligation with Entity Reference
+
+«T:The Tenant» agrees to the following terms.
+
+---
+
+«1:shall pay» rent of $2,000 to «L:the Landlord» on the first of each month.
+
+> [1]: Obligation(modal=shall, bearer=§T)

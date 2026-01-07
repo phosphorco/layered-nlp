@@ -1,0 +1,37 @@
+# When releasing to crates.io:
+# - Remove path dependencies
+# - Update html_root_url.
+# - Update doc url
+#   - Cargo.toml
+#   - README.md
+# - Create "v0.1.x" git tag
+
+[package]
+name = "layered-nlp-specs"
+version = "0.1.0"
+authors = [
+  "Cole Lawrence <cole@colelawrence.com>",
+]
+edition = "2018"
+description = "Specification-driven testing infrastructure for layered-nlp"
+repository = "https://github.com/storyscript/layered-nlp"
+homepage = "https://github.com/storyscript/layered-nlp"
+license = "MIT OR Apache-2.0"
+categories = [
+    "text-processing",
+    "development-tools::testing",
+]
+keywords = ["layered-nlp", "nlp", "testing", "fixtures"]
+
+[dependencies]
+layered-nlp = { path = "..", version = "0.1" }
+layered-contracts = { path = "../layered-contracts" }
+layered-nlp-document = { path = "../layered-nlp-document" }
+layered-part-of-speech = { path = "../layered-part-of-speech" }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+toml = "0.8"
+
+[dev-dependencies]
+insta = "1.7"
+tempfile = "3.10"

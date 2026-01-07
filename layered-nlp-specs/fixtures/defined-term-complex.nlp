@@ -1,0 +1,10 @@
+# Test: Defined Term with Cross-Paragraph Usage
+
+«P:Property» means the residential unit located at 123 Main Street.
+
+---
+
+The Tenant shall maintain the «1:Property» in good condition.
+
+> ["Property"]: DefinedTerm(term_name=Property, definition_type=QuotedMeans)
+> [1]: DefinedTerm(term_name=Property)

@@ -1,0 +1,87 @@
+# Expected failures for spec-driven tests.
+# Format: fixture = "file.nlp", assertion = "S{paragraph}.[{span}]"
+#
+# Failure states:
+#   pending - Known failure, awaiting fix (not blocking CI)
+#   known   - Acknowledged limitation (won't fix)
+#
+# Exit codes:
+#   0 - Only expected failures or all passing
+#   1 - Regressions detected (unexpected failures)
+
+# --- multi-paragraph-obligation.nlp ---
+
+[[pending]]
+fixture = "multi-paragraph-obligation.nlp"
+assertion = "S0.[1]"
+reason = "Multi-paragraph context not propagating correctly for span detection"
+added = "2025-01-07"
+
+# --- pronoun-reference.nlp ---
+
+[[pending]]
+fixture = "pronoun-reference.nlp"
+assertion = "S1.[1]"
+reason = "Cross-paragraph pronoun resolution not yet working"
+added = "2025-01-07"
+
+# --- defined-term-single.nlp ---
+
+[[pending]]
+fixture = "defined-term-single.nlp"
+assertion = "S0.[1]"
+reason = "Quote marks in fixture span text don't match resolver output (resolver strips quotes)"
+added = "2025-01-07"
+
+# --- defined-term-complex.nlp ---
+
+[[pending]]
+fixture = "defined-term-complex.nlp"
+assertion = "S0.[\"Property\"]"
+reason = "Text reference syntax for DefinedTerm not yet supported"
+added = "2025-01-07"
+
+[[pending]]
+fixture = "defined-term-complex.nlp"
+assertion = "S1.[1]"
+reason = "Cross-paragraph term references not yet supported"
+added = "2025-01-07"
+
+# --- full-contract-section.nlp ---
+
+[[pending]]
+fixture = "full-contract-section.nlp"
+assertion = "S0.[1]"
+reason = "Complex multi-paragraph fixture: obligation span boundaries need fixes"
+added = "2025-01-07"
+
+[[pending]]
+fixture = "full-contract-section.nlp"
+assertion = "S0.[2]"
+reason = "Complex multi-paragraph fixture: bearer extraction not working"
+added = "2025-01-07"
+
+[[pending]]
+fixture = "full-contract-section.nlp"
+assertion = "S1.[1]"
+reason = "Complex multi-paragraph fixture: second paragraph obligation detection"
+added = "2025-01-07"
+
+[[pending]]
+fixture = "full-contract-section.nlp"
+assertion = "S1.[2]"
+reason = "Complex multi-paragraph fixture: pronoun detection in second paragraph"
+added = "2025-01-07"
+
+[[pending]]
+fixture = "full-contract-section.nlp"
+assertion = "S2.[1]"
+reason = "Complex multi-paragraph fixture: third paragraph obligation detection"
+added = "2025-01-07"
+
+# Example of a known limitation:
+# [[known]]
+# fixture = "example-known.nlp"
+# assertion = "S2.[3]"
+# reason = "This pattern is not supported by the current architecture"
+# issue = "https://github.com/example/issues/123"

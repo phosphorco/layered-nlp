@@ -1,0 +1,10 @@
+# Test: Pronoun Resolution with Cross-Reference
+
+«T:The Tenant» entered into this Agreement on the Effective Date.
+
+---
+
+«1:It» «2:shall provide» proof of insurance within 30 days.
+
+> [1]: PronounReference(pronoun_type=ThirdSingularNeuter, target=§T)
+> [2]: Obligation(modal=shall, bearer=§T)

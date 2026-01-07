@@ -1,0 +1,18 @@
+# Test: Contract Section with Multiple References
+
+«T:The Tenant» and «L:The Landlord» agree as follows.
+
+---
+
+«1:shall pay» rent in the amount of «rent:$2,000» per month. Payment «2:shall be made» by the first day of each month to «3:the Landlord».
+
+---
+
+If «4:it» «5:fails to» pay on time, «6:the Landlord» «7:may terminate» this Agreement.
+
+> [1]: Obligation(modal=shall, bearer=§T)
+> [2]: Obligation(modal=shall)
+> [3]: PronounReference(target=§L)
+> [4]: PronounReference(pronoun_type=ThirdSingularNeuter, target=§T)
+> [5]: Obligation(modal=fails)
+> [7]: Obligation(modal=may, bearer=§L)
