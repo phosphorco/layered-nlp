@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Queue Demo</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <style>
+        /* =======================================================================
+           Verification Queue Demo
+           =======================================================================
+
+           This demo displays items that need human verification from the
+           contract analysis pipeline. Items are prioritized by confidence -
+           lower confidence items need more urgent human review.
+
+           WASM exports used:
+           - get_verification_queue(text) -> { items: [...], total_count: number }
+
+           Each item has:
+           - item_id, target_type, node_id, clause_id, priority
+           - details_type, confidence, display_text
+           ======================================================================= */
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-page);
+            color: var(--text-primary);
+        }
+
+        header {
+            padding: 16px 24px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-default);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        header .subtitle {
+            font-weight: 400;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-left: 12px;
+        }
+
+        .input-section {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 900px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        #contract-input {
+            min-height: 150px;
+            padding: 12px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 15px;
+            line-height: 1.6;
+            border: 1px solid var(--border-default);
+            border-radius: var(--border-radius-md);
+            resize: vertical;
+            background: var(--bg-page);
+        }
+
+        #contract-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: var(--bg-card);
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .sample-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .sample-row label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            min-width: 110px;
+        }
+
+        #sample-select {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid var(--border-default);
+            border-radius: var(--border-radius-md);
+            background: var(--bg-page);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        #sample-select:disabled {
+            opacity: 0.6;
+        }
+
+        #clear-sample-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--border-default);
+            border-radius: var(--border-radius-md);
+            background: var(--bg-page);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        #clear-sample-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .sample-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .sample-status {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        #analyze-btn {
+            padding: 8px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: background 0.15s;
+        }
+
+        #analyze-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        #analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            min-height: 400px;
+        }
+
+        .queue-list {
+            border-right: 1px solid var(--border-default);
+            overflow-y: auto;
+            max-height: calc(100vh - 300px);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: var(--bg-page);
+        }
+
+        .queue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-default);
+            margin-bottom: 4px;
+            position: sticky;
+            top: 0;
+            background: var(--bg-page);
+            z-index: 1;
+            padding-top: 0;
+        }
+
+        .queue-header h2 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .queue-count {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .queue-item {
+            cursor: pointer;
+            transition: all 0.15s;
+            padding: 12px 14px;
+        }
+
+        .queue-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .queue-item:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        .queue-item.selected {
+            background: var(--bg-highlight);
+            border-left-color: var(--primary);
+        }
+
+        /* TUI card variants based on confidence/risk */
+        .queue-item.critical {
+            border-left-color: var(--risk-critical);
+        }
+
+        .queue-item.high {
+            border-left-color: var(--risk-high);
+        }
+
+        .queue-item.medium {
+            border-left-color: var(--risk-medium);
+        }
+
+        .queue-item.low {
+            border-left-color: var(--risk-low);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .item-text {
+            color: var(--text-body);
+            font-size: 14px;
+            font-family: Georgia, "Times New Roman", serif;
+            line-height: 1.5;
+        }
+
+        .confidence-indicator {
+            font-size: 12px;
+            font-weight: 600;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+        }
+
+        .confidence-indicator.critical {
+            color: var(--risk-critical);
+        }
+
+        .confidence-indicator.high {
+            color: var(--risk-high);
+        }
+
+        .confidence-indicator.medium {
+            color: var(--risk-medium);
+        }
+
+        .confidence-indicator.low {
+            color: var(--risk-low);
+        }
+
+        .detail-panel {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: var(--bg-card);
+            min-height: 400px;
+        }
+
+        .detail-panel .empty-state {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 48px 24px;
+            font-size: 14px;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .detail-target-type {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+            background: var(--bg-accent);
+            color: var(--text-secondary);
+        }
+
+        .detail-confidence {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .confidence-bar {
+            height: 8px;
+            background: var(--bg-hover);
+            border-radius: 4px;
+            overflow: hidden;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            transition: width 0.3s;
+            border-radius: 4px;
+        }
+
+        .confidence-fill.critical {
+            background: var(--risk-critical);
+        }
+
+        .confidence-fill.high {
+            background: var(--risk-high);
+        }
+
+        .confidence-fill.medium {
+            background: var(--risk-medium);
+        }
+
+        .confidence-fill.low {
+            background: var(--risk-low);
+        }
+
+        .confidence-value {
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .detail-explanation {
+            padding: 12px 14px;
+            background: var(--bg-accent);
+            border-radius: var(--border-radius-md);
+            border-left: 3px solid var(--primary);
+        }
+
+        .detail-explanation p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .detail-text {
+            margin: 0;
+        }
+
+        .detail-text p {
+            margin: 8px 0 0 0;
+            line-height: 1.7;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 16px;
+            color: var(--text-body);
+        }
+
+        .detail-meta {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+
+        .detail-meta .value {
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+            font-size: 13px;
+            color: var(--text-body);
+        }
+
+        .detail-id {
+            margin-top: auto;
+            font-size: 11px;
+            font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+            color: var(--text-light);
+            padding-top: 16px;
+            border-top: 1px solid var(--border-default);
+        }
+
+        .success-state {
+            padding: 64px 48px;
+            text-align: center;
+            background: var(--bg-card);
+        }
+
+        .success-state .checkmark {
+            font-size: 64px;
+            display: block;
+            margin-bottom: 20px;
+            color: var(--risk-low);
+        }
+
+        .success-state .message {
+            font-size: 18px;
+            color: var(--text-body);
+            font-weight: 500;
+        }
+
+        .success-state .submessage {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Loading state */
+        .loading-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+            color: var(--text-secondary);
+            gap: 12px;
+        }
+
+        .loading-state::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-default);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error state */
+        .error-container {
+            padding: 0 24px;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 16px 24px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-light);
+            border-top: 1px solid var(--border-default);
+        }
+
+        .footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* =============================================
+           Gate 3: Verification Actions Styles
+           ============================================= */
+
+        /* Toolbar for export/import */
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px 24px;
+            background: var(--bg-hover);
+            border-bottom: 1px solid var(--border-default);
+            align-items: center;
+        }
+
+        .toolbar button {
+            padding: 6px 14px;
+            border: 1px solid var(--border-default);
+            border-radius: var(--border-radius-md);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .toolbar button:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-secondary);
+        }
+
+        .toolbar .progress-info {
+            margin-left: auto;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Queue item visual states */
+        .queue-item {
+            position: relative;
+        }
+
+        .queue-item.item-confirmed {
+            opacity: 0.7;
+            border-left-color: var(--risk-low);
+        }
+
+        .queue-item.item-confirmed::after {
+            content: '\2713';
+            position: absolute;
+            right: 8px;
+            top: 8px;
+            color: var(--risk-low);
+            font-weight: bold;
+        }
+
+        .queue-item.item-corrected {
+            border-left-color: var(--primary);
+        }
+
+        .queue-item.item-corrected::after {
+            content: '\270E';
+            position: absolute;
+            right: 8px;
+            top: 8px;
+            color: var(--primary);
+        }
+
+        .queue-item.item-dismissed {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .queue-item.item-dismissed::after {
+            content: '\2717';
+            position: absolute;
+            right: 8px;
+            top: 8px;
+            color: var(--text-muted);
+        }
+
+        /* Detail panel action buttons */
+        .detail-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-default);
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.15s;
+        }
+
+        .confirm-btn {
+            background: var(--risk-low-bg);
+            color: var(--risk-low);
+        }
+
+        .confirm-btn:hover:not(:disabled) {
+            background: var(--risk-low);
+            color: white;
+        }
+
+        .confirm-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .correct-btn {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .correct-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .dismiss-btn {
+            background: var(--bg-hover);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-default);
+        }
+
+        .dismiss-btn:hover:not(:disabled) {
+            background: var(--text-secondary);
+            color: white;
+        }
+
+        .dismiss-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Correction input area */
+        .correction-input {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--bg-hover);
+            border-radius: 4px;
+        }
+
+        .correction-input textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 8px;
+            border: 1px solid var(--border-default);
+            border-radius: 4px;
+            font-family: Georgia, serif;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .correction-input textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .correction-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            justify-content: flex-end;
+        }
+
+        .correction-actions button {
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .correction-actions button:first-child {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .correction-actions button:first-child:hover {
+            background: var(--primary-hover);
+        }
+
+        .correction-actions button:last-child {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-default);
+        }
+
+        .correction-actions button:last-child:hover {
+            background: var(--bg-hover);
+        }
+
+        /* State indicator in detail panel */
+        .detail-state-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .detail-state-badge.confirmed {
+            background: var(--risk-low-bg);
+            color: var(--risk-low);
+        }
+
+        .detail-state-badge.corrected {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .detail-state-badge.dismissed {
+            background: var(--bg-hover);
+            color: var(--text-muted);
+        }
+
+        /* Corrected text display */
+        .corrected-text-display {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--primary-light);
+            border-radius: 4px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .corrected-text-display .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .corrected-text-display .text {
+            font-family: Georgia, serif;
+            font-size: 14px;
+            color: var(--text-body);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .results-section {
+                grid-template-columns: 1fr;
+            }
+
+            .queue-list {
+                max-height: 300px;
+                border-right: none;
+                border-bottom: 1px solid var(--border-default);
+            }
+
+            .toolbar {
+                flex-wrap: wrap;
+            }
+
+            .detail-actions {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* =============================================
+           Gate 4: Re-analysis & Diff Summary Styles
+           ============================================= */
+
+        /* Fully verified item styling (confidence >= 1.0) */
+        .queue-item.item-fully-verified {
+            border-left-color: var(--risk-low);
+            background: var(--risk-low-bg);
+            opacity: 0.8;
+            position: relative;
+        }
+
+        .queue-item.item-fully-verified::before {
+            content: 'Verified';
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            font-size: 10px;
+            color: var(--risk-low);
+            font-weight: 600;
+        }
+
+        .queue-item.item-fully-verified .confidence-indicator {
+            background: var(--risk-low);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        /* Diff summary panel */
+        .diff-summary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            margin: 12px 24px;
+            padding: 12px 16px;
+        }
+
+        .diff-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .diff-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .diff-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .diff-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            background: var(--bg-hover);
+        }
+
+        .diff-stat.verified { background: var(--risk-low-bg); color: var(--risk-low); }
+        .diff-stat.corrected { background: var(--primary-light); color: var(--primary); }
+        .diff-stat.dismissed { background: var(--bg-hover); color: var(--text-secondary); }
+        .diff-stat.remaining { background: var(--risk-medium-bg); color: var(--risk-medium); }
+
+        .stat-icon {
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+        }
+
+        #close-diff {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 0 4px;
+        }
+
+        #close-diff:hover {
+            color: var(--text-primary);
+        }
+
+        #reanalyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        Verification Queue Demo
+        <span class="subtitle">Items requiring human review</span>
+    </header>
+
+    <section class="input-section">
+        <!--
+            Sample Text Design Notes:
+            ==========================
+            This sample is structured to demonstrate verification queue functionality.
+            It includes patterns that trigger queue items:
+
+            1. Direct-object beneficiaries: "pay the Contractor"
+               (capitalized beneficiary without "to" gets flagged for review)
+            2. Passive voice obligations: "Reports shall be made" (implicit obligor)
+
+            Expected queue items: 2-4 items depending on NLP pipeline detection
+        -->
+        <textarea id="contract-input" placeholder="Paste contract text here...">SERVICES AGREEMENT
+
+"Company" means ABC Corporation. "Contractor" means XYZ Services LLC.
+
+1. Payment. The Company shall pay the Contractor within 30 days of invoice receipt.
+2. Reporting. Reports shall be made within 10 days of invoice receipt.
+3. Reimbursements. The Vendor shall reimburse Customer fees and notify Regional Authority of any late payments.
+4. Compliance. The Contractor shall ensure compliance with all regulations. The necessary certifications shall be obtained prior to project commencement.
+5. Termination. The Company may terminate this agreement if Contractor fails to perform. Notices shall be delivered within 5 days.</textarea>
+        <div class="sample-row">
+            <label for="sample-select">Queue samples</label>
+            <select id="sample-select" disabled>
+                <option>Loading samples...</option>
+            </select>
+            <button id="clear-sample-btn" disabled>Clear saved review</button>
+        </div>
+        <div class="sample-description" id="sample-description"></div>
+        <div class="sample-status" id="sample-status"></div>
+        <div class="button-row">
+            <button id="analyze-btn">Analyze</button>
+        </div>
+    </section>
+
+    <div id="error-container" class="error-container"></div>
+
+    <div class="toolbar" id="toolbar" style="display: none;">
+        <button id="export-btn" aria-label="Export corrections to JSON file">Export JSON</button>
+        <button id="import-btn" aria-label="Import corrections from JSON file">Import JSON</button>
+        <input type="file" id="import-file" accept=".json" style="display:none">
+        <button id="reanalyze-btn" aria-label="Re-analyze with corrections applied" disabled>Re-analyze with Corrections</button>
+        <span class="progress-info" id="review-progress">0 items to review</span>
+    </div>
+
+    <div id="diff-summary" class="diff-summary" role="status" aria-live="polite" style="display: none;">
+        <div class="diff-header">
+            <span class="diff-title">Re-analysis Summary</span>
+            <button id="close-diff" aria-label="Close summary">&#10005;</button>
+        </div>
+        <div class="diff-stats">
+            <!-- Populated by showDiffSummary() -->
+        </div>
+    </div>
+
+    <section class="results-section" id="results-section" style="display: none;">
+        <div class="queue-list" id="queue-list">
+            <!-- Queue items rendered here -->
+        </div>
+        <div class="detail-panel" id="detail-panel">
+            <div class="empty-state">Select an item to view details</div>
+        </div>
+    </section>
+
+    <section class="success-state" id="success-state" style="display: none;">
+        <span class="checkmark">&#10003;</span>
+        <div class="message">All clear!</div>
+        <div class="submessage">No items need verification.</div>
+    </section>
+
+    <div class="footer">
+        <a href="index.html">Back to demos</a> |
+        <a href="contract-viewer-v2.html">Contract Analyzer</a>
+    </div>
+
+    <script type="module">
+        let wasmModule = null;
+        let currentQueue = null;
+        let selectedItemId = null;
+        let originalQueue = null;  // For before/after comparison
+
+        // Verification state - mirrors CorrectionsInput Rust type
+        let corrections = {
+            confirmed: [],     // [{item_id: string}]
+            corrected: [],     // [{item_id, original_text, corrected_text}]
+            dismissed: []      // [{item_id, reason?}]
+        };
+        let currentDocHash = null;
+        let defaultSampleText = document.getElementById('contract-input').value.trim();
+        let queueSamples = [];
+
+        // Document hash computation for localStorage keys
+        async function computeDocHash(text) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Validate corrections file format
+        function validateCorrectionsFormat(obj) {
+            if (!Array.isArray(obj.confirmed) || !Array.isArray(obj.corrected) || !Array.isArray(obj.dismissed)) {
+                return false;
+            }
+            if (!obj.confirmed.every(c => typeof c.item_id === 'string')) return false;
+            if (!obj.corrected.every(c =>
+                typeof c.item_id === 'string' &&
+                typeof c.original_text === 'string' &&
+                typeof c.corrected_text === 'string'
+            )) return false;
+            if (!obj.dismissed.every(d =>
+                typeof d.item_id === 'string' &&
+                (d.reason === null || d.reason === undefined || typeof d.reason === 'string')
+            )) return false;
+            return true;
+        }
+
+        // localStorage persistence
+        function saveCorrections() {
+            if (!currentDocHash) return;
+            localStorage.setItem(`verification-queue-corrections-${currentDocHash}`, JSON.stringify(corrections));
+        }
+
+        function loadCorrections(docHash) {
+            const saved = localStorage.getItem(`verification-queue-corrections-${docHash}`);
+            if (saved) {
+                try {
+                    corrections = JSON.parse(saved);
+                } catch (e) {
+                    corrections = { confirmed: [], corrected: [], dismissed: [] };
+                }
+            } else {
+                corrections = { confirmed: [], corrected: [], dismissed: [] };
+            }
+        }
+
+        // Visual state helpers
+        function getItemState(itemId) {
+            if (corrections.confirmed.some(c => c.item_id === itemId)) return 'confirmed';
+            if (corrections.corrected.some(c => c.item_id === itemId)) return 'corrected';
+            if (corrections.dismissed.some(d => d.item_id === itemId)) return 'dismissed';
+            return 'pending';
+        }
+
+        function updateQueueItemVisual(itemId) {
+            const element = document.querySelector(`[data-item-id="${CSS.escape(itemId)}"]`);
+            if (!element) return;
+
+            const state = getItemState(itemId);
+            element.classList.remove('item-confirmed', 'item-corrected', 'item-dismissed');
+            if (state !== 'pending') {
+                element.classList.add(`item-${state}`);
+            }
+        }
+
+        function updateProgress() {
+            const total = currentQueue ? currentQueue.items.length : 0;
+            const confirmed = corrections.confirmed.length;
+            const corrected = corrections.corrected.length;
+            const dismissed = corrections.dismissed.length;
+            const reviewed = confirmed + corrected + dismissed;
+
+            const progressEl = document.getElementById('review-progress');
+            if (progressEl) {
+                if (reviewed === 0) {
+                    progressEl.textContent = `${total} items to review`;
+                } else {
+                    progressEl.textContent = `${reviewed} reviewed, ${total - dismissed} remaining`;
+                }
+            }
+        }
+
+        function updateReanalyzeButton() {
+            const hasCorrections = corrections.confirmed.length > 0 ||
+                                  corrections.corrected.length > 0 ||
+                                  corrections.dismissed.length > 0;
+            document.getElementById('reanalyze-btn').disabled = !hasCorrections;
+        }
+
+        // Action handlers
+        function confirmItem(itemId) {
+            // Remove from all categories (including self for deduplication)
+            corrections.confirmed = corrections.confirmed.filter(c => c.item_id !== itemId);
+            corrections.corrected = corrections.corrected.filter(c => c.item_id !== itemId);
+            corrections.dismissed = corrections.dismissed.filter(d => d.item_id !== itemId);
+
+            // Add to confirmed
+            corrections.confirmed.push({ item_id: itemId });
+
+            saveCorrections();
+            updateQueueItemVisual(itemId);
+            updateProgress();
+            updateReanalyzeButton();
+
+            // Re-render detail if this item is selected
+            if (selectedItemId === itemId) {
+                const item = currentQueue.items.find(i => i.item_id === itemId);
+                renderDetailPanel(item);
+            }
+        }
+
+        function showCorrectionInput(itemId) {
+            const item = currentQueue.items.find(i => i.item_id === itemId);
+            const correctionDiv = document.getElementById('correction-input');
+            const textarea = document.getElementById('correction-text');
+
+            // Pre-fill with existing correction or original text
+            const existing = corrections.corrected.find(c => c.item_id === itemId);
+            textarea.value = existing ? existing.corrected_text : item.display_text;
+            textarea.dataset.itemId = itemId;
+            textarea.dataset.originalText = item.display_text;
+
+            correctionDiv.style.display = 'block';
+            textarea.focus();
+        }
+
+        function submitCorrection() {
+            const textarea = document.getElementById('correction-text');
+            const itemId = textarea.dataset.itemId;
+            const originalText = textarea.dataset.originalText;
+            const correctedText = textarea.value.trim();
+
+            if (!correctedText) return;
+
+            // Remove from all categories (including self for deduplication)
+            corrections.confirmed = corrections.confirmed.filter(c => c.item_id !== itemId);
+            corrections.corrected = corrections.corrected.filter(c => c.item_id !== itemId);
+            corrections.dismissed = corrections.dismissed.filter(d => d.item_id !== itemId);
+
+            // Add correction
+            corrections.corrected.push({
+                item_id: itemId,
+                original_text: originalText,
+                corrected_text: correctedText
+            });
+
+            saveCorrections();
+            cancelCorrection();
+            updateQueueItemVisual(itemId);
+            updateProgress();
+            updateReanalyzeButton();
+
+            if (selectedItemId === itemId) {
+                const item = currentQueue.items.find(i => i.item_id === itemId);
+                renderDetailPanel(item);
+            }
+        }
+
+        function cancelCorrection() {
+            const correctionDiv = document.getElementById('correction-input');
+            if (correctionDiv) {
+                correctionDiv.style.display = 'none';
+            }
+        }
+
+        function dismissItem(itemId) {
+            // Remove from all categories (including self for deduplication)
+            corrections.confirmed = corrections.confirmed.filter(c => c.item_id !== itemId);
+            corrections.corrected = corrections.corrected.filter(c => c.item_id !== itemId);
+            corrections.dismissed = corrections.dismissed.filter(d => d.item_id !== itemId);
+
+            // Add to dismissed
+            corrections.dismissed.push({ item_id: itemId, reason: null });
+
+            saveCorrections();
+            updateQueueItemVisual(itemId);
+            updateProgress();
+            updateReanalyzeButton();
+
+            if (selectedItemId === itemId) {
+                const item = currentQueue.items.find(i => i.item_id === itemId);
+                renderDetailPanel(item);
+            }
+        }
+
+        // Export/Import functions
+        function exportCorrections() {
+            const json = JSON.stringify(corrections, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `corrections-${currentDocHash || 'unknown'}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importCorrections(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    // Validate structure with detailed checks
+                    if (validateCorrectionsFormat(imported)) {
+                        corrections = imported;
+                        saveCorrections();
+                        // Re-render queue with new states
+                        if (currentQueue && currentQueue.items) {
+                            renderQueue(currentQueue.items, currentQueue.total_count);
+                            currentQueue.items.forEach(item => updateQueueItemVisual(item.item_id));
+                            updateProgress();
+                            updateReanalyzeButton();
+                        }
+                        alert('Corrections imported successfully');
+                    } else {
+                        alert('Invalid corrections file format');
+                    }
+                } catch (err) {
+                    alert('Failed to parse corrections file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset for re-import
+        }
+
+        // Re-analysis with corrections
+        async function reanalyzeWithCorrections() {
+            if (!wasmModule || !currentQueue) return;
+
+            const text = document.getElementById('contract-input').value;
+            if (!text.trim()) return;
+
+            const reanalyzeBtn = document.getElementById('reanalyze-btn');
+            const originalText = reanalyzeBtn.textContent;
+            reanalyzeBtn.disabled = true;
+            reanalyzeBtn.textContent = 'Re-analyzing...';
+
+            // Store original for diff
+            const previousQueue = JSON.parse(JSON.stringify(currentQueue));
+
+            try {
+                // Call WASM with corrections
+                const correctionsJson = JSON.stringify(corrections);
+                const result = wasmModule.analyze_with_corrections(text, correctionsJson);
+
+                originalQueue = previousQueue;
+                // Update current queue
+                currentQueue = result;
+
+                // Render updated queue
+                renderQueue(result.items, result.total_count);
+
+                // Apply visual states (including fully verified)
+                currentQueue.items.forEach(item => {
+                    const element = document.querySelector(`[data-item-id="${CSS.escape(item.item_id)}"]`);
+                    if (!element) return;
+
+                    if (item.confidence >= 1.0) {
+                        // Fully verified - remove other state classes
+                        element.classList.remove('item-confirmed', 'item-corrected', 'item-dismissed');
+                        element.classList.add('item-fully-verified');
+                    } else {
+                        // Not fully verified - apply normal visual state
+                        updateQueueItemVisual(item.item_id);
+                    }
+                });
+                updateProgress();
+
+                // Show diff summary
+                showDiffSummary(originalQueue, result);
+            } catch (err) {
+                console.error('Re-analysis failed:', err);
+                showError(`Re-analysis failed: ${err.message}`);
+                return;
+            } finally {
+                reanalyzeBtn.textContent = originalText;
+                updateReanalyzeButton();  // Re-enable based on corrections
+            }
+        }
+
+        function showDiffSummary(before, after) {
+            const diffEl = document.getElementById('diff-summary');
+            const statsEl = diffEl.querySelector('.diff-stats');
+
+            // Calculate changes
+            const verified = corrections.confirmed.length;
+            const corrected = corrections.corrected.length;
+            const dismissed = corrections.dismissed.length;
+            const remaining = after.items.filter(item => item.confidence < 1.0).length;
+
+            statsEl.innerHTML = `
+                <div class="diff-stat verified">
+                    <span class="stat-icon">&#10003;</span>
+                    <span class="stat-value">${verified}</span>
+                    <span class="stat-label">confirmed</span>
+                </div>
+                <div class="diff-stat corrected">
+                    <span class="stat-icon">&#9998;</span>
+                    <span class="stat-value">${corrected}</span>
+                    <span class="stat-label">corrected</span>
+                </div>
+                <div class="diff-stat dismissed">
+                    <span class="stat-icon">&#10007;</span>
+                    <span class="stat-value">${dismissed}</span>
+                    <span class="stat-label">dismissed</span>
+                </div>
+                <div class="diff-stat remaining">
+                    <span class="stat-icon">&#8943;</span>
+                    <span class="stat-value">${remaining}</span>
+                    <span class="stat-label">remaining</span>
+                </div>
+            `;
+
+            diffEl.style.display = 'block';
+        }
+
+        function hideDiffSummary() {
+            document.getElementById('diff-summary').style.display = 'none';
+        }
+
+        // WASM loading
+        async function loadWasm() {
+            try {
+                const module = await import('./pkg/layered_nlp_demo_wasm.js');
+                await module.default();
+                wasmModule = module;
+                console.log('WASM module loaded');
+                return true;
+            } catch (err) {
+                console.error('Failed to load WASM:', err);
+                showError(`Failed to load WASM module: ${err.message}`);
+                return false;
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('error-container').innerHTML =
+                `<div class="error-message">${escapeHtml(message)}</div>`;
+        }
+
+        function clearError() {
+            document.getElementById('error-container').innerHTML = '';
+        }
+
+        function resetAnalysisState() {
+            currentQueue = null;
+            selectedItemId = null;
+            originalQueue = null;
+            corrections = { confirmed: [], corrected: [], dismissed: [] };
+            currentDocHash = null;
+            document.getElementById('results-section').style.display = 'none';
+            document.getElementById('toolbar').style.display = 'none';
+            document.getElementById('success-state').style.display = 'none';
+            hideDiffSummary();
+            updateReanalyzeButton();
+            updateProgress();
+            clearError();
+        }
+
+        function applySample(sample) {
+            const textarea = document.getElementById('contract-input');
+            textarea.value = sample.text.trim();
+            defaultSampleText = textarea.value.trim();
+            const descriptionEl = document.getElementById('sample-description');
+            if (descriptionEl) {
+                descriptionEl.textContent = sample.description || '';
+            }
+            const statusEl = document.getElementById('sample-status');
+            if (statusEl) {
+                statusEl.textContent = '';
+            }
+            resetAnalysisState();
+        }
+
+        async function clearSampleCorrections() {
+            const textarea = document.getElementById('contract-input');
+            const statusEl = document.getElementById('sample-status');
+            const text = textarea.value.trim();
+            if (!text) return;
+
+            const hash = await computeDocHash(text);
+            const storageKey = `verification-queue-corrections-${hash}`;
+            const hadSaved = localStorage.getItem(storageKey) != null;
+            localStorage.removeItem(storageKey);
+
+            if (currentDocHash === hash) {
+                corrections = { confirmed: [], corrected: [], dismissed: [] };
+                updateReanalyzeButton();
+                updateProgress();
+                if (currentQueue && currentQueue.items) {
+                    currentQueue.items.forEach(item => updateQueueItemVisual(item.item_id));
+                }
+                if (selectedItemId && currentQueue && currentQueue.items) {
+                    const item = currentQueue.items.find(i => i.item_id === selectedItemId);
+                    if (item) {
+                        renderDetailPanel(item);
+                    }
+                }
+            }
+
+            if (statusEl) {
+                statusEl.textContent = hadSaved
+                    ? 'Cleared saved review state for this sample.'
+                    : 'No saved review state for this sample.';
+            }
+        }
+
+        async function loadSamples() {
+            const selectEl = document.getElementById('sample-select');
+            const descriptionEl = document.getElementById('sample-description');
+            const clearBtn = document.getElementById('clear-sample-btn');
+            if (!selectEl) return;
+
+            try {
+                const response = await fetch('./verification-queue-samples.json', { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`Sample fetch failed: ${response.status}`);
+                }
+                const payload = await response.json();
+                const samples = Array.isArray(payload) ? payload : payload.samples;
+                if (!Array.isArray(samples) || samples.length === 0) {
+                    throw new Error('No samples found in JSON');
+                }
+
+                queueSamples = samples;
+                selectEl.innerHTML = '';
+                samples.forEach((sample, index) => {
+                    const option = document.createElement('option');
+                    option.value = String(index);
+                    option.textContent = sample.title || `Sample ${index + 1}`;
+                    selectEl.appendChild(option);
+                });
+                selectEl.disabled = false;
+                if (clearBtn) {
+                    clearBtn.disabled = false;
+                    clearBtn.addEventListener('click', () => {
+                        clearSampleCorrections();
+                    });
+                }
+                selectEl.addEventListener('change', () => {
+                    const idx = Number(selectEl.value);
+                    const selected = queueSamples[idx];
+                    if (selected) {
+                        applySample(selected);
+                    }
+                });
+
+                applySample(samples[0]);
+            } catch (err) {
+                selectEl.disabled = true;
+                selectEl.innerHTML = '<option>Samples unavailable</option>';
+                if (clearBtn) {
+                    clearBtn.disabled = true;
+                }
+                if (descriptionEl) {
+                    descriptionEl.textContent = 'Failed to load sample list.';
+                }
+                showError(`Failed to load samples: ${err.message}`);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Confidence to risk class mapping
+        function getConfidenceRiskClass(confidence) {
+            if (confidence < 0.3) return 'critical';
+            if (confidence < 0.5) return 'high';
+            if (confidence < 0.7) return 'medium';
+            return 'low';
+        }
+
+        // Details type to display name
+        function getDetailsTypeDisplay(detailsType) {
+            const mapping = {
+                'PassiveVoiceObligor': 'Passive Voice',
+                'LowConfidenceObligor': 'Low Confidence',
+                'Beneficiary': 'Beneficiary',
+                'Condition': 'Condition',
+                'AmbiguousBeneficiary': 'Ambiguous'
+            };
+            return mapping[detailsType] || detailsType;
+        }
+
+        // Details type explanations for why items are flagged
+        function getDetailsTypeExplanation(detailsType) {
+            const explanations = {
+                'PassiveVoiceObligor': 'Passive voice makes it unclear who is responsible for this obligation.',
+                'LowConfidenceObligor': 'The system has low confidence in identifying the obligated party.',
+                'Beneficiary': 'The beneficiary of this obligation needs verification.',
+                'Condition': 'This condition references an unknown entity or unclear terms.',
+                'AmbiguousBeneficiary': 'Multiple possible beneficiaries detected for this obligation.'
+            };
+            return explanations[detailsType] || 'This item requires human review.';
+        }
+
+        async function handleAnalyze() {
+            clearError();
+            hideDiffSummary();
+            originalQueue = null;
+
+            const text = document.getElementById('contract-input').value;
+
+            if (!text.trim()) {
+                showError('Please enter contract text to analyze.');
+                return;
+            }
+
+            // Disable button during analysis
+            const btn = document.getElementById('analyze-btn');
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+
+            try {
+                if (!wasmModule) {
+                    const loaded = await loadWasm();
+                    if (!loaded) {
+                        btn.disabled = false;
+                        btn.textContent = 'Analyze';
+                        return;
+                    }
+                }
+
+                // Compute and store doc hash for localStorage key
+                currentDocHash = await computeDocHash(text);
+
+                // Load any saved corrections for this document
+                loadCorrections(currentDocHash);
+
+                // Call the WASM function
+                const result = wasmModule.get_verification_queue(text);
+                currentQueue = result;
+
+                // Hide all sections first
+                document.getElementById('results-section').style.display = 'none';
+                document.getElementById('success-state').style.display = 'none';
+                document.getElementById('toolbar').style.display = 'none';
+
+                if (!result || !Array.isArray(result.items)) {
+                    showError('Unexpected WASM response. If this is the demo sample, rebuild with: wasm-pack build --target web --out-dir ../web/pkg');
+                    showSuccessState();
+                    return;
+                }
+
+                if (result.items.length === 0) {
+                    if (text.trim() === defaultSampleText) {
+                        showError('Demo sample returned no verification items. Rebuild the WASM bundle with: wasm-pack build --target web --out-dir ../web/pkg');
+                    }
+                    showSuccessState();
+                } else {
+                    // Show toolbar and render queue
+                    document.getElementById('toolbar').style.display = 'flex';
+                    renderQueue(result.items, result.total_count);
+
+                    // Apply visual states and update progress after rendering
+                    currentQueue.items.forEach(item => updateQueueItemVisual(item.item_id));
+                    updateProgress();
+                    updateReanalyzeButton();
+                }
+            } catch (err) {
+                console.error('Analysis error:', err);
+                showError(`Analysis failed: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Analyze';
+            }
+        }
+
+        function showSuccessState() {
+            document.getElementById('results-section').style.display = 'none';
+            document.getElementById('toolbar').style.display = 'none';
+            document.getElementById('success-state').style.display = 'block';
+        }
+
+        function renderQueue(items, totalCount) {
+            const list = document.getElementById('queue-list');
+
+            // Build queue header with totalCount info when different from items.length
+            const countDisplay = totalCount > items.length
+                ? `Showing ${items.length} of ${totalCount}`
+                : `${items.length} item${items.length !== 1 ? 's' : ''}`;
+
+            let html = `
+                <div class="queue-header">
+                    <h2>Review Queue</h2>
+                    <span class="queue-count">${countDisplay}</span>
+                </div>
+                <div class="queue-items" role="list">
+            `;
+
+            // Build queue items
+            html += items.map(item => renderQueueItem(item)).join('');
+            html += '</div>';
+
+            list.innerHTML = html;
+
+            // Reset detail panel and selection
+            selectedItemId = null;
+            document.getElementById('detail-panel').innerHTML =
+                '<div class="empty-state">Select an item to view details</div>';
+
+            // Show results section
+            document.getElementById('results-section').style.display = 'grid';
+            document.getElementById('success-state').style.display = 'none';
+        }
+
+        function renderQueueItem(item) {
+            const confidencePercent = Math.round(item.confidence * 100);
+            const truncatedText = item.display_text.length > 60
+                ? item.display_text.slice(0, 60) + '...'
+                : item.display_text;
+            const riskClass = getConfidenceRiskClass(item.confidence);
+            const detailsTypeDisplay = getDetailsTypeDisplay(item.details_type);
+            const isFullyVerified = item.confidence >= 1.0;
+            const verifiedClass = isFullyVerified ? 'item-fully-verified' : '';
+            const state = getItemState(item.item_id);
+            const stateClass = state !== 'pending' ? `item-${state}` : '';
+
+            return `
+                <div class="queue-item tui-card ${escapeHtml(riskClass)} ${stateClass} ${verifiedClass}"
+                     data-item-id="${escapeHtml(item.item_id)}"
+                     role="button"
+                     tabindex="0"
+                     aria-label="${escapeHtml(detailsTypeDisplay)}: ${confidencePercent}% confidence">
+                    <div class="item-header">
+                        <span class="risk-badge ${escapeHtml(riskClass)}">${escapeHtml(detailsTypeDisplay)}</span>
+                        <span class="confidence-indicator ${escapeHtml(riskClass)}">${confidencePercent}%</span>
+                    </div>
+                    <div class="item-text">${escapeHtml(truncatedText)}</div>
+                </div>
+            `;
+        }
+
+        function selectItem(itemId) {
+            selectedItemId = itemId;
+            const item = currentQueue.items.find(i => i.item_id === itemId);
+
+            if (!item) return;
+
+            renderDetailPanel(item);
+
+            // Update selection highlight and focus
+            document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('selected'));
+            const element = document.querySelector(`[data-item-id="${CSS.escape(itemId)}"]`);
+            if (element) {
+                element.classList.add('selected');
+                element.focus();
+            }
+        }
+
+        function renderDetailPanel(item) {
+            const panel = document.getElementById('detail-panel');
+            const confidencePercent = Math.round(item.confidence * 100);
+            const riskClass = getConfidenceRiskClass(item.confidence);
+            const detailsTypeDisplay = getDetailsTypeDisplay(item.details_type);
+            const explanation = getDetailsTypeExplanation(item.details_type);
+
+            // Determine current state of this item
+            const state = getItemState(item.item_id);
+            const isConfirmed = state === 'confirmed';
+            const isCorrected = state === 'corrected';
+            const isDismissed = state === 'dismissed';
+
+            // Get correction text if corrected
+            const correctionRecord = corrections.corrected.find(c => c.item_id === item.item_id);
+
+            // Build state badge HTML
+            let stateBadgeHtml = '';
+            if (state !== 'pending') {
+                const stateLabels = {
+                    confirmed: 'Confirmed',
+                    corrected: 'Corrected',
+                    dismissed: 'Dismissed'
+                };
+                stateBadgeHtml = `<span class="detail-state-badge ${state}">${stateLabels[state]}</span>`;
+            }
+
+            // Build corrected text display
+            let correctedTextHtml = '';
+            if (isCorrected && correctionRecord) {
+                correctedTextHtml = `
+                    <div class="corrected-text-display">
+                        <div class="label">Corrected Text</div>
+                        <div class="text">${escapeHtml(correctionRecord.corrected_text)}</div>
+                    </div>
+                `;
+            }
+
+            panel.innerHTML = `
+                <div class="detail-header">
+                    <span class="risk-badge ${escapeHtml(riskClass)}">${escapeHtml(detailsTypeDisplay)}</span>
+                    <span class="detail-target-type">${escapeHtml(item.target_type)}</span>
+                    ${stateBadgeHtml}
+                </div>
+
+                <div class="detail-confidence">
+                    <span class="text-label">Confidence</span>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill ${escapeHtml(riskClass)}" style="width: ${confidencePercent}%"></div>
+                    </div>
+                    <span class="confidence-value ${escapeHtml(riskClass)}">${confidencePercent}%</span>
+                </div>
+
+                <div class="detail-explanation">
+                    <p>${escapeHtml(explanation)}</p>
+                </div>
+
+                <div class="detail-text">
+                    <span class="text-label">Text</span>
+                    <p class="text-serif">${escapeHtml(item.display_text)}</p>
+                </div>
+
+                ${correctedTextHtml}
+
+                <div class="detail-meta">
+                    <span class="text-label">Target Type</span>
+                    <span class="value">${escapeHtml(item.target_type)}</span>
+                </div>
+
+                <div class="detail-meta">
+                    <span class="text-label">Node ID</span>
+                    <span class="value">${escapeHtml(String(item.node_id))}</span>
+                </div>
+
+                ${item.clause_id != null ? `
+                <div class="detail-meta">
+                    <span class="text-label">Clause ID</span>
+                    <span class="value">${escapeHtml(String(item.clause_id))}</span>
+                </div>
+                ` : ''}
+
+                <div class="detail-meta">
+                    <span class="text-label">Priority</span>
+                    <span class="value">${escapeHtml(String(item.priority))}</span>
+                </div>
+
+                <div class="detail-actions">
+                    <button class="action-btn confirm-btn" data-action="confirm" data-item-id="${escapeHtml(item.item_id)}" ${isConfirmed ? 'disabled' : ''} aria-label="Confirm this extraction is correct">
+                        &#10003; Confirm
+                    </button>
+                    <button class="action-btn correct-btn" data-action="correct" data-item-id="${escapeHtml(item.item_id)}" aria-label="Provide a correction for this text">
+                        &#9998; Correct
+                    </button>
+                    <button class="action-btn dismiss-btn" data-action="dismiss" data-item-id="${escapeHtml(item.item_id)}" ${isDismissed ? 'disabled' : ''} aria-label="Dismiss this item">
+                        &#10007; Dismiss
+                    </button>
+                </div>
+
+                <div id="correction-input" class="correction-input" style="display: none;">
+                    <textarea id="correction-text" placeholder="Enter corrected text..." aria-label="Corrected text"></textarea>
+                    <div class="correction-actions">
+                        <button data-action="save-correction" aria-label="Save correction">Save</button>
+                        <button data-action="cancel-correction" aria-label="Cancel correction">Cancel</button>
+                    </div>
+                </div>
+
+                <div class="detail-id">
+                    ${escapeHtml(item.item_id)}
+                </div>
+            `;
+        }
+
+        // Event listeners
+        document.getElementById('analyze-btn').addEventListener('click', handleAnalyze);
+
+        // Toolbar event listeners
+        document.getElementById('export-btn').addEventListener('click', exportCorrections);
+        document.getElementById('import-btn').addEventListener('click', () => {
+            document.getElementById('import-file').click();
+        });
+        document.getElementById('import-file').addEventListener('change', importCorrections);
+        document.getElementById('reanalyze-btn').addEventListener('click', reanalyzeWithCorrections);
+        document.getElementById('close-diff').addEventListener('click', hideDiffSummary);
+
+        // Event delegation for detail panel actions
+        const detailPanel = document.getElementById('detail-panel');
+        detailPanel.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            const itemId = btn.dataset.itemId;
+
+            switch (action) {
+                case 'confirm':
+                    confirmItem(itemId);
+                    break;
+                case 'correct':
+                    showCorrectionInput(itemId);
+                    break;
+                case 'dismiss':
+                    dismissItem(itemId);
+                    break;
+                case 'save-correction':
+                    submitCorrection();
+                    break;
+                case 'cancel-correction':
+                    cancelCorrection();
+                    break;
+            }
+        });
+
+        // Event delegation for queue list - click and keyboard handlers
+        const queueList = document.getElementById('queue-list');
+        queueList.addEventListener('click', (e) => {
+            const queueItem = e.target.closest('.queue-item');
+            if (queueItem) {
+                selectItem(queueItem.dataset.itemId);
+            }
+        });
+        queueList.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                const queueItem = e.target.closest('.queue-item');
+                if (queueItem) {
+                    e.preventDefault();
+                    selectItem(queueItem.dataset.itemId);
+                }
+            }
+        });
+
+        // Keyboard shortcut: Ctrl/Cmd+Enter to analyze
+        document.getElementById('contract-input').addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                handleAnalyze();
+            }
+        });
+
+        // Keyboard shortcuts for correction textarea (Cmd/Ctrl+Enter to save, Escape to cancel)
+        detailPanel.addEventListener('keydown', (e) => {
+            if (e.target.id !== 'correction-text') return;
+
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                submitCorrection();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelCorrection();
+            }
+        });
+
+        // Keyboard navigation: j/k to navigate queue
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+
+            if (!currentQueue || !currentQueue.items || currentQueue.items.length === 0) return;
+
+            const items = currentQueue.items;
+            const currentIndex = items.findIndex(i => i.item_id === selectedItemId);
+
+            if (e.key === 'j' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                // When nothing selected, start from first item
+                if (currentIndex === -1) {
+                    selectItem(items[0].item_id);
+                    return;
+                }
+                const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+                selectItem(items[nextIndex].item_id);
+            } else if (e.key === 'k' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                // When nothing selected, start from first item
+                if (currentIndex === -1) {
+                    selectItem(items[0].item_id);
+                    return;
+                }
+                const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+                selectItem(items[prevIndex].item_id);
+            }
+        });
+
+        // Load WASM and samples on page load
+        loadWasm();
+        loadSamples();
+    </script>
+</body>
+</html>

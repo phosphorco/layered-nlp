@@ -13,14 +13,15 @@ pub fn init() {
 
 use layered_contracts::{
     // Resolver imports (used by resolver stack)
-    ClauseAggregationResolver, ContractClauseResolver, ContractKeywordResolver,
-    DefinedTermResolver, AccountabilityGraphResolver, ObligationPhraseResolver,
-    ProhibitionResolver, PronounChainResolver, PronounResolver, TermReferenceResolver,
+    AccountabilityGraphResolver, ClauseAggregationResolver, ContractClauseResolver,
+    ContractKeywordResolver, DefinedTermResolver, LinkedObligationResolver,
+    ObligationPhraseResolver, ProhibitionResolver, PronounChainResolver, PronounResolver,
+    ScopedObligationResolver, SectionHeaderResolver, SectionReferenceResolver,
+    TermReferenceResolver, TermsOfArtResolver, TemporalExpressionResolver,
     // Semantic diff imports
-    pipeline::Pipeline,
-    DocumentAligner, DocumentStructureBuilder, SemanticDiffEngine, SemanticDiffResult,
-    AlignmentResult, AlignmentType, AlignedPair, SectionRef as AlignmentSectionRef,
-    ContractDocument, DocumentStructure, SectionNode,
+    AlignmentResult, AlignmentType, AlignedPair, ContractDocument, DocumentAligner,
+    DocumentStructure, DocumentStructureBuilder, ProcessError, SectionNode,
+    SectionRef as AlignmentSectionRef, SemanticDiffEngine, SemanticDiffResult,
     // Token diff imports (re-exported from crate root)
     TokenAligner, TokenAlignmentConfig, TokenRelation, AlignedTokenPair,
     // Conflict detection imports
@@ -28,7 +29,12 @@ use layered_contracts::{
     // Scope operator imports
     NegationDetector, QuantifierDetector, ScopeDimension,
     NegationKind, QuantifierKind,
+    // Accountability analytics (verification queue)
+    ObligationGraph, ObligationNode, Scored,
+    VerificationQueueDetails as RustVerificationQueueDetails,
+    VerificationTarget as RustVerificationTarget,
 };
+use layered_part_of_speech::POSTagResolver;
 use layered_deixis::{
     DiscourseMarkerResolver, PersonPronounResolver, PlaceDeicticResolver, SimpleTemporalResolver,
 };
@@ -258,6 +264,23 @@ fn analyze_contract_internal(text: &str) -> AnalysisResult {
 
 /// Maximum allowed input size per document (50,000 characters)
 const MAX_INPUT_SIZE: usize = 50_000;
+
+fn run_contract_pipeline_with_pos(text: &str) -> Result<ContractDocument, ProcessError> {
+    let doc = ContractDocument::from_text(text)
+        .run_resolver(&POSTagResolver::default())
+        .run_resolver(&SectionHeaderResolver::new())
+        .run_resolver(&SectionReferenceResolver::new())
+        .run_resolver(&ContractKeywordResolver::new())
+        .run_resolver(&TermsOfArtResolver::new())
+        .run_resolver(&DefinedTermResolver::new())
+        .run_resolver(&TermReferenceResolver::new())
+        .run_resolver(&TemporalExpressionResolver::new())
+        .run_resolver(&PronounResolver::new())
+        .run_resolver(&PronounChainResolver::new())
+        .run_resolver(&ObligationPhraseResolver::new());
+
+    Ok(doc)
+}
 
 /// Error response structure for semantic diff
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -691,8 +714,8 @@ fn compare_contracts_internal(original: &str, revised: &str) -> JsValue {
         return serde_wasm_bindgen::to_value(&error).unwrap_or(JsValue::NULL);
     }
 
-    // Task 0.4: Run Pipeline::standard() on both documents
-    let original_doc = match Pipeline::standard().run_on_text(original) {
+    // Task 0.4: Run the full contract pipeline (with POS tags) on both documents
+    let original_doc = match run_contract_pipeline_with_pos(original) {
         Ok(doc) => doc,
         Err(e) => {
             let error = DiffError::alignment_failed(&format!(
@@ -703,7 +726,7 @@ fn compare_contracts_internal(original: &str, revised: &str) -> JsValue {
         }
     };
 
-    let revised_doc = match Pipeline::standard().run_on_text(revised) {
+    let revised_doc = match run_contract_pipeline_with_pos(revised) {
         Ok(doc) => doc,
         Err(e) => {
             let error = DiffError::alignment_failed(&format!(
@@ -807,10 +830,8 @@ pub fn detect_conflicts(text: &str) -> JsValue {
 }
 
 fn detect_conflicts_internal(text: &str) -> ConflictAnalysisResult {
-    // Use Pipeline::standard() which runs all necessary resolvers in dependency order:
-    // SectionHeader, SectionReference, ContractKeyword, TermsOfArt, DefinedTerm,
-    // TermReference, Temporal, Pronoun, PronounChain, Obligation
-    let doc = match Pipeline::standard().run_on_text(text) {
+    // Run the contract pipeline with POS tags for obligation/conflict detection.
+    let doc = match run_contract_pipeline_with_pos(text) {
         Ok(doc) => doc,
         Err(_) => {
             // Return empty result on processing error
@@ -1042,9 +1063,320 @@ fn extract_scope_operators_internal(text: &str) -> ScopeOperatorResult {
     }
 }
 
+// ============================================================================
+// VERIFICATION QUEUE API
+// ============================================================================
+
+/// Verification target type for WASM boundary.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum WasmVerificationTarget {
+    Node,
+    BeneficiaryLink,
+    ConditionLink,
+    ObligorLink,
+}
+
+impl WasmVerificationTarget {
+    fn from_rust(target: &RustVerificationTarget) -> Self {
+        match target {
+            RustVerificationTarget::Node(_) => WasmVerificationTarget::Node,
+            RustVerificationTarget::BeneficiaryLink { .. } => WasmVerificationTarget::BeneficiaryLink,
+            RustVerificationTarget::ConditionLink { .. } => WasmVerificationTarget::ConditionLink,
+            RustVerificationTarget::ObligorLink { .. } => WasmVerificationTarget::ObligorLink,
+        }
+    }
+
+    fn as_str(&self) -> &'static str {
+        match self {
+            WasmVerificationTarget::Node => "Node",
+            WasmVerificationTarget::BeneficiaryLink => "BeneficiaryLink",
+            WasmVerificationTarget::ConditionLink => "ConditionLink",
+            WasmVerificationTarget::ObligorLink => "ObligorLink",
+        }
+    }
+}
+
+/// Verification queue item for WASM boundary.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WasmVerificationQueueItem {
+    /// Unique identity: "${node_id}-${clause_id}-${target_type}-${ordinal}"
+    pub item_id: String,
+    /// Target type (Node, BeneficiaryLink, ConditionLink, ObligorLink)
+    pub target_type: WasmVerificationTarget,
+    /// Obligation node identifier
+    pub node_id: u32,
+    /// Clause identifier where the target was found
+    pub clause_id: u32,
+    /// Priority (derived from position in sorted queue, 0 = highest priority)
+    pub priority: u32,
+    /// Details type ("PassiveVoiceObligor", "LowConfidenceObligor", "Beneficiary", "Condition", "AmbiguousBeneficiary")
+    pub details_type: String,
+    /// Confidence score (0.0 - 1.0)
+    pub confidence: f64,
+    /// Display text snippet for review
+    pub display_text: String,
+}
+
+/// Result of verification queue extraction.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WasmVerificationQueueResult {
+    /// All queue items sorted by confidence (lowest first = highest priority)
+    pub items: Vec<WasmVerificationQueueItem>,
+    /// Total count of items in queue
+    pub total_count: u32,
+}
+
+/// Confirmed correction - user verified this item is correct
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfirmedCorrection {
+    pub item_id: String,
+}
+
+/// Text correction - user corrected the display text
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TextCorrection {
+    pub item_id: String,
+    /// Original text before correction (for UI display/tracking, not validated by WASM)
+    pub original_text: String,
+    pub corrected_text: String,
+}
+
+/// Dismissed item - user marked as not needing attention
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DismissedItem {
+    pub item_id: String,
+    pub reason: Option<String>,
+}
+
+/// Input for analyze_with_corrections
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CorrectionsInput {
+    #[serde(default)]
+    pub confirmed: Vec<ConfirmedCorrection>,
+    #[serde(default)]
+    pub corrected: Vec<TextCorrection>,
+    #[serde(default)]
+    pub dismissed: Vec<DismissedItem>,
+}
+
+/// Extract verification queue from text.
+///
+/// Analyzes the contract to identify items that need human verification:
+/// - Passive voice obligors
+/// - Low confidence obligors
+/// - Unresolved beneficiaries
+/// - Ambiguous beneficiaries
+/// - Conditions with unknown entities
+///
+/// Returns a JSON object containing all queue items sorted by confidence
+/// (lowest confidence first = highest priority).
+#[wasm_bindgen]
+pub fn get_verification_queue(text: &str) -> JsValue {
+    init();
+    let result = get_verification_queue_internal(text);
+    serde_wasm_bindgen::to_value(&result).unwrap_or(JsValue::NULL)
+}
+
+fn get_verification_queue_internal(text: &str) -> WasmVerificationQueueResult {
+    // Handle empty input
+    if text.trim().is_empty() {
+        return WasmVerificationQueueResult {
+            items: vec![],
+            total_count: 0,
+        };
+    }
+
+    // Run the full resolver stack including AccountabilityGraphResolver
+    // Start with the contract pipeline (with POS tags) and add remaining resolvers
+    let doc = match run_contract_pipeline_with_pos(text) {
+        Ok(doc) => doc,
+        Err(_) => {
+            return WasmVerificationQueueResult {
+                items: vec![],
+                total_count: 0,
+            };
+        }
+    };
+
+    // Add resolvers needed for the accountability graph
+    // Gate 1: ContractClauseResolver produces ContractClause
+    // Gate 2: ScopedObligationResolver produces Scored<ScopedObligation> from ObligationPhrase
+    // Gate 3: LinkedObligationResolver produces LinkedObligation from ScopedObligation
+    // Gate 4: AccountabilityGraphResolver produces ObligationNode from LinkedObligation
+    let doc = doc
+        .run_resolver(&ContractClauseResolver::new())
+        .run_resolver(&ClauseAggregationResolver::new())
+        .run_resolver(&ScopedObligationResolver::new())
+        .run_resolver(&LinkedObligationResolver::default_config())
+        .run_resolver(&AccountabilityGraphResolver::new());
+
+    // Extract ObligationNode from all lines
+    let nodes: Vec<Scored<ObligationNode>> = doc
+        .lines()
+        .iter()
+        .flat_map(|line| {
+            line.query::<Scored<ObligationNode>>()
+                .into_iter()
+                .flat_map(|(_, _, attrs)| attrs.into_iter().cloned())
+        })
+        .collect();
+
+    // Build the obligation graph and get verification queue
+    let graph = ObligationGraph::new(&nodes);
+    let rust_queue = graph.verification_queue();
+
+    // Convert to WASM types with unique item_ids
+    // Track ordinals for items with same (node_id, clause_id, target_type)
+    use std::collections::HashMap;
+    let mut ordinal_counters: HashMap<(u32, u32, &'static str), u32> = HashMap::new();
+
+    let items: Vec<WasmVerificationQueueItem> = rust_queue
+        .iter()
+        .enumerate()
+        .map(|(index, item)| {
+            let target_type = WasmVerificationTarget::from_rust(&item.target);
+            let target_type_str = target_type.as_str();
+
+            // Compute ordinal for this (node_id, clause_id, target_type) tuple
+            let key = (item.node_id, item.clause_id, target_type_str);
+            let ordinal = *ordinal_counters.get(&key).unwrap_or(&0);
+            ordinal_counters.insert(key, ordinal + 1);
+
+            // Generate unique item_id
+            let item_id = format!(
+                "{}-{}-{}-{}",
+                item.node_id, item.clause_id, target_type_str, ordinal
+            );
+
+            // Extract details_type and display_text from VerificationQueueDetails
+            let (details_type, display_text) = match &item.details {
+                RustVerificationQueueDetails::PassiveVoiceObligor { obligor_text, .. } => {
+                    ("PassiveVoiceObligor".to_string(), obligor_text.clone())
+                }
+                RustVerificationQueueDetails::LowConfidenceObligor { obligor_text, .. } => {
+                    ("LowConfidenceObligor".to_string(), obligor_text.clone())
+                }
+                RustVerificationQueueDetails::Beneficiary { beneficiary_text, .. } => {
+                    ("Beneficiary".to_string(), beneficiary_text.clone())
+                }
+                RustVerificationQueueDetails::Condition { condition_text, .. } => {
+                    ("Condition".to_string(), condition_text.clone())
+                }
+                RustVerificationQueueDetails::AmbiguousBeneficiary { beneficiary_text, .. } => {
+                    ("AmbiguousBeneficiary".to_string(), beneficiary_text.clone())
+                }
+            };
+
+            WasmVerificationQueueItem {
+                item_id,
+                target_type,
+                node_id: item.node_id,
+                clause_id: item.clause_id,
+                priority: index as u32, // Position in sorted queue = priority
+                details_type,
+                confidence: item.confidence,
+                display_text,
+            }
+        })
+        .collect();
+
+    WasmVerificationQueueResult {
+        total_count: items.len() as u32,
+        items,
+    }
+}
+
+/// Re-analyze text with prior corrections applied (post-processing approach).
+///
+/// Takes the original contract text and a JSON string of corrections.
+/// Returns a verification queue with:
+///
+/// Processing order:
+/// 1. Filter out dismissed items
+/// 2. Set confidence = 1.0 for confirmed items
+/// 3. Apply text corrections to display_text
+/// 4. Re-sort by confidence and reassign priorities
+#[wasm_bindgen]
+pub fn analyze_with_corrections(text: &str, corrections_json: &str) -> JsValue {
+    init();
+    let result = analyze_with_corrections_internal(text, corrections_json);
+    serde_wasm_bindgen::to_value(&result).unwrap_or(JsValue::NULL)
+}
+
+fn analyze_with_corrections_internal(text: &str, corrections_json: &str) -> WasmVerificationQueueResult {
+    // 1. Parse corrections (empty if invalid JSON)
+    let corrections: CorrectionsInput = serde_json::from_str(corrections_json)
+        .unwrap_or_default();
+
+    // 2. Build lookup sets for O(1) access
+    let confirmed_ids: std::collections::HashSet<&str> = corrections.confirmed
+        .iter()
+        .map(|c| c.item_id.as_str())
+        .collect();
+
+    let corrected_map: std::collections::HashMap<&str, &str> = corrections.corrected
+        .iter()
+        .map(|c| (c.item_id.as_str(), c.corrected_text.as_str()))
+        .collect();
+
+    let dismissed_ids: std::collections::HashSet<&str> = corrections.dismissed
+        .iter()
+        .map(|d| d.item_id.as_str())
+        .collect();
+
+    // 3. Get base queue from normal analysis
+    let base_queue = get_verification_queue_internal(text);
+
+    // 4. Post-process: filter dismissed, apply corrections
+    let mut items: Vec<WasmVerificationQueueItem> = base_queue.items
+        .into_iter()
+        .filter(|item| !dismissed_ids.contains(item.item_id.as_str()))
+        .map(|mut item| {
+            // Apply confirmed: set confidence to 1.0
+            if confirmed_ids.contains(item.item_id.as_str()) {
+                item.confidence = 1.0;
+            }
+            // Apply text correction: update display_text
+            if let Some(corrected_text) = corrected_map.get(item.item_id.as_str()) {
+                item.display_text = (*corrected_text).to_string();
+            }
+            item
+        })
+        .collect();
+
+    // 5. Re-sort by confidence and reassign priorities (lowest confidence = highest priority)
+    items.sort_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(std::cmp::Ordering::Equal));
+    for (i, item) in items.iter_mut().enumerate() {
+        item.priority = i as u32;
+    }
+
+    WasmVerificationQueueResult {
+        total_count: items.len() as u32,
+        items,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const QUEUE_SAMPLE_TEXT: &str = r#"The Company shall pay the Contractor within 30 days."#;
+    const QUEUE_MULTI_TEXT: &str = r#"The Company shall pay the Contractor within 30 days.
+The Vendor shall reimburse Customer fees."#;
+    const QUEUE_TRI_TEXT: &str = r#"The Company shall pay the Contractor within 30 days.
+The Vendor shall reimburse Customer fees.
+The Seller shall provide Buyer reports."#;
+    const QUEUE_DEMO_TEXT: &str = r#"The Company shall pay the Contractor within 30 days.
+Reports shall be made within 10 days."#;
+
+    fn require_queue(text: &str) -> WasmVerificationQueueResult {
+        let queue = get_verification_queue_internal(text);
+        assert!(
+            !queue.items.is_empty(),
+            "Expected verification queue items for sample text"
+        );
+        queue
+    }
 
     /// Test that simple personal pronouns are detected as deixis
     #[test]
@@ -1314,11 +1646,9 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
         }
 
         // Run pipeline
-        let original_doc = Pipeline::standard()
-            .run_on_text(original)
+        let original_doc = run_contract_pipeline_with_pos(original)
             .map_err(|e| DiffError::alignment_failed(&format!("Original: {:?}", e)))?;
-        let revised_doc = Pipeline::standard()
-            .run_on_text(revised)
+        let revised_doc = run_contract_pipeline_with_pos(revised)
             .map_err(|e| DiffError::alignment_failed(&format!("Revised: {:?}", e)))?;
 
         // Build structures and align
@@ -2300,5 +2630,744 @@ There shall be no liability for some indirect damages."#;
 
         assert!(markers.contains(&"all"), "Should detect 'all'");
         assert!(markers.contains(&"every"), "Should detect 'every'");
+    }
+
+    // ========================================================================
+    // VERIFICATION QUEUE TESTS
+    // ========================================================================
+
+    /// Test that the demo sample text produces reviewable queue items.
+    #[test]
+    fn test_verification_queue_demo_sample_text_has_items() {
+        let result = require_queue(QUEUE_DEMO_TEXT);
+        assert_eq!(result.total_count, result.items.len() as u32);
+    }
+
+    /// Test that get_verification_queue returns empty result for empty text
+    #[test]
+    fn test_verification_queue_empty_text() {
+        let result = get_verification_queue_internal("");
+        assert_eq!(result.total_count, 0);
+        assert!(result.items.is_empty());
+    }
+
+    /// Test that get_verification_queue returns empty result for whitespace-only text
+    #[test]
+    fn test_verification_queue_whitespace_text() {
+        let result = get_verification_queue_internal("   \n\n   ");
+        assert_eq!(result.total_count, 0);
+        assert!(result.items.is_empty());
+    }
+
+    /// Test that get_verification_queue processes contract text without panicking.
+    ///
+    /// Note: The WASM pipeline includes POS tagging, so this should yield reviewable items.
+    #[test]
+    fn test_verification_queue_processes_text() {
+        let text = QUEUE_SAMPLE_TEXT;
+        let result = require_queue(text);
+
+        // Should process without panic
+        assert_eq!(result.total_count, result.items.len() as u32);
+
+        // Print for debugging
+        println!("Verification queue test:");
+        println!("  Total items: {}", result.total_count);
+        for item in &result.items {
+            println!("  - {} ({}): {} conf={:.2}",
+                item.item_id, item.details_type, item.display_text, item.confidence);
+        }
+    }
+
+    /// Test that queue items have unique item_ids
+    #[test]
+    fn test_verification_queue_unique_item_ids() {
+        let text = QUEUE_MULTI_TEXT;
+        let result = require_queue(text);
+
+        // Collect all item_ids
+        let item_ids: Vec<_> = result.items.iter().map(|i| &i.item_id).collect();
+
+        // Check uniqueness using HashSet
+        let unique_ids: std::collections::HashSet<_> = item_ids.iter().collect();
+        assert_eq!(
+            item_ids.len(),
+            unique_ids.len(),
+            "All item_ids should be unique. Found duplicates in: {:?}",
+            item_ids
+        );
+    }
+
+    /// Test that queue items are sorted by confidence (lowest first)
+    #[test]
+    fn test_verification_queue_sorted_by_confidence() {
+        let text = QUEUE_MULTI_TEXT;
+        let result = require_queue(text);
+
+        // Verify items are sorted by confidence ascending
+        for i in 1..result.items.len() {
+            assert!(
+                result.items[i - 1].confidence <= result.items[i].confidence,
+                "Queue should be sorted by confidence ascending. Item {} conf={:.2} > Item {} conf={:.2}",
+                i - 1,
+                result.items[i - 1].confidence,
+                i,
+                result.items[i].confidence
+            );
+        }
+
+        // Verify priority matches index
+        for (index, item) in result.items.iter().enumerate() {
+            assert_eq!(
+                item.priority,
+                index as u32,
+                "Priority should match position in sorted queue"
+            );
+        }
+    }
+
+    /// Test that item_id format matches spec
+    #[test]
+    fn test_verification_queue_item_id_format() {
+        let text = QUEUE_SAMPLE_TEXT;
+        let result = require_queue(text);
+
+        for item in &result.items {
+            // item_id should be: ${node_id}-${clause_id}-${target_type}-${ordinal}
+            let parts: Vec<_> = item.item_id.split('-').collect();
+            assert_eq!(
+                parts.len(), 4,
+                "item_id should have exactly 4 parts: node_id-clause_id-target_type-ordinal, got: {}",
+                item.item_id
+            );
+
+            // First part should be parseable as node_id
+            let parsed_node_id: Result<u32, _> = parts[0].parse();
+            assert!(
+                parsed_node_id.is_ok(),
+                "First part of item_id should be node_id: {}",
+                item.item_id
+            );
+            assert_eq!(
+                parsed_node_id.unwrap(),
+                item.node_id,
+                "node_id in item_id should match node_id field"
+            );
+
+            // Second part should be parseable as clause_id
+            let parsed_clause_id: Result<u32, _> = parts[1].parse();
+            assert!(
+                parsed_clause_id.is_ok(),
+                "Second part of item_id should be clause_id: {}",
+                item.item_id
+            );
+            assert_eq!(
+                parsed_clause_id.unwrap(),
+                item.clause_id,
+                "clause_id in item_id should match clause_id field"
+            );
+        }
+    }
+
+    /// Test that details_type is one of the expected values
+    #[test]
+    fn test_verification_queue_details_types() {
+        let text = QUEUE_SAMPLE_TEXT;
+        let result = require_queue(text);
+
+        let valid_types = [
+            "PassiveVoiceObligor",
+            "LowConfidenceObligor",
+            "Beneficiary",
+            "Condition",
+            "AmbiguousBeneficiary",
+        ];
+
+        for item in &result.items {
+            assert!(
+                valid_types.contains(&item.details_type.as_str()),
+                "details_type '{}' should be one of: {:?}",
+                item.details_type,
+                valid_types
+            );
+        }
+    }
+
+    /// Test that target_type matches expected enum values
+    #[test]
+    fn test_verification_queue_target_types() {
+        let text = QUEUE_SAMPLE_TEXT;
+        let result = require_queue(text);
+
+        for item in &result.items {
+            // Verify target_type is a valid enum variant
+            match &item.target_type {
+                WasmVerificationTarget::Node
+                | WasmVerificationTarget::BeneficiaryLink
+                | WasmVerificationTarget::ConditionLink
+                | WasmVerificationTarget::ObligorLink => {
+                    // Valid variant
+                }
+            }
+        }
+    }
+
+    /// Test that result is serializable to JSON
+    #[test]
+    fn test_verification_queue_serializable() {
+        let text = QUEUE_SAMPLE_TEXT;
+        let result = require_queue(text);
+
+        let json = serde_json::to_string(&result);
+        assert!(json.is_ok(), "Result should be serializable to JSON");
+
+        let json_str = json.unwrap();
+        assert!(json_str.contains("\"items\""), "JSON should have items field");
+        assert!(json_str.contains("\"total_count\""), "JSON should have total_count field");
+
+        println!("Verification queue JSON:\n{}", json_str);
+    }
+
+    /// Test with complex contract text.
+    ///
+    /// Note: Queue content depends on obligation detection quality. With defined terms
+    /// like "Company" and "Contractor", beneficiaries may resolve without verification.
+    /// The test verifies correct processing; actual items depend on pipeline results.
+    #[test]
+    fn test_verification_queue_complex_contract() {
+        let text = r#"ARTICLE I: DEFINITIONS
+
+Section 1.1 "Company" means ABC Corporation.
+Section 1.2 "Contractor" means XYZ Services LLC.
+
+ARTICLE II: OBLIGATIONS
+
+Section 2.1 The Company shall pay the Contractor within 30 days.
+Section 2.2 Goods shall be delivered by the Vendor to the Customer.
+Section 2.3 The Contractor shall deliver services to Regional Authority."#;
+
+        let result = get_verification_queue_internal(text);
+
+        println!("Complex contract verification queue test:");
+        println!("  Total items: {}", result.total_count);
+        for item in &result.items {
+            println!(
+                "  - [{}] {} ({}) conf={:.2}: {}",
+                item.item_id,
+                item.target_type.as_str(),
+                item.details_type,
+                item.confidence,
+                item.display_text
+            );
+        }
+
+        // Should process without panic
+        assert_eq!(result.total_count, result.items.len() as u32);
+    }
+
+    /// Test that confidence values are in valid range
+    #[test]
+    fn test_verification_queue_confidence_range() {
+        let text = QUEUE_SAMPLE_TEXT;
+        let result = require_queue(text);
+
+        for item in &result.items {
+            assert!(
+                item.confidence >= 0.0 && item.confidence <= 1.0,
+                "Confidence should be in [0.0, 1.0] range, got: {}",
+                item.confidence
+            );
+        }
+    }
+
+    /// Test with German contract text containing umlauts
+    #[test]
+    fn test_verification_queue_unicode_text() {
+        let result = get_verification_queue_internal("Der Verkäufer soll die Waren liefern.");
+        assert_eq!(result.total_count, result.items.len() as u32);
+    }
+
+    /// Test with repeated contract clauses for stress testing
+    #[test]
+    fn test_verification_queue_very_long_text() {
+        let text = "The Vendor shall deliver goods. ".repeat(1000);
+        let result = get_verification_queue_internal(&text);
+        // Should complete without panic
+        assert_eq!(result.total_count, result.items.len() as u32);
+    }
+
+    // ========================================================================
+    // ANALYZE WITH CORRECTIONS TESTS
+    // ========================================================================
+
+    /// Test that analyze_with_corrections with empty corrections JSON produces
+    /// the same result as get_verification_queue_internal
+    #[test]
+    fn test_analyze_with_corrections_empty_corrections() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = get_verification_queue_internal(text);
+        let corrected_queue = analyze_with_corrections_internal(text, "{}");
+
+        // Should produce identical results
+        assert_eq!(
+            base_queue.total_count, corrected_queue.total_count,
+            "Empty corrections should not change item count"
+        );
+        assert_eq!(
+            base_queue.items.len(), corrected_queue.items.len(),
+            "Empty corrections should not change items vector length"
+        );
+
+        // Verify each item matches
+        for (base_item, corrected_item) in base_queue.items.iter().zip(corrected_queue.items.iter()) {
+            assert_eq!(base_item.item_id, corrected_item.item_id);
+            assert_eq!(base_item.confidence, corrected_item.confidence);
+            assert_eq!(base_item.display_text, corrected_item.display_text);
+        }
+    }
+
+    /// Test that analyze_with_corrections gracefully handles invalid JSON
+    /// by falling back to base queue (no corrections applied)
+    #[test]
+    fn test_analyze_with_corrections_invalid_json() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = get_verification_queue_internal(text);
+        let corrected_queue = analyze_with_corrections_internal(text, "not json");
+
+        // Invalid JSON should gracefully fall back to no corrections
+        assert_eq!(
+            base_queue.total_count, corrected_queue.total_count,
+            "Invalid JSON should fall back to base queue"
+        );
+        assert_eq!(
+            base_queue.items.len(), corrected_queue.items.len(),
+            "Invalid JSON should not affect items"
+        );
+    }
+
+    /// Test that confirmed corrections set item confidence to 1.0
+    #[test]
+    fn test_analyze_with_corrections_confirmed_item() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = require_queue(text);
+
+        let first_item_id = &base_queue.items[0].item_id;
+        let original_confidence = base_queue.items[0].confidence;
+
+        // Create corrections JSON with first item confirmed
+        let corrections = CorrectionsInput {
+            confirmed: vec![ConfirmedCorrection {
+                item_id: first_item_id.clone(),
+            }],
+            corrected: vec![],
+            dismissed: vec![],
+        };
+        let corrections_json = serde_json::to_string(&corrections).unwrap();
+
+        let corrected_queue = analyze_with_corrections_internal(text, &corrections_json);
+
+        // Find the confirmed item
+        let confirmed_item = corrected_queue.items.iter()
+            .find(|item| item.item_id == *first_item_id)
+            .expect("Confirmed item should still be in queue");
+
+        assert_eq!(
+            confirmed_item.confidence, 1.0,
+            "Confirmed item should have confidence 1.0 (was {})",
+            original_confidence
+        );
+
+        // Other items should maintain original confidence
+        for item in &corrected_queue.items {
+            if item.item_id != *first_item_id {
+                // Find matching item in base queue
+                if let Some(base_item) = base_queue.items.iter().find(|b| b.item_id == item.item_id) {
+                    assert_eq!(
+                        item.confidence, base_item.confidence,
+                        "Non-confirmed item confidence should be unchanged"
+                    );
+                }
+            }
+        }
+    }
+
+    /// Test that text corrections update the display_text field
+    #[test]
+    fn test_analyze_with_corrections_text_correction() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = require_queue(text);
+
+        let first_item = &base_queue.items[0];
+        let original_text = &first_item.display_text;
+        let corrected_text = "Corrected Display Text";
+
+        // Create corrections JSON with text correction
+        let corrections = CorrectionsInput {
+            confirmed: vec![],
+            corrected: vec![TextCorrection {
+                item_id: first_item.item_id.clone(),
+                original_text: original_text.clone(),
+                corrected_text: corrected_text.to_string(),
+            }],
+            dismissed: vec![],
+        };
+        let corrections_json = serde_json::to_string(&corrections).unwrap();
+
+        let corrected_queue = analyze_with_corrections_internal(text, &corrections_json);
+
+        // Find the corrected item
+        let updated_item = corrected_queue.items.iter()
+            .find(|item| item.item_id == first_item.item_id)
+            .expect("Corrected item should still be in queue");
+
+        assert_eq!(
+            updated_item.display_text, corrected_text,
+            "Text correction should update display_text from '{}' to '{}'",
+            original_text, corrected_text
+        );
+
+        // Other fields should remain unchanged
+        assert_eq!(updated_item.item_id, first_item.item_id);
+        assert_eq!(updated_item.node_id, first_item.node_id);
+        assert_eq!(updated_item.clause_id, first_item.clause_id);
+    }
+
+    /// Test that dismissed items are filtered from the queue
+    #[test]
+    fn test_analyze_with_corrections_dismissed_item() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = require_queue(text);
+
+        let first_item_id = base_queue.items[0].item_id.clone();
+        let original_count = base_queue.total_count;
+
+        // Create corrections JSON with first item dismissed
+        let corrections = CorrectionsInput {
+            confirmed: vec![],
+            corrected: vec![],
+            dismissed: vec![DismissedItem {
+                item_id: first_item_id.clone(),
+                reason: Some("Not relevant to this review".to_string()),
+            }],
+        };
+        let corrections_json = serde_json::to_string(&corrections).unwrap();
+
+        let corrected_queue = analyze_with_corrections_internal(text, &corrections_json);
+
+        // Count should be reduced by 1
+        assert_eq!(
+            corrected_queue.total_count,
+            original_count - 1,
+            "Dismissed item should reduce count by 1"
+        );
+
+        // Dismissed item should not be present
+        let dismissed_found = corrected_queue.items.iter()
+            .any(|item| item.item_id == first_item_id);
+        assert!(
+            !dismissed_found,
+            "Dismissed item '{}' should not be in queue",
+            first_item_id
+        );
+    }
+
+    /// Test that dismissed items can have reason: None
+    #[test]
+    fn test_analyze_with_corrections_dismissed_without_reason() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = require_queue(text);
+
+        let first_item_id = base_queue.items[0].item_id.clone();
+
+        // Create corrections with dismissed item but no reason
+        let corrections = CorrectionsInput {
+            confirmed: vec![],
+            corrected: vec![],
+            dismissed: vec![DismissedItem {
+                item_id: first_item_id.clone(),
+                reason: None,
+            }],
+        };
+        let corrections_json = serde_json::to_string(&corrections).unwrap();
+
+        let corrected_queue = analyze_with_corrections_internal(text, &corrections_json);
+
+        // Item should be filtered even without reason
+        let dismissed_found = corrected_queue.items.iter()
+            .any(|item| item.item_id == first_item_id);
+        assert!(
+            !dismissed_found,
+            "Dismissed item should be filtered even without reason"
+        );
+    }
+
+    /// Test that multiple corrections of different types can be applied together
+    #[test]
+    fn test_analyze_with_corrections_multiple_corrections() {
+        let text = QUEUE_TRI_TEXT;
+
+        let base_queue = require_queue(text);
+        assert!(
+            base_queue.items.len() >= 3,
+            "Expected at least 3 queue items for multi-correction test"
+        );
+
+        let item_to_confirm = &base_queue.items[0];
+        let item_to_correct = &base_queue.items[1];
+        let item_to_dismiss = &base_queue.items[2];
+
+        let corrected_text = "Updated Text Value";
+
+        // Create corrections with all three types
+        let corrections = CorrectionsInput {
+            confirmed: vec![ConfirmedCorrection {
+                item_id: item_to_confirm.item_id.clone(),
+            }],
+            corrected: vec![TextCorrection {
+                item_id: item_to_correct.item_id.clone(),
+                original_text: item_to_correct.display_text.clone(),
+                corrected_text: corrected_text.to_string(),
+            }],
+            dismissed: vec![DismissedItem {
+                item_id: item_to_dismiss.item_id.clone(),
+                reason: Some("Test dismissal".to_string()),
+            }],
+        };
+        let corrections_json = serde_json::to_string(&corrections).unwrap();
+
+        let corrected_queue = analyze_with_corrections_internal(text, &corrections_json);
+
+        // 1. Verify confirmed item has confidence 1.0
+        let confirmed = corrected_queue.items.iter()
+            .find(|i| i.item_id == item_to_confirm.item_id)
+            .expect("Confirmed item should be present");
+        assert_eq!(confirmed.confidence, 1.0, "Confirmed item should have confidence 1.0");
+
+        // 2. Verify corrected item has updated display_text
+        let corrected = corrected_queue.items.iter()
+            .find(|i| i.item_id == item_to_correct.item_id)
+            .expect("Corrected item should be present");
+        assert_eq!(
+            corrected.display_text, corrected_text,
+            "Corrected item should have updated display_text"
+        );
+
+        // 3. Verify dismissed item is not present
+        let dismissed_found = corrected_queue.items.iter()
+            .any(|i| i.item_id == item_to_dismiss.item_id);
+        assert!(!dismissed_found, "Dismissed item should not be in queue");
+
+        // 4. Verify total count is reduced by 1 (one dismissed)
+        assert_eq!(
+            corrected_queue.total_count,
+            base_queue.total_count - 1,
+            "Total count should be reduced by 1 for dismissed item"
+        );
+    }
+
+    /// Test that corrections referencing unknown item_ids are ignored gracefully
+    #[test]
+    fn test_analyze_with_corrections_unknown_item_id() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = get_verification_queue_internal(text);
+
+        // Create corrections referencing non-existent item_ids
+        let corrections = CorrectionsInput {
+            confirmed: vec![ConfirmedCorrection {
+                item_id: "999-999-UnknownType-99".to_string(),
+            }],
+            corrected: vec![TextCorrection {
+                item_id: "888-888-FakeType-88".to_string(),
+                original_text: "original".to_string(),
+                corrected_text: "corrected".to_string(),
+            }],
+            dismissed: vec![DismissedItem {
+                item_id: "777-777-MissingType-77".to_string(),
+                reason: Some("Does not exist".to_string()),
+            }],
+        };
+        let corrections_json = serde_json::to_string(&corrections).unwrap();
+
+        let corrected_queue = analyze_with_corrections_internal(text, &corrections_json);
+
+        // Queue should be unchanged since all item_ids are unknown
+        assert_eq!(
+            corrected_queue.total_count, base_queue.total_count,
+            "Unknown item_ids should not affect queue count"
+        );
+        assert_eq!(
+            corrected_queue.items.len(), base_queue.items.len(),
+            "Unknown item_ids should not affect items"
+        );
+
+        // All items should have original values
+        for (base_item, corrected_item) in base_queue.items.iter().zip(corrected_queue.items.iter()) {
+            assert_eq!(base_item.item_id, corrected_item.item_id);
+            assert_eq!(base_item.confidence, corrected_item.confidence);
+            assert_eq!(base_item.display_text, corrected_item.display_text);
+        }
+    }
+
+    /// Test that calling analyze_with_corrections twice with same inputs produces identical results
+    #[test]
+    fn test_analyze_with_corrections_persistence() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = require_queue(text);
+
+        let corrections = CorrectionsInput {
+            confirmed: vec![ConfirmedCorrection {
+                item_id: base_queue.items[0].item_id.clone(),
+            }],
+            corrected: vec![],
+            dismissed: vec![],
+        };
+        let corrections_json = serde_json::to_string(&corrections).unwrap();
+
+        // Call twice with same inputs
+        let result1 = analyze_with_corrections_internal(text, &corrections_json);
+        let result2 = analyze_with_corrections_internal(text, &corrections_json);
+
+        // Results should be identical
+        assert_eq!(
+            result1.total_count, result2.total_count,
+            "Repeated calls should produce same count"
+        );
+        assert_eq!(
+            result1.items.len(), result2.items.len(),
+            "Repeated calls should produce same number of items"
+        );
+
+        for (item1, item2) in result1.items.iter().zip(result2.items.iter()) {
+            assert_eq!(item1.item_id, item2.item_id, "Item IDs should match");
+            assert_eq!(item1.confidence, item2.confidence, "Confidences should match");
+            assert_eq!(item1.display_text, item2.display_text, "Display texts should match");
+            assert_eq!(item1.priority, item2.priority, "Priorities should match");
+        }
+    }
+
+    /// Test analyze_with_corrections with empty text
+    #[test]
+    fn test_analyze_with_corrections_empty_text() {
+        let result = analyze_with_corrections_internal("", "{}");
+        assert_eq!(result.total_count, 0);
+        assert!(result.items.is_empty());
+    }
+
+    /// Test analyze_with_corrections with whitespace-only text
+    #[test]
+    fn test_analyze_with_corrections_whitespace_text() {
+        let result = analyze_with_corrections_internal("   \n\n   ", "{}");
+        assert_eq!(result.total_count, 0);
+        assert!(result.items.is_empty());
+    }
+
+    /// Test analyze_with_corrections with empty arrays in corrections JSON
+    #[test]
+    fn test_analyze_with_corrections_empty_arrays() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = get_verification_queue_internal(text);
+
+        // Explicit empty arrays (different from missing fields)
+        let corrections_json = r#"{"confirmed":[],"corrected":[],"dismissed":[]}"#;
+
+        let corrected_queue = analyze_with_corrections_internal(text, corrections_json);
+
+        assert_eq!(
+            base_queue.total_count, corrected_queue.total_count,
+            "Empty arrays should not change queue"
+        );
+    }
+
+    /// Test that result from analyze_with_corrections is JSON serializable
+    #[test]
+    fn test_analyze_with_corrections_serializable() {
+        let text = QUEUE_SAMPLE_TEXT;
+        let corrections_json = r#"{"confirmed":[],"corrected":[],"dismissed":[]}"#;
+
+        let result = analyze_with_corrections_internal(text, corrections_json);
+
+        let json = serde_json::to_string(&result);
+        assert!(json.is_ok(), "Result should be serializable to JSON");
+
+        let json_str = json.unwrap();
+        assert!(json_str.contains("\"items\""), "JSON should have items field");
+        assert!(json_str.contains("\"total_count\""), "JSON should have total_count field");
+    }
+
+    /// Test that corrections can be applied with both confirm and correct on same item
+    #[test]
+    fn test_analyze_with_corrections_confirm_and_correct_same_item() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = require_queue(text);
+
+        let item = &base_queue.items[0];
+        let corrected_text = "Both Confirmed And Corrected";
+
+        // Apply both confirm and correct to same item
+        let corrections = CorrectionsInput {
+            confirmed: vec![ConfirmedCorrection {
+                item_id: item.item_id.clone(),
+            }],
+            corrected: vec![TextCorrection {
+                item_id: item.item_id.clone(),
+                original_text: item.display_text.clone(),
+                corrected_text: corrected_text.to_string(),
+            }],
+            dismissed: vec![],
+        };
+        let corrections_json = serde_json::to_string(&corrections).unwrap();
+
+        let corrected_queue = analyze_with_corrections_internal(text, &corrections_json);
+
+        let updated_item = corrected_queue.items.iter()
+            .find(|i| i.item_id == item.item_id)
+            .expect("Item should be present");
+
+        // Both corrections should be applied
+        assert_eq!(updated_item.confidence, 1.0, "Should be confirmed");
+        assert_eq!(updated_item.display_text, corrected_text, "Should have corrected text");
+    }
+
+    /// Test that dismissing an item that was also confirmed results in dismissal (filter wins)
+    #[test]
+    fn test_analyze_with_corrections_dismiss_overrides_confirm() {
+        let text = QUEUE_SAMPLE_TEXT;
+
+        let base_queue = require_queue(text);
+
+        let item_id = base_queue.items[0].item_id.clone();
+
+        // Both confirm and dismiss the same item
+        let corrections = CorrectionsInput {
+            confirmed: vec![ConfirmedCorrection {
+                item_id: item_id.clone(),
+            }],
+            corrected: vec![],
+            dismissed: vec![DismissedItem {
+                item_id: item_id.clone(),
+                reason: Some("Dismiss should win".to_string()),
+            }],
+        };
+        let corrections_json = serde_json::to_string(&corrections).unwrap();
+
+        let corrected_queue = analyze_with_corrections_internal(text, &corrections_json);
+
+        // Dismissed should filter out the item (filter happens first in processing)
+        let item_found = corrected_queue.items.iter()
+            .any(|i| i.item_id == item_id);
+        assert!(
+            !item_found,
+            "Dismissed item should be filtered out even if also confirmed"
+        );
     }
 }

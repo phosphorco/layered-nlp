@@ -17,3 +17,4 @@ layered-contracts = { path = "../layered-contracts" }
 layered-deixis = { path = "../layered-deixis" }
 layered-clauses = { path = "../layered-clauses" }
 layered-nlp-document = { path = "../layered-nlp-document" }
+layered-part-of-speech = { path = "../layered-part-of-speech" }

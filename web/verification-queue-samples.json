@@ -1,0 +1,20 @@
+[
+  {
+    "id": "services-agreement-long",
+    "title": "Services Agreement (long)",
+    "description": "Direct-object beneficiaries and passive voice obligations produce multiple review items.",
+    "text": "SERVICES AGREEMENT\n\n\"Company\" means ABC Corporation. \"Contractor\" means XYZ Services LLC.\n\n1. Payment. The Company shall pay the Contractor within 30 days of invoice receipt.\n2. Reporting. Reports shall be made within 10 days of invoice receipt.\n3. Reimbursements. The Vendor shall reimburse Customer fees and notify Regional Authority of any late payments.\n4. Compliance. The Contractor shall ensure compliance with all regulations. The necessary certifications shall be obtained prior to project commencement.\n5. Termination. The Company may terminate this agreement if Contractor fails to perform. Notices shall be delivered within 5 days."
+  },
+  {
+    "id": "operations-addendum",
+    "title": "Operations Addendum",
+    "description": "Heavy on passive voice and ambiguous beneficiaries to stress the verification queue.",
+    "text": "OPERATIONS ADDENDUM\n\n\"Supplier\" means Atlas Logistics Ltd. \"Customer\" means Northwind Market LLC.\n\n1. Handling. Packages shall be inspected upon arrival. Reports shall be made within 24 hours.\n2. Returns. The Supplier shall reimburse Customer handling fees and notify Regional Authority of any hazardous returns.\n3. Storage. All materials shall be stored securely. Certifications shall be obtained before any storage begins.\n4. Escalation. If discrepancies arise, notices shall be delivered within 3 days."
+  },
+  {
+    "id": "vendor-sla",
+    "title": "Vendor SLA",
+    "description": "Mixed obligations with direct objects and passive clauses to create a varied queue.",
+    "text": "VENDOR SERVICE LEVEL AGREEMENT\n\n\"Provider\" means Blue Harbor Systems. \"Client\" means Redwood Health.\n\n1. Support. The Provider shall pay the Contractor within 15 days for Tier 1 support.\n2. Maintenance. Updates shall be delivered weekly. Reports shall be made within 5 days.\n3. Audit. The Provider shall reimburse Client audit fees and notify Regional Authority of any audit delays.\n4. Security. Certifications shall be obtained prior to any access."
+  }
+]
