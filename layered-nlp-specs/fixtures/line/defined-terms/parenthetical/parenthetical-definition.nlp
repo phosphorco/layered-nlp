@@ -1,0 +1,5 @@
+# Test: Parenthetical Defined Term
+
+ABC Corp (the «1:"Company"») shall deliver goods.
+
+> [1]: DefinedTerm(term_name=Company, definition_type=Parenthetical)

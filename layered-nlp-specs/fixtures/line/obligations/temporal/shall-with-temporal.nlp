@@ -1,0 +1,5 @@
+# Test: Obligation with Temporal Phrase
+
+The Company «1:shall pay» the invoice within thirty (30) days.
+
+> [1]: Obligation(modal=shall)

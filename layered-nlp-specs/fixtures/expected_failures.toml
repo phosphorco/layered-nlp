@@ -1,5 +1,5 @@
 # Expected failures for spec-driven tests.
-# Format: fixture = "file.nlp", assertion = "S{paragraph}.[{span}]"
+# Format: fixture = "relative/path/file.nlp", assertion = "S{paragraph}.[{span}]"
 #
 # Failure states:
 #   pending - Known failure, awaiting fix (not blocking CI)
@@ -12,7 +12,7 @@
 # --- multi-paragraph-obligation.nlp ---
 
 [[pending]]
-fixture = "multi-paragraph-obligation.nlp"
+fixture = "document/obligations/cross-paragraph/multi-paragraph-obligation.nlp"
 assertion = "S0.[1]"
 reason = "Multi-paragraph context not propagating correctly for span detection"
 added = "2025-01-07"
@@ -20,7 +20,7 @@ added = "2025-01-07"
 # --- pronoun-reference.nlp ---
 
 [[pending]]
-fixture = "pronoun-reference.nlp"
+fixture = "document/pronouns/cross-paragraph/pronoun-reference.nlp"
 assertion = "S1.[1]"
 reason = "Cross-paragraph pronoun resolution not yet working"
 added = "2025-01-07"
@@ -28,7 +28,7 @@ added = "2025-01-07"
 # --- defined-term-single.nlp ---
 
 [[pending]]
-fixture = "defined-term-single.nlp"
+fixture = "line/defined-terms/quoted-means/defined-term-single.nlp"
 assertion = "S0.[1]"
 reason = "Quote marks in fixture span text don't match resolver output (resolver strips quotes)"
 added = "2025-01-07"
@@ -36,45 +36,77 @@ added = "2025-01-07"
 # --- defined-term-complex.nlp ---
 
 [[pending]]
-fixture = "defined-term-complex.nlp"
+fixture = "document/defined-terms/cross-paragraph/defined-term-complex.nlp"
 assertion = "S0.[\"Property\"]"
 reason = "Text reference syntax for DefinedTerm not yet supported"
 added = "2025-01-07"
 
 [[pending]]
-fixture = "defined-term-complex.nlp"
+fixture = "document/defined-terms/cross-paragraph/defined-term-complex.nlp"
 assertion = "S1.[1]"
 reason = "Cross-paragraph term references not yet supported"
+added = "2025-01-07"
+
+# --- must-simple.nlp ---
+
+[[pending]]
+fixture = "line/obligations/modal/must-simple.nlp"
+assertion = "S0.[1]"
+reason = "ObligationPhraseResolver not detecting 'must' modal in fixture runner"
+added = "2025-01-07"
+
+# --- must-not-simple.nlp ---
+
+[[pending]]
+fixture = "line/prohibitions/modal/must-not-simple.nlp"
+assertion = "S0.[1]"
+reason = "Prohibition with 'must not' not detected as ObligationPhrase"
+added = "2025-01-07"
+
+# --- parenthetical-definition.nlp ---
+
+[[pending]]
+fixture = "line/defined-terms/parenthetical/parenthetical-definition.nlp"
+assertion = "S0.[1]"
+reason = "Parenthetical defined term span not matching resolver output"
+added = "2025-01-07"
+
+# --- hereinafter-definition.nlp ---
+
+[[pending]]
+fixture = "line/defined-terms/hereinafter/hereinafter-definition.nlp"
+assertion = "S0.[1]"
+reason = "Hereinafter defined term span not matching resolver output"
 added = "2025-01-07"
 
 # --- full-contract-section.nlp ---
 
 [[pending]]
-fixture = "full-contract-section.nlp"
+fixture = "integration/contract-sections/full-contract-section.nlp"
 assertion = "S0.[1]"
 reason = "Complex multi-paragraph fixture: obligation span boundaries need fixes"
 added = "2025-01-07"
 
 [[pending]]
-fixture = "full-contract-section.nlp"
+fixture = "integration/contract-sections/full-contract-section.nlp"
 assertion = "S0.[2]"
 reason = "Complex multi-paragraph fixture: bearer extraction not working"
 added = "2025-01-07"
 
 [[pending]]
-fixture = "full-contract-section.nlp"
+fixture = "integration/contract-sections/full-contract-section.nlp"
 assertion = "S1.[1]"
 reason = "Complex multi-paragraph fixture: second paragraph obligation detection"
 added = "2025-01-07"
 
 [[pending]]
-fixture = "full-contract-section.nlp"
+fixture = "integration/contract-sections/full-contract-section.nlp"
 assertion = "S1.[2]"
 reason = "Complex multi-paragraph fixture: pronoun detection in second paragraph"
 added = "2025-01-07"
 
 [[pending]]
-fixture = "full-contract-section.nlp"
+fixture = "integration/contract-sections/full-contract-section.nlp"
 assertion = "S2.[1]"
 reason = "Complex multi-paragraph fixture: third paragraph obligation detection"
 added = "2025-01-07"

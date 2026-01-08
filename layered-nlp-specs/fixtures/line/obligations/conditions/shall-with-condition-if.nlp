@@ -1,0 +1,5 @@
+# Test: Obligation with If Condition
+
+If payment is received, the Company «1:shall deliver» the goods.
+
+> [1]: Obligation(modal=shall)

@@ -1,0 +1,5 @@
+# Test: Simple Obligation Detection (must)
+
+The Tenant «1:must pay» rent within five days of receiving the invoice.
+
+> [1]: Obligation(modal=must)

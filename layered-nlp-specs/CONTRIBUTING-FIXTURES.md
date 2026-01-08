@@ -4,14 +4,28 @@ This document defines the systematic methodology for improving layered-nlp throu
 
 ---
 
+## Current State
+
+**Infrastructure Status:**
+- 16 fixtures exist in `fixtures/`, organized under `fixtures/line/`, `fixtures/document/`, and `fixtures/integration/`
+- 10 expected failures tracked in `expected_failures.toml`
+- Core test infrastructure works: parser, runner, matcher, failure tracking
+- Test command: `cargo test -p layered-nlp-specs`
+
+**Feature Status Legend:**
+- `[Implemented]` - Working today
+- `[Planned]` - Aspirational, not yet built
+
+---
+
 ## 1. The Fixture Flywheel
 
 The Fixture Flywheel is a continuous improvement cycle:
 
 ```
-Identify Gap → Write Fixture → Fixture Fails → Fix Resolver → Fixture Passes → Coverage Updates → Identify Next Gap
-     ↑                                                                                                    |
-     └────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Identify Gap -> Write Fixture -> Fixture Fails -> Fix Resolver -> Fixture Passes -> Coverage Updates -> Identify Next Gap
+     ^                                                                                                    |
+     +----------------------------------------------------------------------------------------------------+
 ```
 
 ### Key Principles
@@ -32,16 +46,18 @@ Organize fixtures by NLP capability. Each group has a target coverage percentage
 
 | Group | Directory | Capability | Target Coverage |
 |-------|-----------|------------|-----------------|
-| Obligations | `fixtures/obligations/` | Duty detection (shall, must, will) | 90% |
-| Permissions | `fixtures/permissions/` | Permission detection (may, permitted) | 90% |
-| Prohibitions | `fixtures/prohibitions/` | Prohibition detection (shall not, cannot) | 85% |
-| Defined Terms | `fixtures/defined-terms/` | Definition recognition ("Term" means) | 90% |
-| Term References | `fixtures/term-references/` | Subsequent term usage | 85% |
-| Pronouns | `fixtures/pronouns/` | Pronoun resolution (it, they to antecedent) | 80% |
-| Cross-Paragraph | `fixtures/cross-paragraph/` | Multi-section context | 75% |
-| Conflicts | `fixtures/conflicts/` | Contradiction detection | 80% |
-| Conditions | `fixtures/conditions/` | Conditional parsing (if, unless, provided) | 85% |
-| Semantic Roles | `fixtures/semantic-roles/` | Who-does-what extraction | 80% |
+| Obligations | `fixtures/line/obligations/` | Duty detection (shall, must, will) | 90% |
+| Permissions | `fixtures/line/permissions/` | Permission detection (may, permitted) | 90% |
+| Prohibitions | `fixtures/line/prohibitions/` | Prohibition detection (shall not, cannot) | 85% |
+| Defined Terms | `fixtures/line/defined-terms/` | Definition recognition ("Term" means) | 90% |
+| Term References | `fixtures/line/term-references/` | Subsequent term usage | 85% |
+| Pronouns | `fixtures/line/pronouns/` | Pronoun resolution (it, they to antecedent) | 80% |
+| Cross-Paragraph | `fixtures/document/<capability>/cross-paragraph/` | Multi-section context | 75% |
+| Conflicts | `fixtures/document/conflicts/` | Contradiction detection | 80% |
+| Conditions | `fixtures/line/obligations/conditions/` | Conditional parsing (if, unless, provided) | 85% |
+| Semantic Roles | `fixtures/document/semantic-roles/` | Who-does-what extraction | 80% |
+
+**Note:** Fixtures are organized by scope (`line`, `document`, `integration`), then capability, then pattern.
 
 ---
 
@@ -50,22 +66,34 @@ Organize fixtures by NLP capability. Each group has a target coverage percentage
 ### 3.1 File Naming Convention
 
 ```
-{group}/{pattern}-{variant}.nlp
+{pattern}-{variant}.nlp
 
 Examples:
-obligations/shall-simple.nlp
-obligations/shall-with-condition.nlp
-obligations/shall-cross-paragraph.nlp
-defined-terms/quoted-means-simple.nlp
-defined-terms/parenthetical-definition.nlp
+simple-obligation.nlp
+multi-paragraph-obligation.nlp
+defined-term-single.nlp
+defined-term-complex.nlp
+pronoun-reference.nlp
 ```
 
 Names should be:
 - **Descriptive** - The pattern being tested is obvious from the name
-- **Searchable** - `grep -r "shall-with"` finds related fixtures
+- **Searchable** - `grep -r "obligation"` finds related fixtures
 - **Sortable** - Variants group together alphabetically
 
 ### 3.2 Fixture Structure
+
+**[Implemented] Minimal Format:**
+
+```nlp
+# Test: [Pattern Being Tested]
+
+The text with «ID:marked spans» for assertions.
+
+> [ID]: SpanType(field=value, field2=value2)
+```
+
+**[Planned] Extended Header Format:**
 
 ```nlp
 # Title: [Pattern Being Tested]
@@ -74,17 +102,12 @@ Names should be:
 # Complexity: [simple|compound|edge-case]
 # Source: [real-world|synthetic|edge-case]
 
-@paragraph
 The text with «ID:marked spans» for assertions.
-|ID| SpanType(field=value, field2=value2)
 
----
-@paragraph
-Second paragraph if testing cross-paragraph.
-|ID2| SpanType(field=value)
+> [ID]: SpanType(field=value, field2=value2)
 ```
 
-The header metadata enables:
+The extended header metadata would enable:
 - Filtering fixtures by group or complexity
 - Understanding fixture intent without reading assertions
 - Tracing patterns back to their real-world sources
@@ -103,42 +126,96 @@ The header metadata enables:
 
 6. **Document edge cases** - Note WHY an edge case matters. What contract language triggered this fixture?
 
-### 3.4 Assertion Syntax Reference
+### 3.4 Assertion Syntax Reference [Implemented]
+
+**Span Markers** use French guillemets (`«` U+00AB and `»` U+00BB):
+
+```nlp
+# Numeric span ID (span-only, for assertions)
+The Tenant «1:shall pay» rent monthly.
+
+# Named entity ID (creates entity AND marks span)
+«T:The Tenant» agrees to the following terms.
+«L:the Landlord» shall receive payment.
+
+# Multiple spans in same paragraph
+«T:The Tenant» «1:shall pay» rent to «L:the Landlord».
+```
+
+**Assertions** use `> [ID]: Type(...)` format:
 
 ```nlp
 # Numeric span reference
-|1| Obligation(modal=shall, obligation_type=Duty)
-
-# Named entity reference
-|T| DefinedTerm(term_name=Tenant, definition_type=QuotedMeans)
+> [1]: Obligation(modal=shall)
 
 # Text reference (for inline matches)
-|["Tenant"]| DefinedTerm(term_name=Tenant)
+> ["Tenant"]: DefinedTerm(term_name=Tenant)
 
-# Entity cross-reference in assertions
-|1| Obligation(bearer=§T)
+# Text reference with occurrence number (Nth occurrence)
+> ["Tenant"@2]: TermReference(target=§T)
+
+# Entity cross-reference in assertions (using section sign)
+> [1]: Obligation(bearer=§T)
+
+# Entity declaration
+> §L: Party(role=landlord)
 
 # Confidence threshold
-|1| PronounReference(confidence>=0.8)
+> [1]: PronounReference(confidence>=0.8)
 ```
 
-The syntax supports:
-- **Numeric IDs** for positional spans within a paragraph
-- **Named IDs** for entities that will be referenced elsewhere
-- **Text literals** for exact match assertions
-- **Cross-references** with `§` prefix to link entities
-- **Thresholds** for probabilistic assertions
+**Cross-References** use section sign (`§` U+00A7):
+
+```nlp
+# Reference an entity in assertion fields
+> [1]: Obligation(modal=shall, bearer=§T)
+> [1]: PronounReference(pronoun_type=ThirdSingularNeuter, target=§T)
+```
+
+**Multi-Paragraph Fixtures** use `---` separator:
+
+```nlp
+# Test: Cross-Paragraph Entity Reference
+
+«T:The Tenant» agrees to the following terms.
 
 ---
 
-## 4. Prioritization Framework
+«1:shall pay» monthly rent to «L:the Landlord».
+
+> [1]: Obligation(modal=shall, bearer=§T)
+> §L: Party(role=landlord)
+```
+
+### 3.5 Supported Assertion Types [Implemented]
+
+**Obligation:**
+- `modal=shall`, `modal=must`, `modal=may`, `modal=shall not`
+- `bearer=§EntityId`
+- `action=text` (substring match)
+
+**PronounReference / PronounRef:**
+- `pronoun_type=ThirdSingularNeuter`, `ThirdPlural`, etc.
+- `target=§EntityId`
+- `confidence>=0.8` (operators: =, >=, <=)
+
+**DefinedTerm:**
+- `term_name=Tenant`
+- `definition_type=QuotedMeans`, `Parenthetical`, `Hereinafter`
+
+**Party:**
+- `role=landlord`, `role=tenant`
+
+---
+
+## 4. Prioritization Framework [Optional]
 
 Not all fixtures are equally important. Use this framework to prioritize fixes.
 
 ### 4.1 Priority Score Formula
 
 ```
-Priority = (Impact × Frequency) / Effort
+Priority = (Impact x Frequency) / Effort
 ```
 
 Higher scores indicate higher priority.
@@ -186,7 +263,7 @@ Higher scores indicate higher priority.
 - Impact: 4 (missing expected capability)
 - Frequency: 5 (every contract has conditional obligations)
 - Effort: 3 (significant resolver modification)
-- Score: (4 × 5) / 3 = 6.67 → P2
+- Score: (4 x 5) / 3 = 6.67 -> P2
 
 ---
 
@@ -195,14 +272,11 @@ Higher scores indicate higher priority.
 ### 5.1 Morning Review (30 min)
 
 ```bash
-# Run current test suite
+# Run current test suite [Implemented]
 cargo test -p layered-nlp-specs
 
-# Check failure status
-cat fixtures/expected_failures.toml | grep -c "pending"
-
-# Review high-priority pending items
-grep -A3 "priority = \"P0\"" fixtures/expected_failures.toml
+# Check failure count
+grep -c "pending" fixtures/expected_failures.toml
 ```
 
 This establishes current state and surfaces blockers.
@@ -233,14 +307,13 @@ git add fixtures/
 
 # Update expected_failures.toml
 # - Remove fixed items
-# - Add new pending items with priority
+# - Add new pending items
 
 # Commit with coverage summary
 git commit -m "test(fixtures): X fixtures now passing
 
 - Fixed: [list fixed patterns]
-- Added: [list new fixtures]
-- Coverage: obligations 80%, permissions 90%"
+- Added: [list new fixtures]"
 ```
 
 ### 5.4 Weekly Review (1 hr)
@@ -258,12 +331,12 @@ Use these checklists to track progress toward coverage targets.
 
 ### 6.1 Obligations (Target: 90%)
 
-- [ ] shall-simple
+- [x] simple-obligation (shall-simple)
 - [ ] shall-with-bearer
 - [ ] shall-with-condition-if
 - [ ] shall-with-condition-unless
 - [ ] shall-with-temporal
-- [ ] shall-cross-paragraph
+- [x] multi-paragraph-obligation (shall-cross-paragraph)
 - [ ] shall-in-list-item
 - [ ] must-simple
 - [ ] must-with-bearer
@@ -272,7 +345,7 @@ Use these checklists to track progress toward coverage targets.
 
 ### 6.2 Permissions (Target: 90%)
 
-- [ ] may-simple
+- [x] permission-simple (may-simple)
 - [ ] may-with-bearer
 - [ ] may-with-condition
 - [ ] is-permitted-to
@@ -290,7 +363,8 @@ Use these checklists to track progress toward coverage targets.
 
 ### 6.4 Defined Terms (Target: 90%)
 
-- [ ] quoted-means-simple
+- [x] defined-term-single (quoted-means-simple)
+- [x] defined-term-complex
 - [ ] quoted-means-with-article
 - [ ] parenthetical-definition
 - [ ] hereinafter-definition
@@ -300,7 +374,7 @@ Use these checklists to track progress toward coverage targets.
 
 ### 6.5 Pronouns (Target: 80%)
 
-- [ ] it-simple
+- [x] pronoun-reference (it-simple with cross-paragraph)
 - [ ] they-simple
 - [ ] such-party
 - [ ] the-foregoing
@@ -327,7 +401,7 @@ Agents can parallelize fixture work. Provide clear specifications.
 When you have a failing fixture, spawn an agent with:
 
 ```
-Fix the failing fixture at fixtures/obligations/shall-with-condition.nlp
+Fix the failing fixture at fixtures/document/obligations/cross-paragraph/multi-paragraph-obligation.nlp
 
 The fixture expects: Obligation(modal=shall, bearer=§T)
 Current error: NotFound: No ObligationPhrase found for 'shall pay'
@@ -348,14 +422,15 @@ To expand coverage for a group:
 ```
 Add fixtures to reach 90% coverage for the obligations group.
 
-Current fixtures: shall-simple.nlp, shall-with-condition.nlp
+Current fixtures: line/obligations/modal/simple-obligation.nlp, document/obligations/cross-paragraph/multi-paragraph-obligation.nlp
 Missing patterns: must-simple, will-simple, shall-with-temporal
 
 For each new fixture:
 1. Follow CONTRIBUTING-FIXTURES.md guidelines
-2. Verify it fails initially (expected)
-3. Add to expected_failures.toml with priority score
-4. Do NOT implement fixes - just add the fixtures
+2. Use correct syntax: «ID:span» for markers, > [ID]: Type(...) for assertions
+3. Verify it fails initially (expected)
+4. Add to expected_failures.toml with reason
+5. Do NOT implement fixes - just add the fixtures
 ```
 
 ### 7.3 Spawning a Batch Fix Agent
@@ -364,9 +439,9 @@ When multiple fixtures share a root cause:
 
 ```
 Fix cross-paragraph context propagation affecting these fixtures:
-- multi-paragraph-obligation.nlp
-- pronoun-reference.nlp
-- defined-term-complex.nlp
+- document/obligations/cross-paragraph/multi-paragraph-obligation.nlp
+- document/pronouns/cross-paragraph/pronoun-reference.nlp
+- document/defined-terms/cross-paragraph/defined-term-complex.nlp
 
 All fail because entities defined in paragraph 0 are not visible in paragraph 1.
 
@@ -384,12 +459,31 @@ Recommend option and implement.
 
 ## 8. The expected_failures.toml Format
 
-Track known and pending failures in a structured format.
+Track pending failures in a structured format.
+
+### 8.1 Current Format [Implemented]
 
 ```toml
 # Pending: Known failures we intend to fix
 [[pending]]
-fixture = "obligations/shall-with-condition.nlp"
+fixture = "document/obligations/cross-paragraph/multi-paragraph-obligation.nlp"
+assertion = "S0.[1]"
+reason = "Multi-paragraph context not propagating correctly"
+added = "2025-01-07"
+```
+
+Fields:
+- `fixture` - Relative path under `fixtures/` (subdirectories allowed)
+- `assertion` - Which assertion fails: `S{paragraph}.[{span_id}]` or `S{paragraph}.["text"]`
+- `reason` - Why it fails, briefly
+- `added` - Date added to registry
+
+### 8.2 Extended Format [Planned]
+
+```toml
+# Pending: Known failures we intend to fix
+[[pending]]
+fixture = "line/obligations/conditions/shall-with-condition.nlp"
 assertion = "S0.[1]"
 reason = "Condition extraction not implemented"
 priority = "P1"
@@ -401,20 +495,16 @@ blocked_by = []  # Optional: other fixtures that must pass first
 
 # Known: Failures we accept (architectural limitations)
 [[known]]
-fixture = "cross-paragraph/deep-nesting.nlp"
+fixture = "document/obligations/cross-paragraph/deep-nesting.nlp"
 assertion = "S3.[1]"
 reason = "4+ paragraph depth not supported by design"
 added = "2025-01-07"
 wont_fix = true
 ```
 
-Fields:
-- `fixture` - Path relative to fixtures directory
-- `assertion` - Which assertion fails (for multi-assertion fixtures)
-- `reason` - Why it fails, briefly
+Additional planned fields:
 - `priority` - P0/P1/P2/P3 tier
 - `impact`, `frequency`, `effort` - Scores from prioritization rubric
-- `added` - Date added to registry
 - `blocked_by` - Other fixtures that must pass first
 - `wont_fix` - True for known architectural limitations
 
@@ -422,7 +512,7 @@ Fields:
 
 ## 9. Success Metrics
 
-### 9.1 Coverage Dashboard (Future)
+### 9.1 Coverage Dashboard [Planned]
 
 ```bash
 mise run fixture-coverage
@@ -453,21 +543,57 @@ Track these metrics weekly:
 ## Quick Reference
 
 ```bash
-# Run all fixture tests
+# Run all fixture tests [Implemented]
 cargo test -p layered-nlp-specs
 
-# Run specific fixture test
+# Run specific fixture test [Implemented]
 cargo test -p layered-nlp-specs test_full_pipeline_integration
 
 # Check what is failing
 cargo test -p layered-nlp-specs 2>&1 | grep "NotFound"
 
 # Add new fixture (then run to verify it fails)
-vim fixtures/obligations/must-simple.nlp
+vim fixtures/line/obligations/modal/must-simple.nlp
 
 # Update failures registry
 vim fixtures/expected_failures.toml
 ```
+
+### Syntax Quick Reference
+
+```nlp
+# Span markers (French guillemets)
+«1:shall pay»           # Numeric ID - span only
+«T:The Tenant»          # Named ID - creates entity AND span
+
+# Paragraph separator
+---
+
+# Assertions (> prefix required)
+> [1]: Obligation(modal=shall)
+> [1]: Obligation(modal=shall, bearer=§T)
+> ["text"]: DefinedTerm(term_name=Tenant)
+> §T: Party(role=tenant)
+
+# Cross-references (section sign)
+bearer=§T               # Reference entity T
+target=§T               # Reference entity T
+```
+
+---
+
+## Resolver Reference
+
+These resolvers are available for fixture testing:
+
+| Resolver | Detects | Example Pattern |
+|----------|---------|-----------------|
+| ObligationPhraseResolver | Obligations | "shall pay", "must provide" |
+| DefinedTermResolver | Term definitions | "\"Tenant\" means..." |
+| TermReferenceResolver | Term usage | subsequent "Tenant" references |
+| PronounResolver | Pronoun references | "it", "they" -> antecedent |
+| ContractKeywordResolver | Contract keywords | "hereby", "notwithstanding" |
+| ProhibitionResolver | Prohibitions | "shall not", "may not" |
 
 ---
 

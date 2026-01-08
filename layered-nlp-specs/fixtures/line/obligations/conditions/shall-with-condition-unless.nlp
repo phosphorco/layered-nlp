@@ -1,0 +1,5 @@
+# Test: Obligation with Unless Condition
+
+The Company «1:shall deliver» the goods unless otherwise agreed.
+
+> [1]: Obligation(modal=shall)

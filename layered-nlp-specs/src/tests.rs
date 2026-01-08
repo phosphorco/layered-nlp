@@ -14,7 +14,7 @@ fn load_fixture(name: &str) -> NlpFixture {
 
 #[test]
 fn test_simple_obligation_fixture() {
-    let fixture = load_fixture("simple-obligation.nlp");
+    let fixture = load_fixture("line/obligations/modal/simple-obligation.nlp");
 
     assert_eq!(fixture.title.as_deref(), Some("Test: Simple Obligation Detection"));
     assert_eq!(fixture.spans().len(), 1);
@@ -25,7 +25,7 @@ fn test_simple_obligation_fixture() {
 
 #[test]
 fn test_defined_term_fixture() {
-    let fixture = load_fixture("defined-term-single.nlp");
+    let fixture = load_fixture("line/defined-terms/quoted-means/defined-term-single.nlp");
 
     assert_eq!(fixture.title.as_deref(), Some("Test: Defined Term Detection"));
     assert_eq!(fixture.spans().len(), 1);
@@ -36,7 +36,7 @@ fn test_defined_term_fixture() {
 
 #[test]
 fn test_permission_fixture() {
-    let fixture = load_fixture("permission-simple.nlp");
+    let fixture = load_fixture("line/permissions/modal/permission-simple.nlp");
 
     assert_eq!(fixture.spans()[0].text, "may enter");
     assert_eq!(fixture.assertions[0].body.field_checks[0].field, "modal");
@@ -49,7 +49,7 @@ fn test_permission_fixture() {
 
 #[test]
 fn test_multi_paragraph_obligation() {
-    let fixture = load_fixture("multi-paragraph-obligation.nlp");
+    let fixture = load_fixture("document/obligations/cross-paragraph/multi-paragraph-obligation.nlp");
 
     // Should have 2 paragraphs separated by ---
     assert_eq!(fixture.paragraphs.len(), 2);
@@ -84,7 +84,7 @@ fn test_multi_paragraph_obligation() {
 
 #[test]
 fn test_pronoun_reference() {
-    let fixture = load_fixture("pronoun-reference.nlp");
+    let fixture = load_fixture("document/pronouns/cross-paragraph/pronoun-reference.nlp");
 
     // 2 paragraphs
     assert_eq!(fixture.paragraphs.len(), 2);
@@ -118,7 +118,7 @@ fn test_pronoun_reference() {
 fn test_defined_term_complex() {
     use crate::fixture::RefTarget;
 
-    let fixture = load_fixture("defined-term-complex.nlp");
+    let fixture = load_fixture("document/defined-terms/cross-paragraph/defined-term-complex.nlp");
 
     // 2 paragraphs
     assert_eq!(fixture.paragraphs.len(), 2);
@@ -148,7 +148,7 @@ fn test_defined_term_complex() {
 
 #[test]
 fn test_full_contract_section() {
-    let fixture = load_fixture("full-contract-section.nlp");
+    let fixture = load_fixture("integration/contract-sections/full-contract-section.nlp");
 
     // 3 paragraphs
     assert_eq!(fixture.paragraphs.len(), 3);

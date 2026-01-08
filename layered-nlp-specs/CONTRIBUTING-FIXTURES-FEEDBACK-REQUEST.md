@@ -47,7 +47,7 @@ Can someone actually use this guide to contribute?
 - Are there steps where I'd get stuck without additional information?
 - Is the priority formula actually useful or just overhead?
 
-**How to check:** Attempt to add one new fixture (e.g., `prohibitions/shall-not-simple.nlp`) following the guide exactly. Note where you get stuck.
+**How to check:** Attempt to add one new fixture (e.g., `line/prohibitions/modal/shall-not-simple.nlp`) following the guide exactly. Note where you get stuck.
 
 ### 3. Coverage Group Completeness (Priority: MEDIUM)
 
@@ -79,9 +79,9 @@ What does the guide reference that doesn't exist yet?
 
 **Known gaps:**
 - `mise run fixture-coverage` dashboard doesn't exist
-- Subdirectories like `fixtures/obligations/` don't exist (fixtures are flat)
 - Priority/impact/effort fields aren't in current expected_failures.toml
 - No fixture linter exists
+- Some coverage group directories are still empty
 
 **Question:** Should we build this infrastructure before finalizing the guide, or document it as "future work"?
 
@@ -148,7 +148,7 @@ Read `layered-nlp-specs/src/parser.rs` and verify:
 - [ ] Entity cross-references (`@T`) work as described
 
 ### Task 2: Add a Fixture (30 min)
-Following the guide exactly, add `fixtures/prohibitions/shall-not-simple.nlp`:
+Following the guide exactly, add `fixtures/line/prohibitions/modal/shall-not-simple.nlp`:
 - [ ] Create the file with correct structure
 - [ ] Run the test suite
 - [ ] Verify it fails as expected

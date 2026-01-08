@@ -1,0 +1,6 @@
+# Test: Plural Pronoun Reference
+
+«P:The Parties» agree that «1:they» «2:shall deliver» the reports.
+
+> [1]: PronounReference(pronoun_type=ThirdPlural, target=§P)
+> [2]: Obligation(modal=shall, bearer=§P)
