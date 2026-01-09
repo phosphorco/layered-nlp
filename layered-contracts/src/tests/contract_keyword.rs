@@ -43,7 +43,7 @@ fn basic_may() {
 fn basic_must() {
     insta::assert_snapshot!(test_keywords("Contractor must provide notice"), @r###"
     Contractor     must     provide     notice
-                   ╰──╯Shall
+                   ╰──╯Must
     "###);
 }
 
@@ -190,8 +190,8 @@ fn shall_not_prohibition() {
 fn must_not_prohibition() {
     insta::assert_snapshot!(test_with_prohibition("Company must not assign this Agreement"), @r###"
     Company     must     not     assign     this     Agreement
-                ╰──╯Shall
-                ╰──────────╯ShallNot
+                ╰──╯Must
+                ╰──────────╯MustNot
     "###);
 }
 
