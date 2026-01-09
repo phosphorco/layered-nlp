@@ -1,0 +1,28 @@
+---
+source: layered-clauses/src/tests/cross_reference.rs
+expression: "(refs.len(),\nrefs.iter().map(|(_, _, _, r)| &r.reference_text).collect::<Vec<_>>(),\nclauses.len(),\nlinks.iter().map(|l| format!(\"{:?}\", l.link.role)).collect::<Vec<_>>(),)"
+---
+(
+    3,
+    [
+        "Section 1.1",
+        "Article II",
+        "hereof",
+    ],
+    4,
+    [
+        "Conjunct",
+        "Conjunct",
+        "Conjunct",
+        "Exception",
+        "Exception",
+        "Exception",
+        "Exception",
+        "Exception",
+        "Exception",
+        "Exception",
+        "Exception",
+        "CrossReference",
+        "CrossReference",
+    ],
+)
