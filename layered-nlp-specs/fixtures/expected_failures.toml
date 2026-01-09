@@ -79,6 +79,30 @@ assertion = "S0.[1]"
 reason = "Hereinafter defined term span not matching resolver output"
 added = "2025-01-07"
 
+# --- term-reference-simple.nlp ---
+
+[[pending]]
+fixture = "line/term-references/term-reference-simple.nlp"
+assertion = "S0.[1]"
+reason = "TermReference assertions are not supported by the matcher yet"
+added = "2025-01-07"
+
+# --- conflict-delivery-window.nlp ---
+
+[[pending]]
+fixture = "document/conflicts/conflict-delivery-window.nlp"
+assertion = "S0.[1]"
+reason = "Conflict assertions are not supported by the matcher yet"
+added = "2025-01-07"
+
+# --- semantic-role-basic.nlp ---
+
+[[pending]]
+fixture = "document/semantic-roles/semantic-role-basic.nlp"
+assertion = "S0.[1]"
+reason = "SemanticRole assertions are not supported by the matcher yet"
+added = "2025-01-07"
+
 # --- full-contract-section.nlp ---
 
 [[pending]]

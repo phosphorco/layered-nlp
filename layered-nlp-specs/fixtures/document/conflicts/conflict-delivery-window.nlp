@@ -1,0 +1,9 @@
+# Test: Conflicting Delivery Deadlines
+
+The Supplier «1:shall deliver» the goods within 10 days.
+
+---
+
+The Supplier «2:shall deliver» the goods within 30 days.
+
+> [1]: Conflict()

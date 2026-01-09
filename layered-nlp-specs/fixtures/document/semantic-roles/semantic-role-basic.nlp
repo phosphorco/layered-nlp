@@ -1,0 +1,5 @@
+# Test: Semantic Roles Basic
+
+The Buyer «1:shall pay» the Seller the Purchase Price.
+
+> [1]: SemanticRole(agent=Buyer, beneficiary=Seller)
