@@ -6,24 +6,36 @@
     <title>Contract Analyzer v2</title>
     <link rel="stylesheet" href="shared-styles.css">
     <style>
-        /* Additional span types not in shared-styles.css */
-        :root {
-            --pronoun-bg: #e0e7ff;
-            --pronoun-border: #6366f1;
-            --pronoun-text: #3730a3;
+        /* =======================================================================
+           Contract Analyzer V2 - Manifest-Driven Architecture
+           =======================================================================
 
-            --deictic-bg: #ccfbf1;
-            --deictic-border: #14b8a6;
-            --deictic-text: #0f766e;
+           This viewer uses a fully dynamic, manifest-driven approach:
 
-            --chain-bg: #fce7f3;
-            --chain-border: #ec4899;
-            --chain-text: #9d174d;
+           1. COLORS: All span/badge colors come from RESOLVER_MANIFESTS in Rust.
+              No hardcoded color CSS. See getColorForKind(), applyWordSpanStyle().
 
-            --keyword-bg: #fef3c7;
-            --keyword-border: #f59e0b;
-            --keyword-text: #92400e;
-        }
+           2. FILTERS: Filter toggles are generated from manifests at runtime.
+              See generateFilterToggles() which reads resolverManifests.
+
+           3. PRIORITY: Span overlap priority uses manifest order (first = highest).
+              See getPriorityKind() which builds priority from manifest array index.
+
+           Adding a new resolver to RESOLVER_MANIFESTS in Rust will automatically:
+           - Appear as a filter toggle with its manifest color
+           - Be styled in the document text
+           - Have proper badge colors in the detail panel
+
+           SEMANTIC LOGIC (cannot be fully generalized):
+           - Resolution display (showSpanDetailInline): Type-specific metadata interpretation
+           - Related spans (findRelatedSpans): Type-specific relationship discovery
+           - Connections (drawConnections): Type-specific visual links
+           - Status bar (updateStatusBar): Domain-specific category groupings
+
+           These remain span-type-aware because each resolver defines its own
+           semantic structure. Full generalization would require extending the
+           manifest format with resolution_display, relationship_type, etc.
+           ======================================================================= */
 
         * { box-sizing: border-box; }
 
@@ -140,6 +152,7 @@
             align-items: center;
         }
 
+        /* Filter toggle - uses --filter-color CSS variable from manifest */
         .filter-toggle {
             display: flex;
             align-items: center;
@@ -152,6 +165,8 @@
             transition: all 0.15s;
             border: 2px solid transparent;
             user-select: none;
+            background: var(--filter-color);
+            color: #000;
         }
 
         .filter-toggle input {
@@ -162,36 +177,17 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
+            background: var(--filter-color);
+            filter: brightness(0.7);
         }
 
         .filter-toggle.inactive {
             opacity: 0.4;
         }
 
-        /* Filter toggle colors */
-        .filter-toggle[data-kind="DefinedTerm"] { background: var(--defined-term-bg); color: var(--defined-term-text); }
-        .filter-toggle[data-kind="DefinedTerm"] .dot { background: var(--defined-term-border); }
-
-        .filter-toggle[data-kind="TermReference"] { background: var(--term-ref-bg); color: var(--term-ref-text); border-style: dashed; border-color: var(--term-ref-border); }
-        .filter-toggle[data-kind="TermReference"] .dot { background: var(--term-ref-border); }
-
-        .filter-toggle[data-kind="ObligationPhrase"] { background: var(--obligation-bg); color: var(--obligation-text); }
-        .filter-toggle[data-kind="ObligationPhrase"] .dot { background: var(--obligation-border); }
-
-        .filter-toggle[data-kind="ContractKeyword"] { background: var(--keyword-bg); color: var(--keyword-text); }
-        .filter-toggle[data-kind="ContractKeyword"] .dot { background: var(--keyword-border); }
-
-        .filter-toggle[data-kind="PronounReference"] { background: var(--pronoun-bg); color: var(--pronoun-text); }
-        .filter-toggle[data-kind="PronounReference"] .dot { background: var(--pronoun-border); }
-
-        .filter-toggle[data-kind="PronounChain"] { background: var(--chain-bg); color: var(--chain-text); }
-        .filter-toggle[data-kind="PronounChain"] .dot { background: var(--chain-border); }
-
-        .filter-toggle[data-kind="ContractClause"] { background: var(--clause-bg); color: var(--clause-text); }
-        .filter-toggle[data-kind="ContractClause"] .dot { background: var(--clause-border); }
-
-        .filter-toggle[data-kind="DeicticReference"] { background: var(--deictic-bg); color: var(--deictic-text); }
-        .filter-toggle[data-kind="DeicticReference"] .dot { background: var(--deictic-border); }
+        /* Note: TermReference historically used dashed borders to distinguish from DefinedTerm.
+           This styling is now applied dynamically if needed via CSS custom properties on the element.
+           To restore dashed borders for a span type, add border-style logic to generateFilterToggles(). */
 
         .filter-actions {
             margin-left: auto;
@@ -339,14 +335,7 @@
             flex-shrink: 0;
         }
 
-        .span-list-item .span-kind-badge.DefinedTerm { background: var(--defined-term-bg); color: var(--defined-term-text); }
-        .span-list-item .span-kind-badge.TermReference { background: var(--term-ref-bg); color: var(--term-ref-text); }
-        .span-list-item .span-kind-badge.ObligationPhrase { background: var(--obligation-bg); color: var(--obligation-text); }
-        .span-list-item .span-kind-badge.ContractKeyword { background: var(--keyword-bg); color: var(--keyword-text); }
-        .span-list-item .span-kind-badge.PronounReference { background: var(--pronoun-bg); color: var(--pronoun-text); }
-        .span-list-item .span-kind-badge.PronounChain { background: var(--chain-bg); color: var(--chain-text); }
-        .span-list-item .span-kind-badge.ContractClause { background: var(--clause-bg); color: var(--clause-text); }
-        .span-list-item .span-kind-badge.DeicticReference { background: var(--deictic-bg); color: var(--deictic-text); }
+        /* Badge colors applied dynamically via applyBadgeStyle() from manifest colors */
 
         .span-list-item .span-text {
             font-size: 13px;
@@ -387,61 +376,14 @@
             font-style: italic;
         }
 
-        /* Span type styling */
-        .contract-text .word.DefinedTerm {
-            background: var(--defined-term-bg);
-            border-bottom: 2px solid var(--defined-term-border);
-        }
-
-        .contract-text .word.TermReference {
-            background: var(--term-ref-bg);
-            border-bottom: 2px dashed var(--term-ref-border);
-        }
-
-        .contract-text .word.ObligationPhrase {
-            background: var(--obligation-bg);
-            border-bottom: 2px solid var(--obligation-border);
-        }
-
-        .contract-text .word.ObligationPhrase.prohibition {
-            background: var(--prohibition-bg);
-            border-bottom: 2px solid var(--prohibition-border);
-        }
-
-        .contract-text .word.ObligationPhrase.permission {
-            background: var(--permission-bg);
-            border-bottom: 2px solid var(--permission-border);
-        }
-
-        .contract-text .word.ContractKeyword {
-            background: var(--keyword-bg);
-            border-bottom: 2px solid var(--keyword-border);
-        }
-
-        .contract-text .word.PronounReference {
-            background: var(--pronoun-bg);
-            border-bottom: 2px solid var(--pronoun-border);
-        }
-
-        .contract-text .word.PronounChain {
-            background: var(--chain-bg);
-            border-bottom: 2px solid var(--chain-border);
-        }
-
-        .contract-text .word.ContractClause {
-            background: var(--clause-bg);
-            border-bottom: 2px solid var(--clause-border);
-        }
-
-        .contract-text .word.DeicticReference {
-            background: var(--deictic-bg);
-            border-bottom: 2px solid var(--deictic-border);
-        }
+        /* Word span styling is applied dynamically via inline styles from manifest colors.
+           See getColorForKind(), darkenColor(), getTextColorForBackground() helpers. */
 
         /* Hidden spans when filter is off */
         .contract-text .word.hidden-span {
-            background: transparent !important;
+            background-color: transparent !important;
             border-bottom: none !important;
+            color: inherit !important;
         }
 
         /* Detail Panel */
@@ -480,14 +422,7 @@
             margin-bottom: 0.75rem;
         }
 
-        .detail-kind.DefinedTerm { background: var(--defined-term-bg); color: var(--defined-term-text); }
-        .detail-kind.TermReference { background: var(--term-ref-bg); color: var(--term-ref-text); }
-        .detail-kind.ObligationPhrase { background: var(--obligation-bg); color: var(--obligation-text); }
-        .detail-kind.ContractKeyword { background: var(--keyword-bg); color: var(--keyword-text); }
-        .detail-kind.PronounReference { background: var(--pronoun-bg); color: var(--pronoun-text); }
-        .detail-kind.PronounChain { background: var(--chain-bg); color: var(--chain-text); }
-        .detail-kind.ContractClause { background: var(--clause-bg); color: var(--clause-text); }
-        .detail-kind.DeicticReference { background: var(--deictic-bg); color: var(--deictic-text); }
+        /* Detail kind colors applied dynamically via applyBadgeStyle() from manifest colors */
 
         .detail-text {
             font-family: Georgia, serif;
@@ -572,9 +507,7 @@
             font-weight: 600;
         }
 
-        .related-span-kind.DefinedTerm { background: var(--defined-term-bg); color: var(--defined-term-text); }
-        .related-span-kind.TermReference { background: var(--term-ref-bg); color: var(--term-ref-text); }
-        .related-span-kind.PronounReference { background: var(--pronoun-bg); color: var(--pronoun-text); }
+        /* Related span kind colors applied dynamically via applyBadgeStyle() from manifest colors */
 
         .span-link {
             color: #3b82f6;
@@ -784,47 +717,8 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
     <div id="error-container"></div>
 
     <div class="filter-bar" id="filter-bar">
-        <div class="filter-toggles">
-            <label class="filter-toggle" data-kind="DefinedTerm">
-                <input type="checkbox" checked>
-                <span class="dot"></span>
-                Defined Terms
-            </label>
-            <label class="filter-toggle" data-kind="TermReference">
-                <input type="checkbox" checked>
-                <span class="dot"></span>
-                Term Refs
-            </label>
-            <label class="filter-toggle" data-kind="ObligationPhrase">
-                <input type="checkbox" checked>
-                <span class="dot"></span>
-                Obligations
-            </label>
-            <label class="filter-toggle" data-kind="ContractKeyword">
-                <input type="checkbox" checked>
-                <span class="dot"></span>
-                Keywords
-            </label>
-            <label class="filter-toggle" data-kind="PronounReference">
-                <input type="checkbox" checked>
-                <span class="dot"></span>
-                Pronouns
-            </label>
-            <label class="filter-toggle" data-kind="PronounChain">
-                <input type="checkbox" checked>
-                <span class="dot"></span>
-                Chains
-            </label>
-            <label class="filter-toggle" data-kind="ContractClause">
-                <input type="checkbox" checked>
-                <span class="dot"></span>
-                Clauses
-            </label>
-            <label class="filter-toggle" data-kind="DeicticReference">
-                <input type="checkbox" checked>
-                <span class="dot"></span>
-                Deixis
-            </label>
+        <div class="filter-toggles" id="filter-toggles">
+            <!-- Filter toggles generated dynamically from resolver manifests -->
             <div class="filter-actions">
                 <button id="show-all-btn" class="secondary">Show All</button>
                 <button id="hide-all-btn" class="secondary">Hide All</button>
@@ -910,12 +804,95 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
         let selectedSpan = null;
         let tokenElements = [];
         let spansByToken = new Map(); // token index -> array of spans
+        let resolverManifests = null;
 
-        // Visible span kinds
-        const visibleKinds = new Set([
-            'DefinedTerm', 'TermReference', 'ObligationPhrase', 'ContractKeyword',
-            'PronounReference', 'PronounChain', 'ContractClause', 'DeicticReference'
-        ]);
+        // Visible span kinds - populated from manifests
+        const visibleKinds = new Set();
+
+        // Color helper: look up color for a span kind from manifests
+        function getColorForKind(kind) {
+            if (!resolverManifests) return null;
+            const manifest = resolverManifests.find(m => m.name === kind);
+            return manifest ? manifest.color : null;
+        }
+
+        // Color helper: darken a hex color by a given amount (0-1)
+        function darkenColor(hex, amount) {
+            if (!hex) return null;
+            // Remove # if present
+            hex = hex.replace(/^#/, '');
+            // Expand 3-char shorthand (#fff -> ffffff)
+            if (hex.length === 3) {
+                hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+            }
+            // Validate hex format
+            if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) {
+                return null;
+            }
+            // Parse RGB
+            const r = parseInt(hex.slice(0, 2), 16);
+            const g = parseInt(hex.slice(2, 4), 16);
+            const b = parseInt(hex.slice(4, 6), 16);
+            // Darken each channel
+            const darkenedR = Math.round(r * (1 - amount));
+            const darkenedG = Math.round(g * (1 - amount));
+            const darkenedB = Math.round(b * (1 - amount));
+            // Convert back to hex
+            return '#' + [darkenedR, darkenedG, darkenedB]
+                .map(c => c.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        // Color helper: determine text color for readability on a given background
+        function getTextColorForBackground(bgColor) {
+            if (!bgColor) return '#222';
+            // Remove # if present
+            let hex = bgColor.replace(/^#/, '');
+            // Expand 3-char shorthand (#fff -> ffffff)
+            if (hex.length === 3) {
+                hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+            }
+            // Validate hex format
+            if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) {
+                return '#222';
+            }
+            const r = parseInt(hex.slice(0, 2), 16);
+            const g = parseInt(hex.slice(2, 4), 16);
+            const b = parseInt(hex.slice(4, 6), 16);
+            // Calculate relative luminance (simplified)
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            // Use dark text for light backgrounds, light text for dark backgrounds
+            return luminance > 0.5 ? '#222' : '#fff';
+        }
+
+        // Apply dynamic styling to a word span element based on its kind
+        function applyWordSpanStyle(el, kind) {
+            const bgColor = getColorForKind(kind);
+            if (!bgColor) return;
+
+            const borderColor = darkenColor(bgColor, 0.2);
+            const textColor = getTextColorForBackground(bgColor);
+
+            el.style.backgroundColor = bgColor;
+            el.style.borderBottom = `2px solid ${borderColor || bgColor}`;
+            el.style.color = textColor;
+        }
+
+        // Clear dynamic styling from a word span element
+        function clearWordSpanStyle(el) {
+            el.style.backgroundColor = '';
+            el.style.borderBottom = '';
+            el.style.color = '';
+        }
+
+        // Apply dynamic styling to a badge element based on its kind
+        function applyBadgeStyle(el, kind) {
+            const bgColor = getColorForKind(kind) || '#9e9e9e'; // fallback gray for unknown kinds
+
+            const textColor = getTextColorForBackground(bgColor);
+            el.style.backgroundColor = bgColor;
+            el.style.color = textColor;
+        }
 
         // WASM loading
         async function loadWasm() {
@@ -923,12 +900,73 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                 const module = await import('./pkg/layered_nlp_demo_wasm.js');
                 await module.default();
                 wasmModule = module;
-                console.log('WASM module loaded');
+                loadResolverManifests();
                 return true;
             } catch (err) {
-                console.error('Failed to load WASM:', err);
                 showError(`Failed to load WASM module: ${err.message}`);
                 return false;
+            }
+        }
+
+        // Load resolver manifests from WASM and generate filter toggles
+        function loadResolverManifests() {
+            if (!wasmModule) return;
+            try {
+                resolverManifests = wasmModule.get_resolver_manifests();
+                if (resolverManifests && resolverManifests.length > 0) {
+                    generateFilterToggles(resolverManifests);
+                }
+            } catch (err) {
+                // silently fail - manifests are optional
+            }
+        }
+
+        // Generate filter toggle HTML from manifests
+        function generateFilterToggles(manifests) {
+            const container = document.getElementById('filter-toggles');
+
+            // Clear stale state from previous manifest loads
+            visibleKinds.clear();
+
+            // Remove existing toggles but keep actions div
+            const existingToggles = container.querySelectorAll('.filter-toggle');
+            existingToggles.forEach(toggle => toggle.remove());
+
+            // Get reference to actions div (insert toggles before it)
+            const actionsDiv = container.querySelector('.filter-actions');
+
+            // Generate toggle for each manifest
+            for (const manifest of manifests) {
+                const label = document.createElement('label');
+                label.className = 'filter-toggle';
+                label.dataset.kind = manifest.name;
+                label.style.setProperty('--filter-color', manifest.color);
+
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                // Stable resolvers checked by default, Experimental unchecked
+                const isStable = manifest.tags.includes('stable');
+                input.checked = isStable;
+                if (isStable) {
+                    visibleKinds.add(manifest.name);
+                }
+                input.addEventListener('change', updateVisibility);
+
+                const dot = document.createElement('span');
+                dot.className = 'dot';
+
+                // Display name with experimental warning if needed
+                let displayName = manifest.name;
+                if (manifest.tags.includes('experimental')) {
+                    displayName = '\u26A0\uFE0F ' + displayName;
+                }
+
+                label.appendChild(input);
+                label.appendChild(dot);
+                label.appendChild(document.createTextNode(' ' + displayName));
+
+                // Insert before actions div
+                container.insertBefore(label, actionsDiv);
             }
         }
 
@@ -952,7 +990,6 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             const tokens = [];
             const regex = /(\s+)|([^\s]+)/g;
             let match;
-            let offset = 0;
 
             while ((match = regex.exec(text)) !== null) {
                 tokens.push({
@@ -983,37 +1020,33 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             return index;
         }
 
-        // Get priority span kind for a token (for styling)
+        // Get priority span kind for a token (for styling).
+        // When multiple spans overlap the same token, we show the highest-priority one.
+        // Priority is determined by manifest order (first in RESOLVER_MANIFESTS = highest priority).
+        // FUTURE: Consider adding explicit priority field to ResolverManifest if order becomes inadequate.
         function getPriorityKind(spans) {
             if (!spans || spans.length === 0) return null;
+            if (!resolverManifests) return null;
 
-            // Priority order (lower = higher priority)
-            const priority = [
-                'DefinedTerm',
-                'ObligationPhrase',
-                'TermReference',
-                'PronounReference',
-                'DeicticReference',
-                'ContractKeyword',
-                'PronounChain',
-                'ContractClause',
-                'ClauseAggregate',
-                'ObligationNode'
-            ];
+            // Build priority map from manifest order (lower index = higher priority)
+            const priorityMap = new Map();
+            resolverManifests.forEach((m, idx) => priorityMap.set(m.name, idx));
 
             const visible = spans.filter(s => visibleKinds.has(s.kind));
             if (visible.length === 0) return null;
 
             visible.sort((a, b) => {
-                const aIdx = priority.indexOf(a.kind);
-                const bIdx = priority.indexOf(b.kind);
-                return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+                const aIdx = priorityMap.get(a.kind) ?? 999;
+                const bIdx = priorityMap.get(b.kind) ?? 999;
+                return aIdx - bIdx;
             });
 
             return visible[0].kind;
         }
 
-        // Check if obligation is prohibition or permission
+        // Semantic helper: classify ObligationPhrase into subtypes based on label content.
+        // NOTE: This is span-type-specific semantic logic that cannot be generalized.
+        // Different span types have different semantic structures in their metadata.
         function getObligationType(span) {
             if (span.kind !== 'ObligationPhrase') return null;
             const label = span.label?.toLowerCase() || '';
@@ -1059,14 +1092,10 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                     const priorityKind = getPriorityKind(tokenSpans);
                     if (priorityKind) {
                         el.classList.add('has-span');
-                        el.classList.add(priorityKind);
+                        el.dataset.kind = priorityKind;
 
-                        // Check for prohibition/permission
-                        const oblSpan = tokenSpans.find(s => s.kind === 'ObligationPhrase');
-                        if (oblSpan) {
-                            const oblType = getObligationType(oblSpan);
-                            if (oblType) el.classList.add(oblType);
-                        }
+                        // Apply dynamic styling from manifest colors
+                        applyWordSpanStyle(el, priorityKind);
 
                         // Add span position class for multi-token grouping
                         const prioritySpan = tokenSpans.find(s => s.kind === priorityKind);
@@ -1199,6 +1228,12 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             html += '</div>';
             spanListContainer.innerHTML = html;
 
+            // Apply dynamic badge styles from manifest colors
+            spanListContainer.querySelectorAll('.span-kind-badge').forEach(badge => {
+                const kind = badge.textContent;
+                applyBadgeStyle(badge, kind);
+            });
+
             // Add click handlers to span list items
             spanListContainer.querySelectorAll('.span-list-item').forEach(item => {
                 item.addEventListener('click', () => {
@@ -1224,7 +1259,11 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             }
         }
 
-        // Show span detail inline (within the span-detail-container)
+        // Show span detail inline (within the span-detail-container).
+        // NOTE: Resolution display logic is inherently span-type-specific.
+        // Each span type has different metadata structures (resolved_to, resolved_referent, etc.)
+        // that require type-aware rendering. This cannot be made fully generic without
+        // adding a "resolution_display" field to the resolver manifest.
         function showSpanDetailInline(span) {
             selectedSpan = span;
 
@@ -1233,7 +1272,7 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
 
             const meta = getMetadata(span);
 
-            // Build resolution info
+            // Build resolution info - type-specific metadata interpretation
             let resolutionHtml = '';
             if (span.kind === 'PronounReference' && meta?.resolved_to) {
                 resolutionHtml = `<strong>${meta.resolved_to}</strong>`;
@@ -1311,6 +1350,16 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                 </div>
             `;
 
+            // Apply dynamic badge styles from manifest colors
+            const detailKindEl = container.querySelector('.detail-kind');
+            if (detailKindEl) {
+                applyBadgeStyle(detailKindEl, span.kind);
+            }
+            container.querySelectorAll('.related-span-kind').forEach(badge => {
+                const kind = badge.textContent;
+                applyBadgeStyle(badge, kind);
+            });
+
             // Add click handlers for span links
             container.querySelectorAll('.span-link').forEach(link => {
                 link.addEventListener('click', (e) => {
@@ -1339,7 +1388,11 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             }
         }
 
-        // Find spans related to the given span
+        // Find spans related to the given span.
+        // NOTE: Relationship discovery is inherently span-type-specific.
+        // Each span type defines its own semantic relationships (e.g., DefinedTerm <-> TermReference,
+        // PronounReference -> antecedent, ObligationPhrase -> provenance sources).
+        // To make this generic, resolvers would need to expose relationship metadata in a standard format.
         function findRelatedSpans(span, meta) {
             const related = [];
             if (!analysisResult) return related;
@@ -1539,7 +1592,11 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                 el.classList.remove('associated-highlight'));
         }
 
-        // Draw connection lines between related spans
+        // Draw connection lines between related spans.
+        // NOTE: Connection types are inherently span-type-specific.
+        // PronounReference -> DefinedTerm and TermReference -> DefinedTerm are semantic relationships
+        // that depend on the resolver's output structure. To make this generic, resolvers would need
+        // to emit explicit "draws_connection_to" associations in their span metadata.
         function drawConnections(spans) {
             const svg = document.getElementById('connection-overlay');
             if (!svg) {
@@ -1563,44 +1620,32 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             svg.style.width = contentWidth + 'px';
             svg.style.height = (contentHeight + 50) + 'px';
 
-            console.log(`Drawing connections for ${spans.length} spans, SVG size: ${contentWidth}x${contentHeight}`);
-
-            let connectionCount = 0;
-
-            // Find pronoun references with resolved antecedents
+            // PronounReference -> DefinedTerm connections
             const pronounSpans = spans.filter(s =>
                 s.kind === 'PronounReference' &&
                 visibleKinds.has('PronounReference')
             );
 
-            console.log(`Found ${pronounSpans.length} PronounReference spans`);
-
             for (const pronoun of pronounSpans) {
                 const meta = getMetadata(pronoun);
                 const resolvedTo = meta?.resolved_to;
-                console.log(`Pronoun "${pronoun.snippet}" resolved_to: ${resolvedTo}`);
                 if (!resolvedTo) continue;
 
-                // Find the matching DefinedTerm
                 const antecedent = spans.find(s =>
                     s.kind === 'DefinedTerm' &&
                     s.label?.toLowerCase() === resolvedTo.toLowerCase()
                 );
 
                 if (antecedent) {
-                    console.log(`Drawing connection: ${pronoun.snippet} -> ${antecedent.snippet}`);
                     drawConnection(pronoun, antecedent, 'pronoun');
-                    connectionCount++;
                 }
             }
 
-            // Find term references -> defined terms
+            // TermReference -> DefinedTerm connections
             const termRefs = spans.filter(s =>
                 s.kind === 'TermReference' &&
                 visibleKinds.has('TermReference')
             );
-
-            console.log(`Found ${termRefs.length} TermReference spans`);
 
             for (const termRef of termRefs) {
                 const termName = termRef.label?.toLowerCase();
@@ -1612,13 +1657,9 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                 );
 
                 if (definition) {
-                    console.log(`Drawing connection: ${termRef.snippet} -> ${definition.snippet}`);
                     drawConnection(termRef, definition, 'term-ref');
-                    connectionCount++;
                 }
             }
-
-            console.log(`Total connections drawn: ${connectionCount}`);
         }
 
         function drawConnection(fromSpan, toSpan, type) {
@@ -1631,7 +1672,6 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             const toEl = findElementForSpan(toSpan);
 
             if (!fromEl || !toEl) {
-                console.warn(`Could not find elements for connection: from=${!!fromEl}, to=${!!toEl}`);
                 return;
             }
 
@@ -1661,7 +1701,6 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             path.setAttribute('marker-end', `url(#arrowhead${type === 'pronoun' ? '' : '-' + type})`);
 
             svg.appendChild(path);
-            console.log(`Path drawn: "${fromSpan.snippet}" -> "${toSpan.snippet}" at (${fromX.toFixed(0)},${fromY.toFixed(0)}) -> (${toX.toFixed(0)},${toY.toFixed(0)})`);
         }
 
         function findElementForSpan(span) {
@@ -1698,23 +1737,17 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
                 const tokenSpans = spansByToken.get(i) || [];
                 const priorityKind = getPriorityKind(tokenSpans);
 
-                // Remove all kind classes
-                el.classList.remove('DefinedTerm', 'TermReference', 'ObligationPhrase',
-                    'ContractKeyword', 'PronounReference', 'PronounChain',
-                    'ContractClause', 'DeicticReference', 'hidden-span',
-                    'prohibition', 'permission');
+                // Clear dynamic styles and hidden-span class
+                clearWordSpanStyle(el);
+                el.classList.remove('hidden-span');
 
                 if (priorityKind) {
-                    el.classList.add(priorityKind);
-
-                    // Check for obligation type
-                    const oblSpan = tokenSpans.find(s => s.kind === 'ObligationPhrase');
-                    if (oblSpan) {
-                        const oblType = getObligationType(oblSpan);
-                        if (oblType) el.classList.add(oblType);
-                    }
+                    // Update data-kind attribute and apply dynamic styling
+                    el.dataset.kind = priorityKind;
+                    applyWordSpanStyle(el, priorityKind);
                 } else {
                     el.classList.add('hidden-span');
+                    delete el.dataset.kind;
                 }
             }
 
@@ -1724,14 +1757,24 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
             }
         }
 
-        // Update status bar with span counts
+        // Update status bar with span counts.
+        // NOTE: Category groupings are semantic decisions that require domain knowledge.
+        // "Terms" groups DefinedTerm + TermReference because they're conceptually related.
+        // To make fully dynamic, manifests would need a "category" field for grouping.
         function updateStatusBar(spans) {
+            // Build counts dynamically from manifest names
+            const countByKind = new Map();
+            for (const span of spans) {
+                countByKind.set(span.kind, (countByKind.get(span.kind) || 0) + 1);
+            }
+
+            // Semantic category rollups (domain-specific groupings)
             const counts = {
                 total: spans.length,
-                terms: spans.filter(s => s.kind === 'DefinedTerm' || s.kind === 'TermReference').length,
-                obligations: spans.filter(s => s.kind === 'ObligationPhrase').length,
-                pronouns: spans.filter(s => s.kind === 'PronounReference' || s.kind === 'PronounChain').length,
-                clauses: spans.filter(s => s.kind === 'ContractClause').length
+                terms: (countByKind.get('DefinedTerm') || 0) + (countByKind.get('TermReference') || 0),
+                obligations: countByKind.get('ObligationPhrase') || 0,
+                pronouns: (countByKind.get('PronounReference') || 0) + (countByKind.get('PronounChain') || 0),
+                clauses: countByKind.get('ContractClause') || 0
             };
 
             document.getElementById('total-spans').textContent = counts.total;
@@ -1849,9 +1892,11 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
 
             navigator.clipboard.writeText(JSON.stringify(spanData, null, 2))
                 .then(() => {
-                    const btn = document.getElementById('copy-json-btn');
-                    btn.textContent = 'Copied!';
-                    setTimeout(() => btn.textContent = 'Copy JSON', 1500);
+                    const btn = document.getElementById('copy-json-btn') || document.getElementById('inline-copy-json-btn');
+                    if (btn) {
+                        btn.textContent = 'Copied!';
+                        setTimeout(() => btn.textContent = 'Copy JSON', 1500);
+                    }
                 });
         }
 
@@ -1868,14 +1913,9 @@ Unless otherwise agreed, the Contractor shall maintain confidentiality. Subject 
         // Event listeners
         document.getElementById('analyze-btn').addEventListener('click', handleAnalyze);
         document.getElementById('clear-btn').addEventListener('click', handleClear);
+        document.getElementById('copy-json-btn').addEventListener('click', handleCopyJson);
         document.getElementById('show-all-btn').addEventListener('click', handleShowAll);
         document.getElementById('hide-all-btn').addEventListener('click', handleHideAll);
-        document.getElementById('copy-json-btn').addEventListener('click', handleCopyJson);
-
-        // Filter toggle listeners
-        document.querySelectorAll('.filter-toggle input').forEach(cb => {
-            cb.addEventListener('change', updateVisibility);
-        });
 
         // Keyboard shortcut
         document.getElementById('contract-input').addEventListener('keydown', (e) => {
