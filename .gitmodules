@@ -1,4 +1,0 @@
-[submodule ".context/interviews"]
-	path = .context/interviews
-	url = https://github.com/phosphorco/interviews.git
-	branch = flo-12-25/experiments
