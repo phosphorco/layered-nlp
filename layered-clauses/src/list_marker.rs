@@ -153,7 +153,7 @@ mod tests {
         let mut display = LLLineDisplay::new(&ll_line);
         display.include::<ListMarker>();
 
-        insta::assert_display_snapshot!(display, @r###"
+        insta::assert_snapshot!(display, @r###"
         (  a  )     This     is     item     a  .
         ╰─────╯ParenthesizedLetter { letter: 'a' }
         "###);
@@ -166,7 +166,7 @@ mod tests {
         let mut display = LLLineDisplay::new(&ll_line);
         display.include::<ListMarker>();
 
-        insta::assert_display_snapshot!(display, @r###"
+        insta::assert_snapshot!(display, @r###"
         (  a  )     first     (  b  )     second     (  c  )     third
         ╰─────╯ParenthesizedLetter { letter: 'a' }
                               ╰─────╯ParenthesizedLetter { letter: 'b' }
@@ -181,7 +181,7 @@ mod tests {
         let mut display = LLLineDisplay::new(&ll_line);
         display.include::<ListMarker>();
 
-        insta::assert_display_snapshot!(display, @r###"
+        insta::assert_snapshot!(display, @r###"
         (  i  )     first     (  ii  )     second     (  iii  )     third
         ╰─────╯ParenthesizedRoman { numeral: "i" }
                               ╰──────╯ParenthesizedRoman { numeral: "ii" }
@@ -196,7 +196,7 @@ mod tests {
         let mut display = LLLineDisplay::new(&ll_line);
         display.include::<ListMarker>();
 
-        insta::assert_display_snapshot!(display, @r###"
+        insta::assert_snapshot!(display, @r###"
         (  1  )     first     (  2  )     second     (  10  )     tenth
         ╰─────╯ParenthesizedDigit { digit: 1 }
                               ╰─────╯ParenthesizedDigit { digit: 2 }
@@ -211,7 +211,7 @@ mod tests {
         let mut display = LLLineDisplay::new(&ll_line);
         display.include::<ListMarker>();
 
-        insta::assert_display_snapshot!(display, @r###"
+        insta::assert_snapshot!(display, @r###"
         1  .     First     item  .     2  .     Second     item  .
         ╰──╯NumberedPeriod { number: 1 }
                                        ╰──╯NumberedPeriod { number: 2 }
@@ -225,7 +225,7 @@ mod tests {
         let mut display = LLLineDisplay::new(&ll_line);
         display.include::<ListMarker>();
 
-        insta::assert_display_snapshot!(display, @r###"
+        insta::assert_snapshot!(display, @r###"
         1  .     Overview     (  a  )     Details     (  i  )     Specifics
         ╰──╯NumberedPeriod { number: 1 }
                               ╰─────╯ParenthesizedLetter { letter: 'a' }
@@ -240,7 +240,7 @@ mod tests {
         let mut display = LLLineDisplay::new(&ll_line);
         display.include::<ListMarker>();
 
-        insta::assert_display_snapshot!(display, @r###"
+        insta::assert_snapshot!(display, @r###"
         (  iv  )     four     (  v  )     five     (  ix  )     nine     (  x  )     ten
         ╰──────╯ParenthesizedRoman { numeral: "iv" }
                               ╰─────╯ParenthesizedRoman { numeral: "v" }
@@ -256,9 +256,7 @@ mod tests {
         let mut display = LLLineDisplay::new(&ll_line);
         display.include::<ListMarker>();
 
-        insta::assert_display_snapshot!(display, @r###"
-        This     text     has     no     list     markers  .
-        "###);
+        insta::assert_snapshot!(display, @"This     text     has     no     list     markers  .");
     }
 
     #[test]
@@ -268,7 +266,7 @@ mod tests {
         let mut display = LLLineDisplay::new(&ll_line);
         display.include::<ListMarker>();
 
-        insta::assert_display_snapshot!(display, @r###"
+        insta::assert_snapshot!(display, @r###"
         (  A  )     Capital     letter     marker
         ╰─────╯ParenthesizedLetter { letter: 'a' }
         "###);

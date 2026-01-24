@@ -22,7 +22,7 @@ fn test_legal_clause_structure() {
     let mut display = LLLineDisplay::new(&ll_line);
     display.include::<ListMarker>();
 
-    insta::assert_display_snapshot!(display, @r###"
+    insta::assert_snapshot!(display, @r###"
     1  .     Definitions     (  a  )     Agreement     means     this     document     (  b  )     Parties     means     the     signatories
     ╰──╯NumberedPeriod { number: 1 }
                              ╰─────╯ParenthesizedLetter { letter: 'a' }
@@ -38,7 +38,7 @@ fn test_nested_structure() {
     let mut display = LLLineDisplay::new(&ll_line);
     display.include::<ListMarker>();
 
-    insta::assert_display_snapshot!(display, @r###"
+    insta::assert_snapshot!(display, @r###"
     2  .     Rights     (  a  )     General     (  i  )     All     rights     reserved     (  ii  )     No     warranties
     ╰──╯NumberedPeriod { number: 2 }
                         ╰─────╯ParenthesizedLetter { letter: 'a' }
@@ -54,7 +54,7 @@ fn test_large_numbers() {
     let mut display = LLLineDisplay::new(&ll_line);
     display.include::<ListMarker>();
 
-    insta::assert_display_snapshot!(display, @r###"
+    insta::assert_snapshot!(display, @r###"
     100  .     Section     one     hundred     (  99  )     ninety  -  nine
     ╰────╯NumberedPeriod { number: 100 }
                                                ╰──────╯ParenthesizedDigit { digit: 99 }
@@ -70,7 +70,7 @@ fn test_edge_case_letter_i() {
     let mut display = LLLineDisplay::new(&ll_line);
     display.include::<ListMarker>();
 
-    insta::assert_display_snapshot!(display, @r###"
+    insta::assert_snapshot!(display, @r###"
     (  i  )     Item     one
     ╰─────╯ParenthesizedRoman { numeral: "i" }
     "###);
@@ -85,9 +85,7 @@ fn test_non_markers_ignored() {
     display.include::<ListMarker>();
 
     // 'x' is a valid roman numeral, so this will be detected
-    insta::assert_display_snapshot!(display, @r###"
-    The     value     (  x     +     y  )     equals     z  .
-    "###);
+    insta::assert_snapshot!(display, @"The     value     (  x     +     y  )     equals     z  .");
 }
 
 #[test]
@@ -99,7 +97,5 @@ fn test_sentence_ending_periods() {
     display.include::<ListMarker>();
 
     // No markers should be detected since periods follow words, not numbers
-    insta::assert_display_snapshot!(display, @r###"
-    This     is     a     sentence  .     Another     one  .
-    "###);
+    insta::assert_snapshot!(display, @"This     is     a     sentence  .     Another     one  .");
 }

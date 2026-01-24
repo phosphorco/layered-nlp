@@ -1,4 +1,4 @@
-use crate::{SentenceBoundary, SentenceBoundaryResolver, SentenceConfidence};
+use crate::{SentenceBoundary, SentenceBoundaryResolver};
 use layered_nlp::{create_line_from_input_tokens, InputToken, LLLine, LLLineDisplay};
 
 fn test_setup(sentence: &'static str) -> LLLine {
@@ -16,7 +16,7 @@ fn test_basic_sentences() {
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
     ll_line_display.include::<SentenceBoundary>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Hello     world  .     Goodbye  .
                      ╰SentenceBoundary(High)
                                     ╰SentenceBoundary(Medium)
@@ -33,7 +33,7 @@ fn test_abbreviations() {
 
     // The period after "Dr" should NOT be marked as a boundary
     // Only the final period should be marked
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Dr  .     Smith     arrived  .
                                  ╰SentenceBoundary(Medium)
     "###);
@@ -47,7 +47,7 @@ fn test_questions() {
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
     ll_line_display.include::<SentenceBoundary>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Why  ?     Because  .
          ╰SentenceBoundary(High)
                         ╰SentenceBoundary(Medium)
@@ -62,7 +62,7 @@ fn test_multiple_boundaries() {
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
     ll_line_display.include::<SentenceBoundary>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     First  .     Second  .     Third  .
            ╰SentenceBoundary(High)
                          ╰SentenceBoundary(High)
@@ -79,9 +79,7 @@ fn test_no_boundary() {
     ll_line_display.include::<SentenceBoundary>();
 
     // No sentence boundaries should be detected (period is part of "Inc.")
-    insta::assert_display_snapshot!(ll_line_display, @r###"
-    Inc  .     is     a     company
-    "###);
+    insta::assert_snapshot!(ll_line_display, @"Inc  .     is     a     company");
 }
 
 #[test]
@@ -92,7 +90,7 @@ fn test_exclamation() {
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
     ll_line_display.include::<SentenceBoundary>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Stop  !     Go     now  .
           ╰SentenceBoundary(High)
                             ╰SentenceBoundary(Medium)
@@ -107,7 +105,7 @@ fn test_mixed_punctuation() {
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
     ll_line_display.include::<SentenceBoundary>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     What     happened  ?     Nothing  .     Everything     is     fine  !
                        ╰SentenceBoundary(High)
                                       ╰SentenceBoundary(High)
@@ -124,7 +122,7 @@ fn test_lowercase_after_period() {
     ll_line_display.include::<SentenceBoundary>();
 
     // First period followed by lowercase "then" should be Low confidence
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     End     of     sentence  .     then     lowercase  .
                              ╰SentenceBoundary(Low)
                                                        ╰SentenceBoundary(Medium)
@@ -140,7 +138,7 @@ fn test_custom_abbreviations() {
     ll_line_display.include::<SentenceBoundary>();
 
     // "Corp." should not be treated as boundary since we added it to abbreviations
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     The     Acme     Corp  .     announced     today  .
                                                       ╰SentenceBoundary(Medium)
     "###);
@@ -155,7 +153,7 @@ fn test_multiple_abbreviations() {
     ll_line_display.include::<SentenceBoundary>();
 
     // Only the final period should be detected as a sentence boundary
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Dr  .     Johnson     and     Mr  .     Smith     met     at     3     p.m  .     today  .
                                                                                              ╰SentenceBoundary(Medium)
     "###);

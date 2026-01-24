@@ -380,6 +380,35 @@ impl ClauseLinkResolver {
         links
     }
 
+    /// Find the next TrailingEffect clause after a Condition, allowing list items in between.
+    /// Stops when it encounters a non-list, non-trailing clause or a sentence boundary.
+    fn find_trailing_effect_after_condition<'a>(
+        clause_spans: &'a [ClauseSpan],
+        list_items: &[DocSpan],
+        doc: &LayeredDocument,
+        start_idx: usize,
+    ) -> Option<&'a ClauseSpan> {
+        let current = &clause_spans[start_idx];
+
+        for next in clause_spans.iter().skip(start_idx + 1) {
+            if !Self::in_same_sentence(doc, &current.span, &next.span) {
+                break;
+            }
+
+            if next.category == Clause::TrailingEffect {
+                return Some(next);
+            }
+
+            if list_items.iter().any(|span| *span == next.span) {
+                continue;
+            }
+
+            break;
+        }
+
+        None
+    }
+
     /// Get the ListMarker for a clause if it starts with one.
     ///
     /// A clause "starts with" a list marker if the marker's token range
@@ -924,39 +953,31 @@ impl ClauseLinkResolver {
     /// For example, in "A; B, unless C", the exception C should only apply to B,
     /// not to A, because the semicolon separates independent statements.
     ///
-    /// This function only works for same-line spans. For cross-line spans,
-    /// we assume there's an implicit boundary and return true.
     fn has_semicolon_between(doc: &LayeredDocument, span1: &DocSpan, span2: &DocSpan) -> bool {
-        // Cross-line spans: treat as having a boundary (conservative approach)
-        if span1.start.line != span2.start.line {
-            return true;
-        }
-
-        let line_idx = span1.start.line;
-        let line = match doc.lines().get(line_idx) {
-            Some(l) => l,
-            None => return false,
+        let (first, second) = if (span1.start.line, span1.start.token)
+            <= (span2.start.line, span2.start.token)
+        {
+            (span1, span2)
+        } else {
+            (span2, span1)
         };
 
-        let tokens = line.ll_tokens();
-
-        // Get token indices for the range between the two spans
-        // We want to check tokens between span1.end.token and span2.start.token
-        let end_token_idx = span1.end.token;
-        let start_token_idx = span2.start.token;
-
-        // Ensure we have valid token indices and there's a gap between spans
-        if end_token_idx >= tokens.len() || start_token_idx >= tokens.len() {
-            return false;
-        }
-
-        // Iterate through tokens between the spans and check for semicolon
-        for token_idx in (end_token_idx + 1)..start_token_idx {
-            if let Some(token) = tokens.get(token_idx) {
-                if let layered_nlp::LToken::Text(text, _) = token.get_token() {
-                    if text.contains(';') {
-                        return true;
+        for line_idx in first.start.line..=second.start.line {
+            if let Some(line) = doc.lines().get(line_idx) {
+                for find in line.find(&x::token_text()) {
+                    if !find.attr().contains(';') {
+                        continue;
                     }
+
+                    let pos = find.range().0;
+                    if line_idx == first.start.line && pos <= first.end.token {
+                        continue;
+                    }
+                    if line_idx == second.start.line && pos >= second.start.token {
+                        continue;
+                    }
+
+                    return true;
                 }
             }
         }
@@ -997,7 +1018,9 @@ impl ClauseLinkResolver {
             }
 
             // Check if there's an exception keyword between current and next
-            if Self::has_exception_keyword_between_spanning(doc, &current.span, &next.span) {
+            if Self::in_same_sentence(doc, &current.span, &next.span)
+                && Self::has_exception_keyword_between_spanning(doc, &current.span, &next.span)
+            {
                 // Set confidence based on line distance
                 let confidence = if current.span.start.line == next.span.start.line {
                     LinkConfidence::High
@@ -1148,6 +1171,14 @@ impl ClauseLinkResolver {
         let clause_spans = Self::extract_clause_spans(doc);
         let mut links = Vec::new();
 
+        // Precompute list relationships for condition-block handling
+        let list_links = Self::detect_list_relationships(&clause_spans, doc);
+        let list_item_spans: Vec<DocSpan> = list_links
+            .iter()
+            .filter(|link| link.link.role == ClauseRole::ListItem)
+            .map(|link| link.anchor)
+            .collect();
+
         // Gate 1: Condition → TrailingEffect parent-child relationships
         // Handles patterns like: "When it rains, then it pours"
         // where "it rains" (Condition) is a child of "it pours" (TrailingEffect)
@@ -1156,39 +1187,35 @@ impl ClauseLinkResolver {
 
             // Look for Condition followed by TrailingEffect in the same sentence
             if current.category == Clause::Condition {
-                // Find the next clause
-                if let Some(next) = clause_spans.get(i + 1) {
-                    // Link clauses within the same sentence
-                    if next.category == Clause::TrailingEffect
-                        && Self::in_same_sentence(doc, &current.span, &next.span)
-                    {
-                        // Set confidence based on line distance
-                        let confidence = if current.span.start.line == next.span.start.line {
-                            LinkConfidence::High
-                        } else {
-                            LinkConfidence::Medium
-                        };
+                if let Some(next) =
+                    Self::find_trailing_effect_after_condition(&clause_spans, &list_item_spans, doc, i)
+                {
+                    // Set confidence based on line distance
+                    let confidence = if current.span.start.line == next.span.start.line {
+                        LinkConfidence::High
+                    } else {
+                        LinkConfidence::Medium
+                    };
 
-                        // Condition (child) points to TrailingEffect (parent)
-                        links.push(ClauseLink {
-                            anchor: current.span,
-                            link: crate::ClauseLinkBuilder::parent_link(next.span),
-                            confidence,
-                            coordination_type: None,
-                            precedence_group: None,
-                            obligation_type: None,
-                        });
+                    // Condition (child) points to TrailingEffect (parent)
+                    links.push(ClauseLink {
+                        anchor: current.span,
+                        link: crate::ClauseLinkBuilder::parent_link(next.span),
+                        confidence,
+                        coordination_type: None,
+                        precedence_group: None,
+                        obligation_type: None,
+                    });
 
-                        // TrailingEffect (parent) points back to Condition (child)
-                        links.push(ClauseLink {
-                            anchor: next.span,
-                            link: crate::ClauseLinkBuilder::child_link(current.span),
-                            confidence,
-                            coordination_type: None,
-                            precedence_group: None,
-                            obligation_type: None,
-                        });
-                    }
+                    // TrailingEffect (parent) points back to Condition (child)
+                    links.push(ClauseLink {
+                        anchor: next.span,
+                        link: crate::ClauseLinkBuilder::child_link(current.span),
+                        confidence,
+                        coordination_type: None,
+                        precedence_group: None,
+                        obligation_type: None,
+                    });
                 }
             }
         }
@@ -1211,7 +1238,6 @@ impl ClauseLinkResolver {
         // Gate 4: Detect list relationships
         // Handles patterns like: "Do the following: (a) first (b) second"
         // List item clauses link to container clause that precedes them
-        let list_links = Self::detect_list_relationships(&clause_spans, doc);
         links.extend(list_links);
 
         // Gate 4b: Detect cross-reference relationships
@@ -2058,7 +2084,7 @@ mod list_detection_tests {
             .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
             .run_resolver(&ClauseResolver::default());
 
-        let (doc_with_markers, links) = ClauseLinkResolver::resolve_with_list_markers(doc);
+        let (doc_with_markers, _links) = ClauseLinkResolver::resolve_with_list_markers(doc);
 
         // The convenience method should have run ListMarkerResolver
         // Check that the document has list markers

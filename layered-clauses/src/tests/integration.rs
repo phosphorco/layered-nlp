@@ -713,7 +713,7 @@ fn test_list_with_coordination() {
 fn test_list_no_container() {
     // If the list item is the first clause, there's no container
     let text = "(a) First item only.";
-    let (doc, links) = build_with_list_markers(text);
+    let (_doc, links) = build_with_list_markers(text);
 
     let list_item_links: Vec<_> = links
         .iter()
@@ -771,7 +771,7 @@ fn test_list_roman_numerals() {
     let text = "The duties include: (i) duty one (ii) duty two (iii) duty three";
     let (doc, links) = build_with_list_markers(text);
 
-    let list_item_links: Vec<_> = links
+    let _list_item_links: Vec<_> = links
         .iter()
         .filter(|l| l.link.role == ClauseRole::ListItem)
         .collect();

@@ -12,13 +12,18 @@
 //! 3. Handle multi-line condition blocks (lists, paragraphs)
 //! 4. Maintain precision by adding confidence scores
 
-use crate::{ClauseKeywordResolver, ClauseLink, ClauseLinkResolver, ClauseResolver};
+use crate::{
+    ClauseKeywordResolver, ClauseLink, ClauseLinkResolver, ClauseResolver, ListMarkerResolver,
+    SentenceBoundaryResolver,
+};
 use layered_nlp_document::{ClauseRole, LayeredDocument};
 
 /// Helper: Create document with multi-line text and extract links
 fn build_and_resolve(text: &str) -> (LayeredDocument, Vec<ClauseLink>) {
     let doc = LayeredDocument::from_text(text)
         .run_resolver(&ClauseKeywordResolver::new(&["if", "when"], &["and"], &["then"], &["or"], &["but", "however"], &["nor"]))
+        .run_resolver(&SentenceBoundaryResolver::new())
+        .run_resolver(&ListMarkerResolver::new())
         .run_resolver(&ClauseResolver::default());
 
     let links = ClauseLinkResolver::resolve(&doc);
@@ -108,7 +113,6 @@ fn test_cross_line_simple_condition_effect() {
 // =============================================================================
 
 #[test]
-#[ignore] // TODO: Enable after sentence boundary detection is implemented (Gate 0)
 fn test_cross_line_multi_sentence() {
     // Two unrelated sentences on different lines should NOT link
     let text = "The tenant pays rent.\nThe landlord maintains property.";
@@ -128,7 +132,6 @@ fn test_cross_line_multi_sentence() {
 // =============================================================================
 
 #[test]
-#[ignore] // TODO: Enable after multi-line condition block detection is implemented (Gate 0)
 fn test_paragraph_condition_block() {
     // Multi-line list pattern: "If:\n(a) X fails\n(b) Y expires\nthen Z terminates"
     let text = "If any of the following occur:\n(a) Tenant fails to pay rent\n(b) Property insurance expires\nthen Landlord may terminate the lease.";
@@ -199,7 +202,6 @@ fn test_confidence_scoring() {
 // =============================================================================
 
 #[test]
-#[ignore] // TODO: Enable after backward search implementation (Gate 0)
 fn test_backward_search_limits() {
     // "then" without preceding "if" in sentence should produce no link
     let text = "Something happened.\nthen the party terminates.";
@@ -224,7 +226,6 @@ fn test_backward_search_limits() {
 // =============================================================================
 
 #[test]
-#[ignore] // TODO: Enable after SentenceBoundaryResolver is implemented (Gate 0)
 fn test_sentence_boundary_detection() {
     // Period + capital = new sentence = no linking
     // The first sentence should NOT link to the second
@@ -279,7 +280,6 @@ fn test_sentence_boundary_detection() {
 // =============================================================================
 
 #[test]
-#[ignore] // Known limitation: requires explicit "then" keyword (see test_cross_line_with_explicit_then)
 fn test_cross_line_with_intervening_punctuation() {
     // KNOWN LIMITATION: This test documents that **implicit** trailing effect detection
     // across lines is NOT currently supported. The ClauseResolver is line-level and cannot
@@ -366,7 +366,6 @@ fn test_cross_line_coordination() {
 }
 
 #[test]
-#[ignore] // TODO: Enable after cross-line exception detection is implemented (Gate 0)
 fn test_cross_line_exception() {
     // Exception keyword spanning lines
     let text = "The tenant shall pay rent,\nunless explicitly waived by landlord.";
@@ -385,7 +384,6 @@ fn test_cross_line_exception() {
 }
 
 #[test]
-#[ignore] // TODO: Enable after confidence scoring is implemented (Gate 0)
 fn test_no_links_dropped_silently() {
     // When relationships are ambiguous, they should be flagged, not dropped
     let text = "When A happens,\n\nB occurs,\nthen C follows.";

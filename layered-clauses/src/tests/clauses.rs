@@ -19,7 +19,7 @@ fn test_clauses() {
     ll_line_display.include::<ClauseKeyword>();
     ll_line_display.include::<Clause>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     When     it     rains  ,     then     it     pours  .
     ╰──╯ConditionStart
                                  ╰──╯Then
@@ -38,7 +38,7 @@ fn test_short_clauses() {
     ll_line_display.include::<ClauseKeyword>();
     ll_line_display.include::<Clause>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     When     it     rains  ,     run  !
     ╰──╯ConditionStart
              ╰──────────╯Condition
@@ -58,7 +58,7 @@ fn test_clauses_comma() {
     ll_line_display.include::<Clause>();
     ll_line_display.include::<Tag>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     If     it     is     raining  ,     open     your     umbrella  .
     ╰╯ConditionStart
            ╰───────────────────╯Condition
@@ -93,7 +93,7 @@ fn tired() {
     ll_line_display.include::<ClauseKeyword>();
     ll_line_display.include::<Clause>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Si     tu     es     fatigué  ,     va     te     coucher  .
     ╰╯ConditionStart
            ╰───────────────────╯Condition
@@ -111,7 +111,7 @@ fn tired_rev() {
     ll_line_display.include::<ClauseKeyword>();
     ll_line_display.include::<Clause>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Va     te     coucher     si     tu     es     fatigué  .
                               ╰╯ConditionStart
     ╰───────────────────╯LeadingEffect
@@ -130,7 +130,7 @@ fn rain() {
     ll_line_display.include::<ClauseKeyword>();
     ll_line_display.include::<Clause>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     If     it     is     raining     then     open     the     umbrella     and     close     the     garage     and     the     door  .
     ╰╯ConditionStart
                                      ╰──╯Then
@@ -155,7 +155,7 @@ fn rain_rev() {
     ll_line_display.include::<ClauseKeyword>();
     ll_line_display.include::<Clause>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Open     the     umbrella     and     close     the     garage     and     the     door     if     it     is     raining  .
                                   ╰─╯And
                                                                        ╰─╯And
@@ -178,7 +178,7 @@ fn extra_rain() {
     ll_line_display.include::<ClauseKeyword>();
     ll_line_display.include::<Clause>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Open     the     umbrella     if     it     is     raining     and     not     too     windy  .
                                   ╰╯ConditionStart
                                                                    ╰─╯And
@@ -199,7 +199,7 @@ fn no_keyword() {
     ll_line_display.include::<ClauseKeyword>();
     ll_line_display.include::<Clause>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Open     the     umbrella  .
     ╰───────────────────────╯Independent
     "###
