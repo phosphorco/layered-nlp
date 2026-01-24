@@ -99,7 +99,7 @@ fn test() {
     let mut ll_display = LLLineDisplay::new(&ll_line);
     ll_display.include::<Service>();
 
-    insta::assert_display_snapshot!(ll_display, @r###"
+    insta::assert_snapshot!(ll_display, @r###"
     when     Slack     hears     a     message     in     #  general  Algolia     search     query  :     message  ,     table
              ╰───╯Slack
                                                                       ╰─────╯Algolia

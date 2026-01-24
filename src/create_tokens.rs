@@ -215,6 +215,7 @@ mod test {
         Bold,
     }
 
+    #[allow(dead_code)]
     #[derive(Debug, Clone)]
     struct Link {
         href: String,
@@ -246,7 +247,7 @@ mod test {
         let mut ll_line_display = LLLineDisplay::new(&ll_line);
         ll_line_display.include::<MarkKind>();
 
-        insta::assert_display_snapshot!(ll_line_display, @r###"
+        insta::assert_snapshot!(ll_line_display, @r###"
         Hello  ,     World  !
                      ╰───╯Italic
                      ╰───╯Bold
@@ -273,7 +274,7 @@ mod test {
         ll_line_display.include::<MarkKind>();
         ll_line_display.include::<Link>();
 
-        insta::assert_display_snapshot!(ll_line_display, @r###"
+        insta::assert_snapshot!(ll_line_display, @r###"
         name  @  example.com
         ╰──────────────────╯Italic
         ╰──────────────────╯Link { href: "mailto:name@example.com" }

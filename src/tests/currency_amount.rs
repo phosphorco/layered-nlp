@@ -27,6 +27,7 @@ impl Resolver for CurrencySymbolResolver {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 struct Amount(Decimal);
 
@@ -106,6 +107,7 @@ impl Resolver for AmountResolver {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct CurrencyAmount(CurrencySymbol, Amount);
 
@@ -139,7 +141,7 @@ fn it_works_usd() {
     ll_line_display.include::<Amount>();
     ll_line_display.include::<CurrencyAmount>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     $  1  ,  000  .  25
     ╰USDDollars
        ╰──────────────╯Amount(1000.25)
@@ -161,7 +163,7 @@ fn it_works_euro() {
     ll_line_display.include::<Amount>();
     ll_line_display.include::<CurrencyAmount>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     .     1     000  ,  25  €
                             ╰Euro
           ╰──────────────╯Amount(1000.25)
@@ -179,7 +181,7 @@ fn trailing_delimiter() {
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
     ll_line_display.include::<Amount>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     100  ,  .
     ╰─╯Amount(100)
     "###);

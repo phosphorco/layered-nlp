@@ -1,8 +1,8 @@
-use layered_nlp::{create_tokens, InputToken, LLLineDisplay};
+use layered_nlp::{create_line_from_input_tokens, InputToken, LLLineDisplay};
 use layered_part_of_speech::*;
 
 fn main() {
-    let ll_line = create_tokens(
+    let ll_line = create_line_from_input_tokens(
         vec![InputToken::text(
             "Don't step on the broken glass and the tablesaw in Paris.".to_string(),
             Vec::new(),
@@ -15,7 +15,7 @@ fn main() {
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
     ll_line_display.include::<Tag>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     Don't     step     on     the     broken     glass     and     the     tablesaw     in     Paris  .
     ╰───╯Verb
     ╰───╯Noun

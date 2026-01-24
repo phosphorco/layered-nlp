@@ -543,7 +543,7 @@ mod tests {
 
     #[test]
     fn test_doc_display_with_line_numbers() {
-        let mut snapshot = Snapshot::with_inline_input(vec![
+        let snapshot = Snapshot::with_inline_input(vec![
             "Line one".to_string(),
             "Line two".to_string(),
         ]);

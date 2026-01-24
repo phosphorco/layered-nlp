@@ -9,12 +9,12 @@ fn find_by() {
             .finish_with(|_| String::from("here"))
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
                     ╰"here"
                                      ╰"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
                     ╰"here"
                        ╰"here"
@@ -22,19 +22,19 @@ fn find_by() {
                                            ╰"here"
                                               ╰"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
     ╰"here"
                        ╰"here"
                                         ╰"here"
                                                            ╰"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @r###"
     .  00  .
     ╰"here"
            ╰"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @r###"
     .
     ╰"here"
     "###);
@@ -51,23 +51,23 @@ fn find_first_by() {
             .finish_with(|_| String::from("here"))
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
                     ╰"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
                     ╰"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
     ╰"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @r###"
     .  00  .
     ╰"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @r###"
     .
     ╰"here"
     "###);
@@ -86,29 +86,29 @@ fn split_by() {
             .collect()
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
     ╰────────────╯"here"
                        ╰──────────╯"here"
                                         ╰────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
     ╰────────────╯"here"
                              ╰──────────╯"here"
                                                  ╰────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
        ╰────────────╯"here"
                           ╰──────────╯"here"
                                            ╰────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @r###"
     .  00  .
        ╰╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @".");
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @".");
 }
 
 #[test]
@@ -122,27 +122,27 @@ fn find_by_seq() {
             .finish_with(|_| String::from("here"))
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
                     ╰────╯"here"
                                      ╰─────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
                           ╰────╯"here"
                                               ╰─────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
     ╰─────╯"here"
                        ╰────╯"here"
                                         ╰─────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @r###"
     .  00  .
     ╰───╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @".");
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @".");
 }
 
 #[test]
@@ -165,24 +165,24 @@ fn match_seq_forwards() {
             .finish_with(|_| String::from("here"))
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
                     ╰────────╯"here"
                                      ╰─────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
                           ╰────────╯"here"
                                               ╰─────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
     ╰─────────╯"here"
                        ╰────────╯"here"
                                         ╰─────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @".  00  .");
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @".");
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @".  00  .");
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @".");
 }
 
 #[test]
@@ -205,24 +205,24 @@ fn match_seq_backwards() {
             .finish_with(|_| String::from("here"))
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
           ╰─────────╯"here"
                             ╰────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
           ╰─────────╯"here"
                                   ╰────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
              ╰─────────╯"here"
                                ╰────────╯"here"
                                                  ╰─────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @".  00  .");
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @".");
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @".  00  .");
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @".");
 }
 
 #[test]
@@ -240,27 +240,27 @@ fn one_of() {
             .collect()
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
               ╰─────╯"here"
                                 ╰────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
               ╰─────╯"here"
                                       ╰────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
                  ╰─────╯"here"
                                    ╰────╯"here"
                                                      ╰─────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @r###"
     .  00  .
        ╰───╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @".");
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @".");
 }
 
 #[test]
@@ -278,27 +278,27 @@ fn one_of_backwards() {
             .collect()
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
                     ╰────╯"here"
                                      ╰─────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
                           ╰────╯"here"
                                               ╰─────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
     ╰─────╯"here"
                        ╰────╯"here"
                                         ╰─────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @r###"
     .  00  .
     ╰───╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @".");
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @".");
 }
 
 #[test]
@@ -324,15 +324,15 @@ fn one_of_seq() {
             .collect()
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @"0000  aa  0000  .  000  aa  000  .  0000  aa  0000");
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @"0000  aa  0000  .  000  aa  000  .  0000  aa  0000");
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
               ╰────────╯"here"
                                       ╰───────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @".  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .");
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @".  00  .");
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @".");
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @".  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .");
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @".  00  .");
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @".");
 }
 
 #[test]
@@ -358,15 +358,15 @@ fn one_of_seq_backwards() {
             .collect()
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @"0000  aa  0000  .  000  aa  000  .  0000  aa  0000");
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @"0000  aa  0000  .  000  aa  000  .  0000  aa  0000");
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
                        ╰───────╯"here"
                                            ╰────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @".  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .");
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @".  00  .");
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @".");
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @".  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .");
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @".  00  .");
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @".");
 }
 
 #[test]
@@ -382,23 +382,23 @@ fn trim_start() {
             .collect()
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
           ╰──────────────────────────────────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
           ╰───────────────────────────────────────────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
     ╰──────────────────────────────────────────────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @r###"
     .  00  .
     ╰──────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @r###"
     .
     ╰"here"
     "###);
@@ -417,23 +417,23 @@ fn trim_end() {
             .collect()
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
     ╰──────────────────────────────────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
     ╰───────────────────────────────────────────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
     ╰──────────────────────────────────────────────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @r###"
     .  00  .
     ╰──────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @r###"
     .
     ╰"here"
     "###);
@@ -452,23 +452,23 @@ fn trim() {
             .collect()
     };
 
-    insta::assert_display_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000.000aa000.0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  000  aa  000  .  0000  aa  0000
           ╰────────────────────────────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver("0000aa0000...000aa000..0000aa0000", split_by_char), @r###"
     0000  aa  0000  .  .  .  000  aa  000  .  .  0000  aa  0000
           ╰─────────────────────────────────────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".0000aa0000.000aa000.0000aa0000.", split_by_char), @r###"
     .  0000  aa  0000  .  000  aa  000  .  0000  aa  0000  .
     ╰──────────────────────────────────────────────────────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".00.", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".00.", split_by_char), @r###"
     .  00  .
     ╰──────╯"here"
     "###);
-    insta::assert_display_snapshot!(test_resolver(".", split_by_char), @r###"
+    insta::assert_snapshot!(test_resolver(".", split_by_char), @r###"
     .
     ╰"here"
     "###);

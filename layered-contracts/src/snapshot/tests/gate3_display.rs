@@ -284,7 +284,7 @@ fn test_doc_display_verbose_mode() {
     snapshot.spans.insert("DefinedTerm".to_string(), vec![span]);
     
     // Normal mode - high confidence hidden
-    let output_normal = format!("{}", DocDisplay::new(&snapshot));
+    let _output_normal = format!("{}", DocDisplay::new(&snapshot));
     
     // Verbose mode - always show confidence
     let output_verbose = format!("{}", DocDisplay::new(&snapshot).verbose());

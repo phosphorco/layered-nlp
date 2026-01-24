@@ -136,6 +136,7 @@ pub struct SemanticRoleLabeler {
     /// Prepositions that signal specific roles
     role_prepositions: HashMap<&'static str, ArgumentRole>,
     /// Verbs that take specific role patterns
+    #[allow(dead_code)]
     verb_patterns: HashMap<&'static str, VerbFrame>,
 }
 

@@ -65,6 +65,7 @@ mod tests {
         )
     }
 
+    #[allow(dead_code)]
     fn make_quantifier_op(trigger_start: usize, trigger_end: usize, domain_start: usize, domain_end: usize) -> ScopeOperator<QuantifierOp> {
         ScopeOperator::new(
             ScopeDimension::Quantifier,

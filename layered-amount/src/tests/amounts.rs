@@ -1,8 +1,8 @@
 use crate::{Amount, AmountResolver};
-use layered_nlp::{create_tokens, InputToken, LLLine, LLLineDisplay};
+use layered_nlp::{create_line_from_input_tokens, InputToken, LLLine, LLLineDisplay};
 
 fn test_setup(sentence: &'static str) -> LLLine {
-    create_tokens(
+    create_line_from_input_tokens(
         vec![InputToken::text(sentence.to_string(), Vec::new())],
         |text| text.encode_utf16().count(),
     )
@@ -21,7 +21,7 @@ fn test_amount_simple() {
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
     ll_line_display.include::<Amount>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     So     I     says     to     him  ,     "  You     owes     me     50     bucks  ,     prepare     y'self     to     die  .  "
                                                                        ╰╯Amount(50)
     "###);
@@ -40,7 +40,7 @@ fn test_amount_english() {
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
     ll_line_display.include::<Amount>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     First  ,     Paul     owed     me     $  1  .  25  ,     then     he     owed     me     $  1  .  35  ,     then     he     owed     me     $  45  ,  000  .  24  !
                                              ╰──────╯Amount(1.25)
                                                                                                 ╰──────╯Amount(1.35)
@@ -61,7 +61,7 @@ fn test_amounts_in_a_list() {
     let mut ll_line_display = LLLineDisplay::new(&ll_line);
     ll_line_display.include::<Amount>();
 
-    insta::assert_display_snapshot!(ll_line_display, @r###"
+    insta::assert_snapshot!(ll_line_display, @r###"
     1  ,     2  ,     3  ,     4  .     500  ,  000  ,     600  ,  000  ,     1     million  .
     ╰Amount(1)
              ╰Amount(2)
