@@ -42,6 +42,14 @@ Simplification:
     ╰────Address(Person, Location)─────╯
 ```
 
+### Contributor Workflows
+
+If you are working on fixture coverage or implementation, start here:
+
+- Expansion (fixtures + coverage gaps): `workflows/expansion.md`
+- Investigation (failure forensics): `workflows/investigation.md`
+- Implementation (make fixtures pass): `workflows/implementation.md`
+
 [![MIT licensed][mit-badge]][mit-url]
 [![APACHE licensed][apache-2-badge]][apache-2-url]
 

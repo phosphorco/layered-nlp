@@ -10,6 +10,14 @@ technical contributors who know contract language but may not be deep in NLP ter
 - `integration/`: End-to-end scenarios that exercise multiple capabilities together.
 - `expected_failures.toml`: Known gaps we accept for now (update when behavior changes).
 
+## Workflows
+
+If you are new to the fixture process, pick one workflow and follow it end to end:
+
+- Expansion (fixtures + coverage gaps): `../../workflows/expansion.md`
+- Implementation (make fixtures pass): `../../workflows/implementation.md`
+- Investigation (failure forensics): `../../workflows/investigation.md`
+
 ## Fixture Format (quick view)
 
 Fixtures use inline spans and expectations:

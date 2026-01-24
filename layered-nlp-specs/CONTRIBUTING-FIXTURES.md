@@ -4,6 +4,14 @@ This document defines the systematic methodology for improving layered-nlp throu
 
 ---
 
+## Workflows
+
+Pick a lane before you start. Each workflow has a focused goal and stopping criteria.
+
+- Expansion (fixtures + coverage gaps): `../workflows/expansion.md`
+- Implementation (make fixtures pass): `../workflows/implementation.md`
+- Investigation (failure forensics): `../workflows/investigation.md`
+
 ## Current State
 
 **Infrastructure Status:**
