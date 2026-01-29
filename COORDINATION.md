@@ -56,3 +56,22 @@ Each agent should report:
 - After analysis, before edits: post a brief plan.
 - After edits: run a targeted test (or explain why not).
 - Before handoff: provide summary + files + tests + issues.
+
+## Next Phase Plan (Preflight + Loop)
+
+### Preflight (always)
+1. Run the fixture harness once and capture the failing fixture list.
+2. Compare failures against `layered-nlp-specs/fixtures/expected_failures.toml`.
+3. Identify 1–2 **actual** root-cause areas to assign (avoid stale tasks).
+
+### Loop (repeat per root cause)
+1. **Assign** one root cause per agent with an explicit "stop if already passing" clause.
+2. **Inspect** the minimal repro fixture and the resolver responsible.
+3. **Fix** the resolver with narrow, layered changes (no ad-hoc debug files).
+4. **Verify** via a targeted test run (or explain why not).
+5. **Record** outcome in `COORDINATION_LOG.md` (success, drift, or stale task).
+
+### Safety Rules
+- Disable LSP prompts in agent panes to avoid blocking automation.
+- Use explicit staging by file path; never rely on `git add .` in this repo.
+- If the preflight shows a task is stale, stop and log it rather than editing.
