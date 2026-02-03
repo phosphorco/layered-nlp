@@ -1,0 +1,5 @@
+# Test: Coordination Conjunct Link
+
+«1:The Tenant shall pay rent» and «2:the Landlord shall provide utilities».
+
+> [1]: ClauseLink(role=conjunct, target=the Landlord shall provide utilities)

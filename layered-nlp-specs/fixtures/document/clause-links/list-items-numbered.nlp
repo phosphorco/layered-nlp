@@ -1,0 +1,7 @@
+# Test: List Items Numbered
+
+«1:Requirements»: 1. «2:pay rent» 2. «3:maintain the property».
+
+> [2]: ClauseLink(role=list_item, target=Requirements)
+> [3]: ClauseLink(role=list_item, target=Requirements)
+> [1]: ClauseLink(role=list_container, target=pay rent)

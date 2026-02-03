@@ -1,0 +1,5 @@
+# Test: Self Link Basic
+
+«1:The Tenant shall pay rent».
+
+> [1]: ClauseLink(role=self, target=The Tenant shall pay rent)

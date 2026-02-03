@@ -1,5 +1,5 @@
 # Test: Term Reference Simple
 
-«T:"Agreement"» means this contract. The «1:Agreement» shall remain in effect.
+"«T:Agreement»" means this contract. The «1:Agreement» shall remain in effect.
 
-> [1]: TermReference(target=§T)
+> [1]: TermReference(term_name=Agreement)

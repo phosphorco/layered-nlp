@@ -1,0 +1,7 @@
+# Test: Mixed Modals (Document)
+
+The «Tenant:The Tenant» may inspect the premises during business hours.
+---
+The «1:Tenant» shall provide access to the premises upon request.
+
+> [1]: Obligation(modal=shall, bearer=§Tenant, action=provide)

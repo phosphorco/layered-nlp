@@ -21,6 +21,15 @@ pub fn load_all_fixtures(dir: &Path) -> Result<Vec<(String, NlpFixture)>, SpecEr
     Ok(fixtures)
 }
 
+fn normalize_fixture_relpath(base: &Path, path: &Path) -> String {
+    let relative = path.strip_prefix(base).unwrap_or(path);
+    relative
+        .components()
+        .map(|component| component.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
 fn load_fixtures_recursive(
     base: &Path,
     dir: &Path,
@@ -43,9 +52,9 @@ fn load_fixtures_recursive(
         if path.is_dir() {
             load_fixtures_recursive(base, &path, fixtures)?;
         } else if path.extension().map_or(false, |e| e == "nlp") {
-            let relative = path.strip_prefix(base).unwrap_or(&path);
+            let relative = normalize_fixture_relpath(base, &path);
             let fixture = load_fixture(&path)?;
-            fixtures.push((relative.display().to_string(), fixture));
+            fixtures.push((relative, fixture));
         }
     }
 
@@ -60,6 +69,9 @@ mod tests {
     fn test_load_fixture() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("fixtures")
+            .join("line")
+            .join("obligations")
+            .join("modal")
             .join("simple-obligation.nlp");
         let fixture = load_fixture(&path).unwrap();
         assert!(fixture.title.is_some());

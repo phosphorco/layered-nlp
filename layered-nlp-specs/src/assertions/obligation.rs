@@ -64,9 +64,14 @@ impl SpanAssertion for ObligationPhrase {
                 "modal" => {
                     if let FieldValue::String(expected) = &check.value {
                         let expected_type = match expected.as_str() {
-                            "shall" | "must" => ObligationType::Duty,
+                            "shall" | "must" | "will" => ObligationType::Duty,
                             "may" | "can" => ObligationType::Permission,
-                            "shall not" | "must not" => ObligationType::Prohibition,
+                            "shall not"
+                            | "must not"
+                            | "may not"
+                            | "will not"
+                            | "cannot"
+                            | "can not" => ObligationType::Prohibition,
                             _ => {
                                 mismatch.fields.push(FieldMismatch::hard(
                                     "modal",

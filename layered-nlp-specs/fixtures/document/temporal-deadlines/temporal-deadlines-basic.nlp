@@ -1,0 +1,7 @@
+# Test: Temporal Deadlines (Document)
+
+The «Company:The Company» shall deliver the report within ten (10) business days after notice.
+---
+The «1:Company» shall provide confirmation within five (5) days.
+
+> [1]: Obligation(modal=shall, bearer=§Company, action=provide)

@@ -1,0 +1,5 @@
+# Test: Pronoun Target Resolution
+
+«Tenant:The Tenant» shall maintain the premises. «1:It» shall keep the premises in good order.
+
+> [1]: PronounReference(target=§Tenant, pronoun_type=ThirdSingularNeuter)

@@ -324,9 +324,13 @@ impl<'a> ObligationGraph<'a> {
         beneficiary_groups.sort_by(|a, b| {
             let a_conf = a.nodes.first().map(|node| node.confidence).unwrap_or(0.0);
             let b_conf = b.nodes.first().map(|node| node.confidence).unwrap_or(0.0);
+
             b_conf
                 .partial_cmp(&a_conf)
                 .unwrap_or(Ordering::Equal)
+                .then_with(|| a.descriptor.needs_verification.cmp(&b.descriptor.needs_verification))
+                .then_with(|| a.descriptor.display_text.cmp(&b.descriptor.display_text))
+                .then_with(|| a.descriptor.chain_id.cmp(&b.descriptor.chain_id))
         });
 
         PartyAnalytics {

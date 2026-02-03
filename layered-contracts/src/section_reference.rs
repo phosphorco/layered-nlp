@@ -436,15 +436,14 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Header detection needs document-level context to reliably distinguish from references"]
-    fn test_no_false_positive_on_header() {
-        // "Section 3.1 - Definitions" should ideally be filtered as a header
-        // However, per-line detection can't reliably distinguish headers from references.
-        // The SectionReferenceLinker (document-level) can filter these by checking
-        // if the reference overlaps with an existing SectionHeader.
+    fn test_header_reference_detected_line_level() {
+        // Line-level detection should still emit a reference candidate for headers.
+        // Document-level filtering is handled by SectionReferenceLinker.
         let refs = detect_references("Section 3.1 - Definitions");
-        // Either no refs, or low confidence
-        assert!(refs.is_empty() || refs.iter().all(|r| r.confidence < 0.9));
+        assert!(
+            refs.iter().any(|r| r.reference_text.contains("Section 3.1")),
+            "Expected line-level reference detection for header-like text"
+        );
     }
 
     #[test]

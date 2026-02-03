@@ -1,0 +1,7 @@
+# Test: List Items Sentence Container
+
+«1:The Tenant shall do the following»: (a) «2:pay rent» (b) «3:maintain the property».
+
+> [2]: ClauseLink(role=list_item, target=The Tenant shall do the following)
+> [3]: ClauseLink(role=list_item, target=The Tenant shall do the following)
+> [1]: ClauseLink(role=list_container, target=pay rent)

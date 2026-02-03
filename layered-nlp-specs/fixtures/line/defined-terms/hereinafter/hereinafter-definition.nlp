@@ -1,5 +1,5 @@
 # Test: Hereinafter Defined Term
 
-ABC Corp, hereinafter «1:"Seller"», shall deliver goods.
+ABC Corp, hereinafter "«1:Seller»", shall deliver goods.
 
 > [1]: DefinedTerm(term_name=Seller, definition_type=Hereinafter)

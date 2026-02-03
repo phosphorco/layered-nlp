@@ -412,31 +412,39 @@ impl ClauseLinkResolver {
     /// Get the ListMarker for a clause if it starts with one.
     ///
     /// A clause "starts with" a list marker if the marker's token range
-    /// overlaps with or immediately precedes the clause's start.
+    /// is close to the clause's start position.
     fn get_list_marker_for_clause(doc: &LayeredDocument, clause_span: &DocSpan) -> Option<ListMarker> {
         let line_idx = clause_span.start.line;
         let clause_start_token = clause_span.start.token;
 
         if let Some(line) = doc.lines().get(line_idx) {
+            // Find the closest marker to the clause start
+            let mut closest_marker: Option<(ListMarker, usize)> = None;
+            let mut closest_distance = usize::MAX;
+
             for find in line.find(&x::attr::<ListMarker>()) {
                 let (marker_start, marker_end) = find.range();
 
-                // Marker is at the start of clause if:
-                // - Marker ends at or just before clause start (marker_end == clause_start or marker_end == clause_start - 1)
-                // - Or marker overlaps clause start
-                if marker_end == clause_start_token
-                    || marker_end + 1 == clause_start_token
-                    || (marker_start <= clause_start_token && marker_end > clause_start_token)
-                {
-                    // find.attr() returns &&ListMarker, need to deref twice then clone
-                    return Some((*find.attr()).clone());
-                }
+                // Calculate distance between marker and clause start
+                let distance = if marker_end <= clause_start_token {
+                    clause_start_token - marker_end
+                } else if marker_start >= clause_start_token {
+                    marker_start - clause_start_token
+                } else {
+                    // Overlapping - distance is 0
+                    0
+                };
 
-                // Also check if marker is within first few tokens of clause
-                // (for cases where clause starts with the marker token itself)
-                if marker_start >= clause_start_token && marker_start <= clause_start_token + 2 {
-                    return Some((*find.attr()).clone());
+                // Only consider markers that are very close (within 3 tokens)
+                if distance <= 3 && distance < closest_distance {
+                    closest_distance = distance;
+                    closest_marker = Some(((*find.attr()).clone(), distance));
                 }
+            }
+
+            // Return the closest marker if found
+            if let Some((marker, _)) = closest_marker {
+                return Some(marker);
             }
         }
 
@@ -447,7 +455,7 @@ impl ClauseLinkResolver {
     ///
     /// The container is the clause immediately before the first list item.
     /// Each list item gets a ListItem link to the container.
-    /// The container gets ListContainer links to the list items.
+    /// The container gets ONE ListContainer link to the first item only.
     fn create_list_group_links(clause_spans: &[ClauseSpan], group: &[usize]) -> Vec<ClauseLink> {
         let mut links = Vec::new();
 
@@ -465,20 +473,20 @@ impl ClauseLinkResolver {
 
         let container_idx = first_item_idx - 1;
         let container_span = clause_spans[container_idx].span;
+        let first_item_span = clause_spans[first_item_idx].span;
 
         // Set confidence based on whether list items are on same line as container
-        let same_line = clause_spans[first_item_idx].span.start.line == container_span.start.line;
+        let same_line = first_item_span.start.line == container_span.start.line;
         let confidence = if same_line {
             LinkConfidence::High
         } else {
             LinkConfidence::Medium
         };
 
-        // Create bidirectional links for each list item
+        // Create ListItem links: each item → container
         for &item_idx in group {
             let item_span = clause_spans[item_idx].span;
 
-            // ListItem link: item → container
             links.push(ClauseLink {
                 anchor: item_span,
                 link: crate::ClauseLinkBuilder::list_item_link(container_span),
@@ -487,17 +495,17 @@ impl ClauseLinkResolver {
                 precedence_group: None,
                 obligation_type: None,
             });
-
-            // ListContainer link: container → item
-            links.push(ClauseLink {
-                anchor: container_span,
-                link: crate::ClauseLinkBuilder::list_container_link(item_span),
-                confidence,
-                coordination_type: None,
-                precedence_group: None,
-                obligation_type: None,
-            });
         }
+
+        // Create ONE ListContainer link: container → first item only
+        links.push(ClauseLink {
+            anchor: container_span,
+            link: crate::ClauseLinkBuilder::list_container_link(first_item_span),
+            confidence,
+            coordination_type: None,
+            precedence_group: None,
+            obligation_type: None,
+        });
 
         links
     }

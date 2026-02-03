@@ -1,0 +1,5 @@
+# Test: Prohibition Action Multiword
+
+The Tenant «1:shall not disclose» confidential information to third parties.
+
+> [1]: Obligation(modal=shall not, action=disclose confidential)

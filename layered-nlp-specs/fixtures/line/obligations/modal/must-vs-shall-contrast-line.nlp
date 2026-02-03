@@ -1,0 +1,6 @@
+# Test: Must vs Shall Contrast (Line)
+
+The «Tenant:The Tenant» «1:shall provide» notice and «2:must pay» rent within five days.
+
+> [1]: Obligation(modal=shall, bearer=§Tenant, action=provide)
+> [2]: Obligation(modal=must, bearer=§Tenant, action=pay)

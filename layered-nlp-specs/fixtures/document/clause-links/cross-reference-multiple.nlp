@@ -1,0 +1,6 @@
+# Test: Cross Reference Multiple
+
+«1:The Tenant shall comply with Section 3.2 and Exhibit A».
+
+> [1]: ClauseLink(role=cross_reference, target=Section 3.2)
+> [1]: ClauseLink(role=cross_reference, target=Exhibit A)

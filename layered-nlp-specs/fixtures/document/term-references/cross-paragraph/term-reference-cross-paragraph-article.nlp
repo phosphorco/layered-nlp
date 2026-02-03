@@ -1,0 +1,7 @@
+# Test: Term Reference with Article (Cross-Paragraph)
+
+"«T:Service Levels»" means the uptime and response time metrics defined in this Agreement.
+---
+The «1:Service Levels» must be measured quarterly.
+
+> [1]: TermReference(term_name=Service Levels)

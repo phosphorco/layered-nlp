@@ -1,0 +1,6 @@
+# Test: Negation with Exception (Line)
+
+The «Tenant:The Tenant» «1:shall not disclose» Confidential Information, except as required by law, and «2:must not use» it for marketing.
+
+> [1]: Obligation(modal=shall not, bearer=§Tenant, action=disclose)
+> [2]: Obligation(modal=must not, bearer=§Tenant, action=use)

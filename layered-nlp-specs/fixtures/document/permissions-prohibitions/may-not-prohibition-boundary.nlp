@@ -1,0 +1,7 @@
+# Test: May Not Boundary
+
+The «Tenant:The Tenant» may access the records during business hours.
+---
+The «1:Tenant» «2:may not access» the records after termination.
+
+> [1]: Obligation(modal=may not, bearer=§Tenant, action=access)

@@ -1,0 +1,6 @@
+# Test: Coordination Or Basic
+
+«1:The Tenant shall pay rent» or «2:the Landlord may terminate the lease».
+
+> [1]: Clause(type=leading_effect)
+> [2]: Clause(type=leading_effect)

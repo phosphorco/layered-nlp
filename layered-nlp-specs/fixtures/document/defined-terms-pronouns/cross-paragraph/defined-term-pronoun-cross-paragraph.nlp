@@ -1,0 +1,7 @@
+# Test: Defined Term + Pronoun Cross-Paragraph
+
+"«C:Company»" means ABC Corp, a Delaware corporation.
+---
+«1:It» shall deliver the Services in accordance with this Agreement.
+
+> [1]: PronounReference(pronoun_type=ThirdSingularNeuter, target=§C)

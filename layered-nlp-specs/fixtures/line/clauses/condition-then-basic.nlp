@@ -1,0 +1,6 @@
+# Test: Condition with Then
+
+If «1:payment is late», then «2:the Company shall charge a fee».
+
+> [1]: Clause(type=condition)
+> [2]: Clause(type=trailing_effect)

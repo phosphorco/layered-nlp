@@ -35,7 +35,6 @@ fn graph_nodes(input: &str) -> Vec<Scored<ObligationNode>> {
 }
 
 #[test]
-#[ignore = "Non-deterministic: beneficiary_groups order depends on HashMap iteration"]
 fn party_explorer_groups_by_beneficiary() {
     let input = r#"XYZ Inc (the "Buyer") exists. ABC Corp (the "Seller") shall deliver goods to the Buyer subject to Section 5. The Seller shall obtain Buyer consent if the Buyer submits a written request. The Seller shall remit fees to Regional Authority."#;
     let nodes = graph_nodes(input);

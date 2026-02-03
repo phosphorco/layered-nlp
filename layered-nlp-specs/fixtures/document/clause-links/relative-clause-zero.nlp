@@ -1,0 +1,5 @@
+# Test: Relative Clause Zero
+
+«1:The Tenant the Landlord selects» shall be approved.
+
+> [1]: ClauseLink(role=relative, target=The Tenant)

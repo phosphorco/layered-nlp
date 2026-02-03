@@ -1,0 +1,5 @@
+# Test: Permission Action
+
+The Tenant «1:may enter» the premises during business hours.
+
+> [1]: Obligation(modal=may, action=enter)

@@ -61,22 +61,29 @@ impl SpanAssertion for PronounReference {
         for check in &assertion.checks {
             match check.field.as_str() {
                 "target" => {
-                    // -> Entity syntax - check first candidate
-                    if check.operator == FieldOperator::Arrow {
-                        if let FieldValue::EntityRef(entity_id) = &check.value {
-                            let actual = self
-                                .candidates
-                                .first()
-                                .map(|c| c.text.clone())
-                                .unwrap_or_else(|| "<no candidates>".to_string());
+                    if let FieldValue::EntityRef(entity_id) = &check.value {
+                        let actual = self
+                            .candidates
+                            .first()
+                            .map(|c| c.text.clone())
+                            .unwrap_or_else(|| "<no candidates>".to_string());
 
-                            if !actual.to_lowercase().contains(&entity_id.to_lowercase()) {
-                                mismatch.fields.push(FieldMismatch::hard(
-                                    "target",
-                                    format!("{}{}", '\u{00A7}', entity_id),
-                                    actual,
-                                ));
+                        let matches = match check.operator {
+                            FieldOperator::Arrow => {
+                                actual.to_lowercase().contains(&entity_id.to_lowercase())
                             }
+                            FieldOperator::Equals => {
+                                actual.to_lowercase().contains(&entity_id.to_lowercase())
+                            }
+                            _ => false,
+                        };
+
+                        if !matches {
+                            mismatch.fields.push(FieldMismatch::hard(
+                                "target",
+                                format!("{}{}", '\u{00A7}', entity_id),
+                                actual,
+                            ));
                         }
                     }
                 }

@@ -1,0 +1,5 @@
+# Test: Obligation Bearer and Action
+
+The «Tenant:The Tenant» «1:shall pay» rent on the first business day of each month.
+
+> [1]: Obligation(modal=shall, bearer=§Tenant, action=pay)

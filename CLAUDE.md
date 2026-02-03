@@ -33,6 +33,15 @@ cargo clippy
 cargo run --example position_of_speech
 ```
 
+## Agent Operating Tips
+
+- **Use absolute paths** when running tools if your shell resets CWD.
+- **Large files** (e.g., `layered-clauses/src/clause_link_resolver.rs`) should be read in slices (`rg -n` then `sed -n`).
+- **Avoid ad-hoc debug files**; prefer existing tests or add a small targeted test and clean up any temporary files.
+- **Record fixture state**: update `layered-nlp-specs/fixtures/expected_failures.toml` when adding or clearing gaps.
+- **Summarize at handoff**: include summary, files changed, tests run, and issues encountered.
+- **For orchestrators**: see `COORDINATION.md` for multi-agent workflow guidance.
+
 ## Architecture Overview
 
 layered-nlp is a data-oriented NLP framework for incrementally building up recognizers that can produce multiple interpretations of text spans.

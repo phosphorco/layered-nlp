@@ -2,7 +2,9 @@
 
 use crate::assertion::{AssertionMismatch, SpanAssertion};
 use crate::fixture::{Assertion, AssertionBody};
-use layered_contracts::{DefinedTerm, ObligationPhrase, PronounReference};
+use layered_clauses::Clause;
+use crate::assertions::ClauseLinkMatch;
+use layered_contracts::{DefinedTerm, ObligationPhrase, PronounReference, TermReference};
 
 /// Result of matching assertions against resolver output.
 #[derive(Debug, Clone)]
@@ -34,7 +36,10 @@ pub fn is_supported_type(type_name: &str) -> bool {
         type_name,
         "Obligation" | "ObligationPhrase" |
         "PronounReference" | "PronounRef" |
-        "DefinedTerm"
+        "DefinedTerm" |
+        "TermReference" |
+        "Clause" |
+        "ClauseLink"
     )
 }
 
@@ -44,6 +49,9 @@ pub fn valid_fields_for_type(type_name: &str) -> Vec<&'static str> {
         "Obligation" | "ObligationPhrase" => vec!["modal", "bearer", "action"],
         "PronounReference" | "PronounRef" => vec!["target", "pronoun_type", "confidence"],
         "DefinedTerm" => vec!["term_name", "definition_type"],
+        "TermReference" => vec!["term_name", "definition_type", "target"],
+        "Clause" => vec!["type", "category"],
+        "ClauseLink" => vec!["role", "target"],
         _ => vec![],
     }
 }
@@ -76,6 +84,37 @@ pub fn check_defined_term(
     let assertion = DefinedTerm::parse_assertion(body)
         .map_err(|e| AssertionMismatch::new(&term.term_name, format!("parse error: {}", e)))?;
     term.check(&assertion)
+}
+
+/// Parse and check an assertion against a TermReference.
+pub fn check_term_reference(
+    term_ref: &TermReference,
+    body: &str,
+) -> Result<(), AssertionMismatch> {
+    let assertion = TermReference::parse_assertion(body)
+        .map_err(|e| AssertionMismatch::new(&term_ref.term_name, format!("parse error: {}", e)))?;
+    term_ref.check(&assertion)
+}
+
+/// Parse and check an assertion against a Clause.
+pub fn check_clause(clause: &Clause, body: &str) -> Result<(), AssertionMismatch> {
+    let assertion = Clause::parse_assertion(body)
+        .map_err(|e| AssertionMismatch::new(format!("{:?}", clause), format!("parse error: {}", e)))?;
+    clause.check(&assertion)
+}
+
+/// Parse and check an assertion against a ClauseLinkMatch.
+pub fn check_clause_link(
+    clause_link: &ClauseLinkMatch,
+    body: &str,
+) -> Result<(), AssertionMismatch> {
+    let assertion = ClauseLinkMatch::parse_assertion(body).map_err(|e| {
+        AssertionMismatch::new(
+            &clause_link.target_text,
+            format!("parse error: {}", e),
+        )
+    })?;
+    clause_link.check(&assertion)
 }
 
 /// Format an assertion body as a string for error messages.
@@ -145,7 +184,9 @@ impl Default for MatchResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use layered_contracts::{ObligationType, ObligorReference, DefinitionType, PronounType, AntecedentCandidate};
+    use layered_contracts::{
+        AntecedentCandidate, DefinitionType, ObligationType, ObligorReference, PronounType,
+    };
 
     #[test]
     fn test_check_obligation_shall() {
@@ -202,6 +243,16 @@ mod tests {
     }
 
     #[test]
+    fn test_check_term_reference() {
+        let term_ref = TermReference {
+            term_name: "Agreement".to_string(),
+            definition_type: DefinitionType::QuotedMeans,
+        };
+
+        assert!(check_term_reference(&term_ref, "term_name=Agreement").is_ok());
+    }
+
+    #[test]
     fn test_match_result() {
         let mut result = MatchResult::new();
         assert!(result.all_passed());
@@ -226,6 +277,9 @@ mod tests {
         assert!(is_supported_type("ObligationPhrase"));
         assert!(is_supported_type("DefinedTerm"));
         assert!(is_supported_type("PronounReference"));
+        assert!(is_supported_type("TermReference"));
+        assert!(is_supported_type("Clause"));
+        assert!(is_supported_type("ClauseLink"));
         assert!(!is_supported_type("Unknown"));
     }
 }

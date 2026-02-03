@@ -1,0 +1,7 @@
+# Test: Condition Then Multi-Sentence
+
+If «1:payment is late», then «2:the Company shall charge a fee». The Tenant shall pay interest.
+
+> [1]: Clause(type=condition)
+> [2]: Clause(type=trailing_effect)
+> ["The Tenant shall pay interest"]: Clause(type=independent)

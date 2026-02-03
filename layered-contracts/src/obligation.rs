@@ -62,9 +62,15 @@ impl ObligationType {
     /// Convert from a ContractKeyword modal.
     pub fn from_keyword(keyword: &ContractKeyword) -> Option<Self> {
         match keyword {
-            ContractKeyword::Shall => Some(Self::Duty),
-            ContractKeyword::May => Some(Self::Permission),
-            ContractKeyword::ShallNot => Some(Self::Prohibition),
+            ContractKeyword::Shall
+            | ContractKeyword::Must
+            | ContractKeyword::Will => Some(Self::Duty),
+            ContractKeyword::May | ContractKeyword::Can => Some(Self::Permission),
+            ContractKeyword::ShallNot
+            | ContractKeyword::MustNot
+            | ContractKeyword::MayNot
+            | ContractKeyword::Cannot
+            | ContractKeyword::WillNot => Some(Self::Prohibition),
             _ => None,
         }
     }
@@ -216,6 +222,44 @@ impl ObligationPhraseResolver {
     fn selection_is_before(&self, a: &LLSelection, b: &LLSelection) -> bool {
         let [before, after] = a.split_with(b);
         before.is_some() && after.is_none()
+    }
+
+    fn is_modal_keyword(keyword: &ContractKeyword) -> bool {
+        matches!(
+            keyword,
+            ContractKeyword::Shall
+                | ContractKeyword::Must
+                | ContractKeyword::May
+                | ContractKeyword::Can
+                | ContractKeyword::Will
+                | ContractKeyword::ShallNot
+                | ContractKeyword::MustNot
+                | ContractKeyword::MayNot
+                | ContractKeyword::Cannot
+                | ContractKeyword::WillNot
+        )
+    }
+
+    fn is_positive_modal(keyword: &ContractKeyword) -> bool {
+        matches!(
+            keyword,
+            ContractKeyword::Shall
+                | ContractKeyword::Must
+                | ContractKeyword::May
+                | ContractKeyword::Can
+                | ContractKeyword::Will
+        )
+    }
+
+    fn is_negated_modal(keyword: &ContractKeyword) -> bool {
+        matches!(
+            keyword,
+            ContractKeyword::ShallNot
+                | ContractKeyword::MustNot
+                | ContractKeyword::MayNot
+                | ContractKeyword::Cannot
+                | ContractKeyword::WillNot
+        )
     }
 
     /// Find the nearest obligor (TermReference or PronounReference) before the modal.
@@ -467,17 +511,10 @@ impl ObligationPhraseResolver {
             }
 
             // Check for another modal (start of new clause)
-            if current
-                .match_first_forwards(&x::attr_eq(&ContractKeyword::Shall))
-                .is_some()
-                || current
-                    .match_first_forwards(&x::attr_eq(&ContractKeyword::May))
-                    .is_some()
-                || current
-                    .match_first_forwards(&x::attr_eq(&ContractKeyword::ShallNot))
-                    .is_some()
-            {
-                break;
+            if let Some((_, kw)) = current.match_first_forwards(&x::attr::<ContractKeyword>()) {
+                if Self::is_modal_keyword(kw) {
+                    break;
+                }
             }
 
             // Check for condition starter (If, Unless, Provided, SubjectTo)
@@ -518,12 +555,7 @@ impl ObligationPhraseResolver {
         let modals: Vec<_> = selection
             .find_by(&x::attr::<ContractKeyword>())
             .into_iter()
-            .filter(|(sel, kw)| {
-                matches!(
-                    kw,
-                    ContractKeyword::Shall | ContractKeyword::May | ContractKeyword::ShallNot
-                ) && self.selection_is_before(after_sel, sel)
-            })
+            .filter(|(sel, kw)| Self::is_modal_keyword(kw) && self.selection_is_before(after_sel, sel))
             .collect();
 
         modals.first().map(|(sel, _)| sel.clone())
@@ -584,12 +616,8 @@ impl ObligationPhraseResolver {
                         .find_by(&x::attr::<ContractKeyword>())
                         .into_iter()
                         .any(|(sel, kw)| {
-                            matches!(
-                                kw,
-                                ContractKeyword::Shall
-                                    | ContractKeyword::May
-                                    | ContractKeyword::ShallNot
-                            ) && self.selection_is_before(&cond_sel, &sel)
+                            Self::is_modal_keyword(kw)
+                                && self.selection_is_before(&cond_sel, &sel)
                                 && self.selection_is_before(&sel, modal_sel)
                         });
 
@@ -625,7 +653,7 @@ impl ObligationPhraseResolver {
     /// Extract a preview of text following a condition keyword.
     ///
     /// Includes words (WORD) and numbers (NATN) to preserve references like "Section 5".
-    /// Stops at modal keywords (shall, may) to avoid bleeding into subsequent clauses.
+    /// Stops at modal keywords to avoid bleeding into subsequent clauses.
     fn extract_condition_preview(&self, cond_sel: &LLSelection) -> String {
         let mut tokens = Vec::new();
         let mut current = cond_sel.clone();
@@ -640,17 +668,10 @@ impl ObligationPhraseResolver {
             }
 
             // Check for modal keyword - stop before including it
-            if current
-                .match_first_forwards(&x::attr_eq(&ContractKeyword::Shall))
-                .is_some()
-                || current
-                    .match_first_forwards(&x::attr_eq(&ContractKeyword::May))
-                    .is_some()
-                || current
-                    .match_first_forwards(&x::attr_eq(&ContractKeyword::ShallNot))
-                    .is_some()
-            {
-                break;
+            if let Some((_, kw)) = current.match_first_forwards(&x::attr::<ContractKeyword>()) {
+                if Self::is_modal_keyword(kw) {
+                    break;
+                }
             }
 
             // Try to get next word
@@ -744,34 +765,29 @@ impl Resolver for ObligationPhraseResolver {
     fn go(&self, selection: LLSelection) -> Vec<LLCursorAssignment<Self::Attr>> {
         let mut results = Vec::new();
 
-        // Find all modal keywords (Shall, May, ShallNot)
+        // Find all modal keywords
         let modals: Vec<_> = selection
             .find_by(&x::attr::<ContractKeyword>())
             .into_iter()
-            .filter(|(_, kw)| {
-                matches!(
-                    kw,
-                    ContractKeyword::Shall | ContractKeyword::May | ContractKeyword::ShallNot
-                )
-            })
+            .filter(|(_, kw)| Self::is_modal_keyword(kw))
             .collect();
 
-        // Collect ShallNot positions to skip standalone Shall that are part of ShallNot
-        let shall_not_positions: Vec<_> = modals
+        // Collect negated modal positions to skip standalone positives that are part of them
+        let negated_positions: Vec<_> = modals
             .iter()
-            .filter(|(_, kw)| **kw == ContractKeyword::ShallNot)
+            .filter(|(_, kw)| Self::is_negated_modal(kw))
             .map(|(sel, _)| sel.clone())
             .collect();
 
         for (modal_sel, keyword) in modals {
-            // Skip Shall if it's part of a ShallNot (the Shall token is contained within ShallNot span)
-            if *keyword == ContractKeyword::Shall {
-                let is_part_of_shall_not = shall_not_positions.iter().any(|shall_not_sel| {
+            // Skip positive modals if they're part of a negated modal span
+            if Self::is_positive_modal(keyword) {
+                let is_part_of_negated = negated_positions.iter().any(|negated_sel| {
                     // Check if modal_sel is contained within shall_not_sel
-                    let [before, after] = modal_sel.split_with(shall_not_sel);
+                    let [before, after] = modal_sel.split_with(negated_sel);
                     before.is_none() && after.is_none()
                 });
-                if is_part_of_shall_not {
+                if is_part_of_negated {
                     continue;
                 }
             }

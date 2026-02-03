@@ -1,0 +1,7 @@
+# Test: Pronoun Ambiguity (They)
+
+The «Tenant:The Tenant» met with the «Landlord:The Landlord» to review the agreement.
+---
+«1:They» shall cooperate in good faith.
+
+> [1]: PronounReference(pronoun_type=ThirdPlural)

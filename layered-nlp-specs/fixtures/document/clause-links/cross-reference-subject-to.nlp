@@ -1,0 +1,5 @@
+# Test: Cross Reference Subject To
+
+«1:The Tenant shall comply, subject to Section 3.2».
+
+> [1]: ClauseLink(role=cross_reference, target=Section 3.2)

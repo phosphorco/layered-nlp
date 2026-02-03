@@ -25,6 +25,7 @@ keywords = ["layered-nlp", "nlp", "testing", "fixtures"]
 
 [dependencies]
 layered-nlp = { path = "..", version = "0.1" }
+layered-clauses = { path = "../layered-clauses" }
 layered-contracts = { path = "../layered-contracts" }
 layered-nlp-document = { path = "../layered-nlp-document" }
 layered-part-of-speech = { path = "../layered-part-of-speech" }

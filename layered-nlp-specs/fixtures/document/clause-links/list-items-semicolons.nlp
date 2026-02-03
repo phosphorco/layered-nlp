@@ -1,0 +1,8 @@
+# Test: List Items Semicolons
+
+«1:Requirements»: (a) «2:pay rent»; (b) «3:maintain the property»; (c) «4:provide notice».
+
+> [2]: ClauseLink(role=list_item, target=Requirements)
+> [3]: ClauseLink(role=list_item, target=Requirements)
+> [4]: ClauseLink(role=list_item, target=Requirements)
+> [1]: ClauseLink(role=list_container, target=pay rent)

@@ -1,0 +1,6 @@
+# Test: Cross Reference Schedule Appendix
+
+«1:The Tenant shall comply with Schedule 1 and Appendix B».
+
+> [1]: ClauseLink(role=cross_reference, target=Schedule 1)
+> [1]: ClauseLink(role=cross_reference, target=Appendix B)

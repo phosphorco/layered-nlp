@@ -1,5 +1,5 @@
 # Test: Defined Term Detection
 
-«1:"Tenant"» means the individual leasing the property under this Agreement.
+"«1:Tenant»" means the individual leasing the property under this Agreement.
 
 > [1]: DefinedTerm(term_name=Tenant, definition_type=QuotedMeans)

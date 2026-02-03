@@ -1,0 +1,11 @@
+# Test: Cross-Paragraph Condition
+
+If «1:payment is late», «2:the Company shall charge a fee».
+
+---
+
+«3:The Tenant shall pay interest».
+
+> [1]: Clause(type=condition)
+> [2]: Clause(type=trailing_effect)
+> [3]: Clause(type=independent)

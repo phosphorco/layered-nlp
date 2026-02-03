@@ -1,0 +1,5 @@
+# Test: Defined Term with Article
+
+The "«1:Company»" means ABC Corp, a Delaware corporation.
+
+> [1]: DefinedTerm(term_name=Company, definition_type=QuotedMeans)

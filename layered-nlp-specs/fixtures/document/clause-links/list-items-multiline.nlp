@@ -1,0 +1,9 @@
+# Test: List Items Multiline
+
+«1:Do the following»:
+(a) «2:pay rent»
+(b) «3:maintain the property»
+
+> [2]: ClauseLink(role=list_item, target=Do the following)
+> [3]: ClauseLink(role=list_item, target=Do the following)
+> [1]: ClauseLink(role=list_container, target=pay rent)

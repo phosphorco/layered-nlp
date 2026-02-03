@@ -1,0 +1,5 @@
+# Test: May Not Single Line
+
+The Tenant «1:may not access» the records after termination.
+
+> [1]: Obligation(modal=may not, action=access)

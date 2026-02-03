@@ -1,0 +1,5 @@
+# Test: Exception Unless Link
+
+«1:The Tenant shall pay rent», unless «2:payment is waived by the Landlord».
+
+> [2]: ClauseLink(role=exception, target=The Tenant shall pay rent)

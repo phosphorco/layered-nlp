@@ -1,0 +1,5 @@
+# Test: Relative Clause Basic
+
+«1:The Tenant who fails to pay rent» shall be in default.
+
+> [1]: ClauseLink(role=relative, target=The Tenant)

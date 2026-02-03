@@ -13,7 +13,7 @@
 
 [[pending]]
 fixture = "document/obligations/cross-paragraph/multi-paragraph-obligation.nlp"
-assertion = "S0.[1]"
+assertion = "S1.[1]"
 reason = "Multi-paragraph context not propagating correctly for span detection"
 added = "2025-01-07"
 
@@ -23,14 +23,6 @@ added = "2025-01-07"
 fixture = "document/pronouns/cross-paragraph/pronoun-reference.nlp"
 assertion = "S1.[1]"
 reason = "Cross-paragraph pronoun resolution not yet working"
-added = "2025-01-07"
-
-# --- defined-term-single.nlp ---
-
-[[pending]]
-fixture = "line/defined-terms/quoted-means/defined-term-single.nlp"
-assertion = "S0.[1]"
-reason = "Quote marks in fixture span text don't match resolver output (resolver strips quotes)"
 added = "2025-01-07"
 
 # --- defined-term-complex.nlp ---
@@ -45,46 +37,6 @@ added = "2025-01-07"
 fixture = "document/defined-terms/cross-paragraph/defined-term-complex.nlp"
 assertion = "S1.[1]"
 reason = "Cross-paragraph term references not yet supported"
-added = "2025-01-07"
-
-# --- must-simple.nlp ---
-
-[[pending]]
-fixture = "line/obligations/modal/must-simple.nlp"
-assertion = "S0.[1]"
-reason = "ObligationPhraseResolver not detecting 'must' modal in fixture runner"
-added = "2025-01-07"
-
-# --- must-not-simple.nlp ---
-
-[[pending]]
-fixture = "line/prohibitions/modal/must-not-simple.nlp"
-assertion = "S0.[1]"
-reason = "Prohibition with 'must not' not detected as ObligationPhrase"
-added = "2025-01-07"
-
-# --- parenthetical-definition.nlp ---
-
-[[pending]]
-fixture = "line/defined-terms/parenthetical/parenthetical-definition.nlp"
-assertion = "S0.[1]"
-reason = "Parenthetical defined term span not matching resolver output"
-added = "2025-01-07"
-
-# --- hereinafter-definition.nlp ---
-
-[[pending]]
-fixture = "line/defined-terms/hereinafter/hereinafter-definition.nlp"
-assertion = "S0.[1]"
-reason = "Hereinafter defined term span not matching resolver output"
-added = "2025-01-07"
-
-# --- term-reference-simple.nlp ---
-
-[[pending]]
-fixture = "line/term-references/term-reference-simple.nlp"
-assertion = "S0.[1]"
-reason = "TermReference assertions are not supported by the matcher yet"
 added = "2025-01-07"
 
 # --- conflict-delivery-window.nlp ---
@@ -134,6 +86,372 @@ fixture = "integration/contract-sections/full-contract-section.nlp"
 assertion = "S2.[1]"
 reason = "Complex multi-paragraph fixture: third paragraph obligation detection"
 added = "2025-01-07"
+
+# --- Additional failing fixtures (2026-01-23) ---
+
+# Defined term fixtures now pass - removed 2026-01-27
+
+[[pending]]
+fixture = "line/prohibitions/modal/negation-exception-scope-line.nlp"
+assertion = "S0.[1]"
+reason = "Negation scope with exception not detected in fixture runner"
+added = "2026-01-23"
+
+[[pending]]
+fixture = "line/prohibitions/modal/negation-exception-scope-line.nlp"
+assertion = "S0.[2]"
+reason = "Negation scope with exception not detected in fixture runner"
+added = "2026-01-23"
+
+[[pending]]
+fixture = "document/permissions-prohibitions/may-not-prohibition-boundary.nlp"
+assertion = "S1.[1]"
+reason = "Cross-paragraph may-not prohibition not detected in fixture runner"
+added = "2026-01-23"
+
+[[pending]]
+fixture = "document/mixed-modals/mixed-modals-basic.nlp"
+assertion = "S1.[1]"
+reason = "Mixed modal obligation not detected in fixture runner"
+added = "2026-01-23"
+
+[[pending]]
+fixture = "document/pronouns/ambiguity/pronoun-ambiguity-they.nlp"
+assertion = "S1.[1]"
+reason = "Pronoun ambiguity resolution not detected in fixture runner"
+added = "2026-01-23"
+
+[[pending]]
+fixture = "document/temporal-deadlines/temporal-deadlines-basic.nlp"
+assertion = "S1.[1]"
+reason = "Temporal deadline obligation not detected in fixture runner"
+added = "2026-01-23"
+
+[[pending]]
+fixture = "document/term-references/cross-paragraph/term-reference-cross-paragraph.nlp"
+assertion = "S1.[1]"
+reason = "Cross-paragraph term reference not detected in fixture runner"
+added = "2026-01-23"
+
+[[pending]]
+fixture = "document/term-references/cross-paragraph/term-reference-cross-paragraph-article.nlp"
+assertion = "S1.[1]"
+reason = "Cross-paragraph term reference not detected in fixture runner"
+added = "2026-01-23"
+
+[[pending]]
+fixture = "document/defined-terms-pronouns/cross-paragraph/defined-term-pronoun-cross-paragraph.nlp"
+assertion = "S1.[1]"
+reason = "Cross-paragraph pronoun reference not detected in fixture runner"
+added = "2026-01-23"
+
+[[pending]]
+fixture = "document/permissions-prohibitions/permission-vs-prohibition-same-verb.nlp"
+assertion = "S1.[1]"
+reason = "Permission vs prohibition obligation not detected in fixture runner"
+added = "2026-01-23"
+
+# --- Clause fixtures (2026-01-24) ---
+
+[[pending]]
+fixture = "document/clauses/condition-then-multi-sentence.nlp"
+assertion = "S0.[\"The Tenant shall pay interest\"]"
+reason = "Condition clause state leaks across sentence boundary; second sentence labeled TrailingEffect"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-basic.nlp"
+assertion = "S0.[2]"
+reason = "List item link not emitted for parenthesized list items"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-basic.nlp"
+assertion = "S0.[3]"
+reason = "List item link not emitted for parenthesized list items"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-basic.nlp"
+assertion = "S0.[1]"
+reason = "List container link targets combined list span instead of individual item"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/cross-reference-basic.nlp"
+assertion = "S0.[1]"
+reason = "Clause cross-reference link not emitted for Section 3.2 reference"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-numbered.nlp"
+assertion = "S0.[2]"
+reason = "Numbered list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-numbered.nlp"
+assertion = "S0.[1]"
+reason = "Numbered list container link target mismatch"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-roman.nlp"
+assertion = "S0.[2]"
+reason = "Roman numeral list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-roman.nlp"
+assertion = "S0.[3]"
+reason = "Roman numeral list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-roman.nlp"
+assertion = "S0.[1]"
+reason = "Roman numeral list container link target mismatch"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/relative-clause-basic.nlp"
+assertion = "S0.[1]"
+reason = "Relative clause link not emitted for 'who' clause"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-coordination.nlp"
+assertion = "S0.[2]"
+reason = "List item link not emitted for coordinated list items"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-coordination.nlp"
+assertion = "S0.[3]"
+reason = "List item link not emitted for coordinated list items"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-coordination.nlp"
+assertion = "S0.[4]"
+reason = "List item link not emitted for coordinated list items"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-coordination.nlp"
+assertion = "S0.[1]"
+reason = "List container link not emitted; coordination link detected instead"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/cross-reference-subject-to.nlp"
+assertion = "S0.[1]"
+reason = "Clause cross-reference link not emitted for subject-to Section reference"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/relative-clause-zero.nlp"
+assertion = "S0.[1]"
+reason = "Relative clause link not emitted for zero relative clause"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-numbered-paren.nlp"
+assertion = "S0.[2]"
+reason = "Numbered-paren list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-numbered-paren.nlp"
+assertion = "S0.[3]"
+reason = "Numbered-paren list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-numbered-paren.nlp"
+assertion = "S0.[1]"
+reason = "Numbered-paren list container link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-marker-included.nlp"
+assertion = "S0.[2]"
+reason = "List item link not emitted even when marker included in span"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-marker-included.nlp"
+assertion = "S0.[3]"
+reason = "List item link not emitted even when marker included in span"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-marker-included.nlp"
+assertion = "S0.[1]"
+reason = "List container link target mismatch with marker-included span"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/cross-reference-punctuation.nlp"
+assertion = "S0.[1]"
+reason = "Clause cross-reference link not emitted with trailing punctuation"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-multiline.nlp"
+assertion = "S0.[2]"
+reason = "Multiline list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-multiline.nlp"
+assertion = "S0.[3]"
+reason = "Multiline list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-multiline.nlp"
+assertion = "S0.[1]"
+reason = "Multiline list container link target mismatch"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-cross-paragraph.nlp"
+assertion = "S0.[2]"
+reason = "Cross-paragraph list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-cross-paragraph.nlp"
+assertion = "S0.[3]"
+reason = "Cross-paragraph list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-cross-paragraph.nlp"
+assertion = "S0.[1]"
+reason = "Cross-paragraph list container link target mismatch"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-mixed-markers.nlp"
+assertion = "S0.[2]"
+reason = "Mixed-marker list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-mixed-markers.nlp"
+assertion = "S0.[3]"
+reason = "Mixed-marker list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-mixed-markers.nlp"
+assertion = "S0.[4]"
+reason = "Mixed-marker list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-mixed-markers.nlp"
+assertion = "S0.[1]"
+reason = "Mixed-marker list container link target mismatch"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/cross-reference-multiple.nlp"
+assertion = "S0.[1]"
+reason = "Multiple cross-reference links not emitted from single clause"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-sentence-container.nlp"
+assertion = "S0.[2]"
+reason = "Sentence container list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-sentence-container.nlp"
+assertion = "S0.[3]"
+reason = "Sentence container list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-sentence-container.nlp"
+assertion = "S0.[1]"
+reason = "Sentence container list link target mismatch"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-semicolons.nlp"
+assertion = "S0.[2]"
+reason = "Semicolon list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-semicolons.nlp"
+assertion = "S0.[3]"
+reason = "Semicolon list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-semicolons.nlp"
+assertion = "S0.[4]"
+reason = "Semicolon list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-semicolons.nlp"
+assertion = "S0.[1]"
+reason = "Semicolon list container link target mismatch"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-next-sentence.nlp"
+assertion = "S0.[2]"
+reason = "Next-sentence list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-next-sentence.nlp"
+assertion = "S0.[3]"
+reason = "Next-sentence list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-next-sentence.nlp"
+assertion = "S0.[1]"
+reason = "Next-sentence list container link target mismatch"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-semicolons-coordination.nlp"
+assertion = "S0.[2]"
+reason = "Semicolon-coordination list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-semicolons-coordination.nlp"
+assertion = "S0.[3]"
+reason = "Semicolon-coordination list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-semicolons-coordination.nlp"
+assertion = "S0.[4]"
+reason = "Semicolon-coordination list item link not emitted"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/list-items-semicolons-coordination.nlp"
+assertion = "S0.[1]"
+reason = "Semicolon-coordination list container link target mismatch"
+added = "2026-01-24"
+
+[[pending]]
+fixture = "document/clause-links/cross-reference-schedule-appendix.nlp"
+assertion = "S0.[1]"
+reason = "Schedule/Appendix cross-reference links not emitted from clause"
+added = "2026-01-24"
 
 # Example of a known limitation:
 # [[known]]

@@ -1,0 +1,8 @@
+# Test: Must vs Shall (Document)
+
+The «Tenant:The Tenant» «1:shall provide» quarterly reports to the Landlord.
+---
+The «2:Tenant» «3:must maintain» accurate records for inspection.
+
+> [1]: Obligation(modal=shall, bearer=§Tenant, action=provide)
+> [3]: Obligation(modal=must, bearer=§Tenant, action=maintain)

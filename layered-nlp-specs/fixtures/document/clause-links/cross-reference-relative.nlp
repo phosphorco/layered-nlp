@@ -1,0 +1,5 @@
+# Test: Cross Reference Relative
+
+«1:The Tenant shall comply hereof».
+
+> [1]: ClauseLink(role=cross_reference, target=hereof)

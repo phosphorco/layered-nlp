@@ -1,0 +1,6 @@
+# Test: Exception Unless Basic
+
+«1:The Tenant shall pay rent», unless «2:payment is waived by the Landlord».
+
+> [1]: Clause(type=leading_effect)
+> [2]: Clause(type=leading_effect)

@@ -1,0 +1,6 @@
+# Test: Exception Chain Basic
+
+«1:The Tenant shall pay rent», unless «2:an emergency applies», unless «3:the Landlord waives the fee».
+
+> [2]: ClauseLink(role=exception, target=The Tenant shall pay rent)
+> [3]: ClauseLink(role=exception, target=The Tenant shall pay rent)

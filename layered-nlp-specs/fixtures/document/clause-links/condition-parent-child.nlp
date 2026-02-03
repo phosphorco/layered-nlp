@@ -1,0 +1,6 @@
+# Test: Condition Parent Child
+
+If «1:payment is late», then «2:the Company shall charge a fee».
+
+> [1]: ClauseLink(role=parent, target=the Company shall charge a fee)
+> [2]: ClauseLink(role=child, target=payment is late)

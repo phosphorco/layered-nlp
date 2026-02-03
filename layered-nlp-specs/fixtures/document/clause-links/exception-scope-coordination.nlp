@@ -1,0 +1,6 @@
+# Test: Exception Scope Coordination
+
+«1:The Tenant shall pay rent» and «2:the Landlord shall provide utilities», unless «3:payment is waived by the Landlord».
+
+> [3]: ClauseLink(role=exception, target=The Tenant shall pay rent)
+> [3]: ClauseLink(role=exception, target=the Landlord shall provide utilities)

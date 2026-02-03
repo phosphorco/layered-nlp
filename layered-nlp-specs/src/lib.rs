@@ -43,14 +43,18 @@ pub use assertion::{
     AssertionMismatch, AssertionSpec, FieldMismatch, FieldOperator, FieldValue, MismatchSeverity,
     ParseError, SpanAssertion, TypeFieldCheck,
 };
-pub use assertions::{DefinedTermAssertion, ObligationAssertion, PronounAssertion};
+pub use assertions::{
+    ClauseAssertion, ClauseLinkAssertion, ClauseLinkMatch, DefinedTermAssertion, ObligationAssertion,
+    PronounAssertion, TermReferenceAssertion,
+};
 pub use errors::{SpecError, SpecResult};
 pub use fixture::{
     Assertion, AssertionBody, CompareOp, FieldCheck, NlpFixture, RefTarget, SpanMarker,
 };
 pub use matcher::{
     MatchResult, AssertionResult, AssertionOutcome,
-    check_obligation, check_pronoun, check_defined_term,
+    check_clause, check_clause_link, check_obligation, check_pronoun, check_defined_term,
+    check_term_reference,
     is_supported_type, valid_fields_for_type,
 };
 pub use parser::{parse_fixture, parse_spans};

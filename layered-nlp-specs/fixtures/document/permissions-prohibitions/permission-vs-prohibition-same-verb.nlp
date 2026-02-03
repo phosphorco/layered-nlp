@@ -1,0 +1,7 @@
+# Test: Permission vs Prohibition (Same Verb)
+
+The «Tenant:The Tenant» may access the records during business hours.
+---
+The «1:Tenant» «2:shall not access» the records without written approval.
+
+> [1]: Obligation(modal=shall not, bearer=§Tenant, action=access)

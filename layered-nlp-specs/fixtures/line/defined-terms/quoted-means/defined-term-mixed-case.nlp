@@ -1,0 +1,5 @@
+# Test: Defined Term Mixed Case
+
+"«1:CoMpAnY»" means ABC Corp, a Delaware corporation.
+
+> [1]: DefinedTerm(term_name=CoMpAnY, definition_type=QuotedMeans)

@@ -1,0 +1,7 @@
+# Test: List Items Roman
+
+«1:Deliverables»: (i) «2:provide reports» (ii) «3:maintain records».
+
+> [2]: ClauseLink(role=list_item, target=Deliverables)
+> [3]: ClauseLink(role=list_item, target=Deliverables)
+> [1]: ClauseLink(role=list_container, target=provide reports)

@@ -1,6 +1,7 @@
 # Contract Diff System: Technical Specification
 
 This document specifies the missing components needed to build the semantic contract comparison viewer.
+For a higher-level, versioned view that includes clarification replay and history, see `docs/versioned-diff-architecture.md`.
 
 ---
 

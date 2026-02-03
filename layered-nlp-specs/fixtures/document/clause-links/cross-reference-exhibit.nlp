@@ -1,0 +1,5 @@
+# Test: Cross Reference Exhibit
+
+«1:The Tenant shall comply with Exhibit A».
+
+> [1]: ClauseLink(role=cross_reference, target=Exhibit A)
